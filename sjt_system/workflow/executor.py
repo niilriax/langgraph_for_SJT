@@ -688,6 +688,12 @@ def build_plateau_gap_decision_payload(
                     "version": item.get("version"),
                     "disposition_status": str(dis.get("status") or ""),
                     "eligible": _is_plateau_gap_eligible(dis),
+                    # pending-SME candidates may still be force-resolved by an
+                    # explicit user override (developmental fill), but they are
+                    # never offered as ordinary A/B choices.
+                    "force_allowed": (
+                        str(dis.get("status") or "") == "pending_sme_review"
+                    ),
                     "failed_gates": quality.get("failed_gates") or [],
                     "recommendation": quality.get("recommendation"),
                     "facet_citc": quality.get("facet_citc"),
@@ -779,9 +785,12 @@ def apply_plateau_gap_fills(
         item_id = str(fill.get("item_id") or "")
         if item_id not in items or item_id in selected_ids:
             continue
-        if not _is_plateau_gap_eligible(
-            dispositions_out.get(item_id) or {}
-        ):
+        dis = dispositions_out.get(item_id) or {}
+        dis_status = str(dis.get("status") or "")
+        sme_override = bool(fill.get("sme_override"))
+        if dis_status == "eliminated":
+            continue
+        if dis_status == "pending_sme_review" and not sme_override:
             continue
         mode = str(fill.get("mode") or "pick")
         if mode == "manual" and isinstance(fill.get("edited_item"), Mapping):
@@ -793,21 +802,28 @@ def apply_plateau_gap_fills(
         if item_id not in retained_ids:
             retained_out.append(deepcopy(dict(chosen)))
             retained_ids.add(item_id)
+        if dis_status == "pending_sme_review" and sme_override:
+            disposition_reason = "user_forced_sme_plateau_fill"
+            reason_text = "平台期补位：该题仍在待SME，用户以开发版证据强制补位收卷。"
+        else:
+            disposition_reason = "user_resolved_plateau_gap"
+            reason_text = (
+                "平台期补位：用户选定该题并以开发版证据进入正式卷。"
+                if mode == "pick"
+                else "平台期补位：用户手动修改后以开发版证据进入正式卷。"
+            )
         dispositions_out[item_id] = {
             "status": "provisional_plateau_fill",
             "item_version": chosen.get("version"),
             "mode": mode,
-            "reason": "user_resolved_plateau_gap",
+            "reason": disposition_reason,
         }
-        reasons_out[item_id] = (
-            "平台期补位：用户选定该题并以开发版证据进入正式卷。"
-            if mode == "pick"
-            else "平台期补位：用户手动修改后以开发版证据进入正式卷。"
-        )
+        reasons_out[item_id] = reason_text
         flags_out[item_id] = {
             "reason": "plateau_gap_provisional_fill",
             "mode": mode,
             "item_version": chosen.get("version"),
+            "sme_override": sme_override,
         }
     for cell in coverage_cells:
         cell_id = str(cell["blueprint_cell_id"])

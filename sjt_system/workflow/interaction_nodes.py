@@ -1011,6 +1011,7 @@ def plateau_gap_decision_node(state: PSJTState) -> dict:
                 errors.append(f"单元 {cell_id} 重复处置")
                 break
             item_id = str(res.get("item_id") or "")
+            sme_override = bool(res.get("sme_override"))
             candidate = next(
                 (
                     row
@@ -1019,7 +1020,14 @@ def plateau_gap_decision_node(state: PSJTState) -> dict:
                 ),
                 None,
             )
-            if candidate is None or not candidate.get("eligible"):
+            allowed = bool(
+                candidate is not None
+                and (
+                    candidate.get("eligible")
+                    or (candidate.get("force_allowed") and sme_override)
+                )
+            )
+            if not allowed:
                 errors.append(f"单元 {cell_id} 的候选 {item_id} 不可选")
                 break
             base_item = frozen_index.get(item_id)
@@ -1039,10 +1047,15 @@ def plateau_gap_decision_node(state: PSJTState) -> dict:
                 fills[cell_id] = {
                     "item_id": item_id,
                     "mode": "manual",
+                    "sme_override": sme_override,
                     "edited_item": edited_item,
                 }
             elif mode == "pick":
-                fills[cell_id] = {"item_id": item_id, "mode": "pick"}
+                fills[cell_id] = {
+                    "item_id": item_id,
+                    "mode": "pick",
+                    "sme_override": sme_override,
+                }
             else:
                 errors.append(f"单元 {cell_id} 的模式无效")
                 break

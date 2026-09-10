@@ -1659,7 +1659,8 @@ def _render_plateau_gap_decision(payload: Mapping[str, Any]) -> None:
         if isinstance(row, Mapping)
     ]
     st.markdown(str(payload.get("summary") or ""))
-    unresolved_sme = False
+    any_sme_offered = False
+    unresolvable = False
     for cell in gap_cells:
         candidates = [
             dict(row)
@@ -1667,12 +1668,14 @@ def _render_plateau_gap_decision(payload: Mapping[str, Any]) -> None:
             if isinstance(row, Mapping)
         ]
         eligible = [row for row in candidates if row.get("eligible")]
-        if not eligible:
-            unresolved_sme = True
-    if unresolved_sme:
-        st.warning(
-            "存在没有 A/B 候选的缺口单元（候选都在待 SME/已淘汰）："
-            "请先人工处置这些单元，或选择暂停保存。"
+        sme = [row for row in candidates if row.get("force_allowed")]
+        any_sme_offered = any_sme_offered or bool(sme)
+        if not eligible and not sme:
+            unresolvable = True
+    if unresolvable:
+        st.error(
+            "存在没有可处置候选的缺口单元（候选均已淘汰）："
+            "请先人工处理，或暂停保存。"
         )
         if st.button(
             "暂停保存",
@@ -1681,9 +1684,13 @@ def _render_plateau_gap_decision(payload: Mapping[str, Any]) -> None:
         ):
             _submit_decision({"decision": "stop"})
         return
+    if any_sme_offered:
+        st.warning(
+            "部分候选仍在待 SME。选择它们将按『开发版强制补位』收卷："
+            "报告会标注该题未经专家审、以开发版证据进入正式卷。"
+        )
     with st.form("plateau_gap_decision"):
-        resolutions: list[dict] = []
-        choices = []
+        choices: list[dict] = []
         for index, cell in enumerate(gap_cells):
             cell_id = str(cell.get("blueprint_cell_id") or f"cell{index}")
             candidates = [
@@ -1692,27 +1699,37 @@ def _render_plateau_gap_decision(payload: Mapping[str, Any]) -> None:
                 if isinstance(row, Mapping)
             ]
             eligible = [row for row in candidates if row.get("eligible")]
+            sme = [row for row in candidates if row.get("force_allowed")]
             st.markdown(
                 f"**缺口单元 {cell_id}**"
                 f"（需保留 {cell.get('planned_retention_count')} 题）"
             )
-            if not eligible:
-                st.warning("无 A/B 候选")
-                continue
             labels = {}
             for row in eligible:
                 gates = "、".join(row.get("failed_gates") or []) or "无"
                 labels[
                     f"{row.get('item_id')} v{row.get('version')}"
                     f"（未过：{gates}）"
-                ] = row
+                ] = (row, False)
+            for row in sme:
+                if row.get("item_id") in {
+                    r.get("item_id") for r, _ in labels.values()
+                }:
+                    continue
+                labels[
+                    f"{row.get('item_id')} v{row.get('version')}"
+                    f"（待SME · 强制补位）"
+                ] = (row, True)
+            if not labels:
+                st.warning("无可用候选")
+                continue
             default_label = next(iter(labels))
             chosen = st.selectbox(
                 f"{cell_id} 候选",
                 list(labels),
                 key=f"pg_cand_{index}",
             )
-            row = labels[chosen]
+            row, is_sme = labels[chosen]
             mode = st.radio(
                 f"{cell_id} 处理方式",
                 ["直接补位", "手动修改"],
@@ -1749,9 +1766,10 @@ def _render_plateau_gap_decision(payload: Mapping[str, Any]) -> None:
             choices.append(
                 {
                     "cell_id": cell_id,
-                    "row": row,
+                    "item_id": str(row["item_id"]),
                     "mode": "pick" if mode == "直接补位" else "manual",
                     "manual_item": manual_item,
+                    "sme_override": is_sme,
                 }
             )
         submitted = st.form_submit_button(
@@ -1760,12 +1778,14 @@ def _render_plateau_gap_decision(payload: Mapping[str, Any]) -> None:
             use_container_width=True,
         )
     if submitted:
+        resolutions = []
         for choice in choices:
             resolutions.append(
                 {
                     "cell_id": choice["cell_id"],
-                    "item_id": str(choice["row"]["item_id"]),
+                    "item_id": choice["item_id"],
                     "mode": choice["mode"],
+                    "sme_override": choice["sme_override"],
                     **({"manual_item": choice["manual_item"]}
                       if choice["manual_item"] is not None
                       else {}),

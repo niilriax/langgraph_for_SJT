@@ -25,7 +25,14 @@ ITEM_AGENT_OUTPUT_FIELDS: dict[str, set[str]] = {
         "skeleton_reviews",
         "skeleton_review_history",
     },
-    "regenerate_item": {"current_item"},
+    "regenerate_item": {
+        "current_item",
+        "current_item_specification",
+        "item_specifications",
+        "item_skeletons",
+        "skeleton_reviews",
+        "skeleton_review_history",
+    },
     "revise_item": {"current_item"},
     "review_item": {
         "current_item_review",

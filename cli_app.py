@@ -1323,38 +1323,61 @@ def prompt_user_decision(payload: dict) -> dict:
             cell_id = cell.get("blueprint_cell_id")
             candidates = cell.get("candidates") or []
             eligible = [row for row in candidates if row.get("eligible")]
+            sme_rows = [
+                row for row in candidates if row.get("force_allowed")
+            ]
             print(
                 f"\n[{index}/{len(gap_cells)}] 缺口单元 {cell_id}"
                 f"（需保留 {cell.get('planned_retention_count')} 题）"
             )
             for row in candidates:
-                tag = "" if row.get("eligible") else "（不可选：待SME/已淘汰）"
+                if row.get("eligible"):
+                    tag = "（可直接补位/手动改）"
+                elif row.get("force_allowed"):
+                    tag = "（待SME：可强制补位）"
+                else:
+                    tag = "（不可选：已淘汰）"
                 gates = "、".join(row.get("failed_gates") or []) or "无"
                 print(
                     f"  - {row.get('item_id')} v{row.get('version')} "
                     f"状态={row.get('disposition_status') or 'none'}{tag} "
                     f"失败门槛={gates}"
                 )
-            if not eligible:
-                print("  该单元没有可选的 A/B 候选（都在等 SME/已淘汰）。")
-                print("  请选择停止，先人工处置待 SME 题后再恢复。")
+            if not eligible and not sme_rows:
+                print("  该单元没有可选的候选（已淘汰）。")
+                print("  请选择停止，先人工处置后再恢复。")
                 stopped = True
                 break
             while True:
                 cmd = input(
                     f"  单元 {cell_id} 处理：输入候选 ID 直接补位；"
-                    "改:<ID> 手动修改；stop 停止："
+                    "改:<ID> 手动修改；强制:<ID> 待SME题开发版补位；"
+                    "强改:<ID> 手动改待SME题；stop 停止："
                 ).strip()
                 if cmd.lower() == "stop":
                     stopped = True
                     break
                 manual = False
+                sme_override = False
                 item_id = cmd
-                for prefix in ("改:", "改："):
+                for prefix in ("强改:", "强改："):
                     if cmd.startswith(prefix):
                         manual = True
+                        sme_override = True
                         item_id = cmd[len(prefix):].strip()
                         break
+                if not manual:
+                    for prefix in ("强制:", "强制："):
+                        if cmd.startswith(prefix):
+                            sme_override = True
+                            item_id = cmd[len(prefix):].strip()
+                            break
+                if not manual:
+                    for prefix in ("改:", "改："):
+                        if cmd.startswith(prefix):
+                            manual = True
+                            item_id = cmd[len(prefix):].strip()
+                            break
                 if not manual:
                     for prefix in ("pick:", "pick："):
                         if cmd.startswith(prefix):
@@ -1364,8 +1387,22 @@ def prompt_user_decision(payload: dict) -> dict:
                     (row for row in eligible if str(row.get("item_id")) == item_id),
                     None,
                 )
+                if candidate is None and sme_override:
+                    candidate = next(
+                        (
+                            row
+                            for row in sme_rows
+                            if str(row.get("item_id")) == item_id
+                        ),
+                        None,
+                    )
                 if candidate is None:
-                    print("  请输入上面列出的、可选的候选 ID")
+                    print(
+                        "  请输入上面列出的候选 ID；待SME题需加 强制:/强改: 前缀"
+                    )
+                    continue
+                if sme_override and not candidate.get("force_allowed"):
+                    print("  该题不是待SME题，不需要 强制 前缀")
                     continue
                 if manual:
                     options = candidate.get("response_options") or []
@@ -1388,6 +1425,7 @@ def prompt_user_decision(payload: dict) -> dict:
                             "cell_id": cell_id,
                             "item_id": item_id,
                             "mode": "manual",
+                            "sme_override": sme_override,
                             "manual_item": {
                                 "scenario": scenario,
                                 "response_options": [
@@ -1408,6 +1446,7 @@ def prompt_user_decision(payload: dict) -> dict:
                             "cell_id": cell_id,
                             "item_id": item_id,
                             "mode": "pick",
+                            "sme_override": sme_override,
                         }
                     )
                 break

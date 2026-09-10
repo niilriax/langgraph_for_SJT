@@ -275,14 +275,14 @@ Each situation entry contains exactly:
 
 * domain;
 * actor_relation;
-* abstract_event_class.
+* event_class.
 
 domain identifies a broad area of ordinary life relevant to target_population.
 
 actor_relation identifies the relationship and any psychologically relevant
 role feature, without inventing unnecessary personal detail.
 
-abstract_event_class must describe the trait-relevant cue and decision tension,
+event_class must describe the trait-relevant cue and decision tension,
 not merely name a generic activity. Avoid broad labels such as:
 
 * asking for help;
@@ -291,7 +291,7 @@ not merely name a generic activity. Avoid broad labels such as:
 * giving feedback;
 * resolving a conflict.
 
-The abstract_event_class must be abstract enough to support multiple later SJT
+The event_class must be abstract enough to support multiple later SJT
 items but specific enough to preserve:
 
 * the activation cue;
