@@ -7,7 +7,7 @@ PDF from any browser. Structure:
   2. Items, organized by target dimension
   3. Scoring and score interpretation
   4. Psychometric evidence report (Cronbach alpha, convergent validity vs
-     Neo-FFI, discriminant structure) — clearly labelled as development-stage
+     facet-matched IPIP-NEO, discriminant structure) — clearly labelled as development-stage
      virtual evidence, not human criterion data.
 
 Usage (programmatic):
@@ -121,21 +121,41 @@ def build_test_form_html(
     for dimension_id, dimension_stats in (test_statistics.get("dimensions") or {}).items():
         if isinstance(dimension_stats, Mapping) and dimension_stats.get("cronbach_alpha") is not None:
             dimension_alphas[str(dimension_id)] = dimension_stats["cronbach_alpha"]
-    # 汇聚效度：从最近一轮迭代历史的整卷指标取 Neo-FFI 相关（legacy 参照）
-    neo_rho = None
+    # 汇聚效度：优先读取facet匹配的IPIP-NEO，兼容历史NEO-FFI结果。
+    reference_rho = None
+    reference_label = "IPIP-NEO目标facet"
     iteration_history = state.get("psychometric_iteration_history") or []
     for entry in reversed(iteration_history):
         if not isinstance(entry, Mapping):
             continue
         fm = entry.get("form_metrics") or {}
         validity = fm.get("validity") or {}
+        convergent = validity.get("convergent_validity") or {}
+        candidate = convergent.get("spearman_rho")
+        if isinstance(candidate, (int, float)):
+            reference_rho = float(candidate)
+            reference_label = str(
+                convergent.get("reference_questionnaire")
+                or reference_label
+            )
+            break
         legacy = validity.get("legacy_virtual_diagnostics") or {}
-        candidate = (
-            legacy.get("neo_ffi_rho")
-            or legacy.get("combined_reference_rho")
+        candidate = next(
+            (
+                legacy.get(key)
+                for key in (
+                    "ipip_neo_target_facet_rho",
+                    "neo_ffi_rho",
+                    "combined_reference_rho",
+                )
+                if isinstance(legacy.get(key), (int, float))
+            ),
+            None,
         )
         if isinstance(candidate, (int, float)):
-            neo_rho = float(candidate)
+            reference_rho = float(candidate)
+            if legacy.get("ipip_neo_target_facet_rho") is None:
+                reference_label = "NEO-FFI目标domain（历史）"
             break
     item_metrics = (
         (test_statistics.get("virtual_screening_metrics") or {}).get("item_metrics") or {}
@@ -233,7 +253,7 @@ def build_test_form_html(
         f"<tr><td>内部一致性</td><td>Cronbach α = {_esc(round(alpha, 3) if alpha is not None else '—')}</td></tr>"
     )
     sections.append(
-        f"<tr><td>汇聚效度参照</td><td>与 Neo-FFI 目标维度相关 rho = {_esc(round(neo_rho, 3) if neo_rho is not None else '—')}</td></tr>"
+        f"<tr><td>汇聚效度参照</td><td>与 {_esc(reference_label)} 相关 rho = {_esc(round(reference_rho, 3) if reference_rho is not None else '—')}</td></tr>"
     )
     sections.append(
         f"<tr><td>题目区分度（中位）</td><td>CITC = {_esc(round(median_citc, 3) if median_citc is not None else '—')}；"

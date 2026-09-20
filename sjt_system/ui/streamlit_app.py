@@ -966,7 +966,11 @@ def _render_iteration_history(value: object) -> bool:
         validity = form_metrics.get("validity") or {}
         recovery = validity.get("target_recovery") or {}
         selectivity = validity.get("construct_selectivity") or {}
+        convergent = validity.get("convergent_validity") or {}
+        discriminant = validity.get("discriminant_validity") or {}
+        known_groups = validity.get("known_groups_validity") or {}
         quality = form_quality_summary(form_metrics)
+        uses_ipip_objective = quality.get("objective_source") == "ipip_human_style_v3"
         plateau = entry.get("plateau_status") or {}
         usage = entry.get("token_usage") or {}
         rows.append(
@@ -986,16 +990,38 @@ def _render_iteration_history(value: object) -> bool:
                     if selectivity.get("value") is not None
                     else quality.get("construct_selectivity")
                 ),
-                "本轮候选质量": (
+                "IPIP目标facet Spearman rho": (
+                    convergent.get("spearman_rho")
+                    if uses_ipip_objective
+                    else None
+                ),
+                "目标IPIP Hedges’ g": (
+                    known_groups.get("target_hedges_g")
+                    if uses_ipip_objective
+                    else None
+                ),
+                "本轮主目标 Hedges’ g": (
                     entry.get("candidate_form_quality")
-                    if entry.get("candidate_form_quality") is not None
-                    else quality.get("candidate_form_quality")
+                    if uses_ipip_objective
+                    and entry.get("candidate_form_quality") is not None
+                    else quality.get("objective_primary")
+                    if uses_ipip_objective
+                    else None
                 ),
-                "历史最优质量": (
+                "历史最优 Hedges’ g": (
                     entry.get("best_so_far_form_quality")
-                    if entry.get("best_so_far_form_quality") is not None
+                    if uses_ipip_objective
+                    and entry.get("best_so_far_form_quality") is not None
                     else plateau.get("best_form_quality")
+                    if uses_ipip_objective
+                    else None
                 ),
+                "Δmin区分效度": (
+                    discriminant.get("delta_min")
+                    if uses_ipip_objective
+                    else None
+                ),
+                "Cronbach α": (quality.get("alpha_gate") or {}).get("observed"),
                 "本轮Token": usage.get("total_tokens"),
                 "本轮模型耗时(ms)": usage.get("duration_ms"),
                 "模型调用次数": usage.get("calls"),
@@ -1015,21 +1041,26 @@ def _render_iteration_history(value: object) -> bool:
     st.markdown("**整卷虚拟开发指标迭代曲线**")
     st.caption(
         "每轮先用候选题组成临时测验，再计算整卷指标；这些是虚拟开发期筛查结果，"
-        "不能替代真人样本的正式信效度。本轮候选质量由目标恢复R²和构念选择性的"
-        "几何平均得到；历史最优质量只会上升或持平。虚拟重测ICC只作为稳定性门槛。"
+        "不能替代真人样本的正式信效度。当前按目标IPIP高低组Hedges’ g优先、"
+        "Δmin和目标facet Spearman rho作保护条件；Cronbach α和ICC是门槛。"
     )
     primary_columns = [
         column
-        for column in ("历史最优质量", "本轮候选质量")
+        for column in ("历史最优 Hedges’ g", "本轮主目标 Hedges’ g")
         if column in frame.columns and frame[column].notna().any()
     ]
     if primary_columns:
         st.line_chart(frame[primary_columns], use_container_width=True)
     else:
-        st.info("当前轮次尚无可计算的虚拟整卷传导指标。")
+        st.info("当前轮次尚无可计算的IPIP整卷迭代指标。")
     diagnostic_columns = [
         column
-        for column in ("目标恢复R²", "构念选择性")
+        for column in (
+            "目标恢复R²",
+            "构念选择性",
+            "IPIP目标facet Spearman rho",
+            "Δmin区分效度",
+        )
         if column in frame.columns and frame[column].notna().any()
     ]
     if diagnostic_columns:
@@ -1483,14 +1514,12 @@ def _render_psychometric_repair_confirmation(payload: Mapping[str, Any]) -> None
         f"**题目 {payload.get('item_id', '?')} · 第 {payload.get('revision_round', '?')} 轮 · "
         f"队列 1/{max(1, len(queue))}**"
     )
-    if (
-        payload.get("queue_status") == "deferred_decision"
-        and payload.get("diagnosis_status") == "repair_rounds_exhausted"
-    ):
+    if payload.get("queue_status") == "deferred_decision":
         st.warning(
-            "已完成三轮返修仍未达标，自动进入 defer 确认队列。"
-            "可继续选择 SME 审核、人工修改、淘汰补题或暂停保存。"
+            "当前 defer 诊断将自动生成同槽位补题。"
+            "不再请求人工确认；新题仍需经过完整审题、施测和单题指标筛选。"
         )
+        return
     observations = [
         row
         for row in payload.get("observations") or []

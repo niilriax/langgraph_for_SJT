@@ -1114,7 +1114,7 @@ def _psychometric_defer_entry(
     statistics: Mapping[str, Any],
     completed_rounds: int,
 ) -> dict[str, Any]:
-    """Create a blocking defer entry after the fixed repair policy threshold."""
+    """Create an automatic same-cell replenishment entry after the repair limit."""
 
     entry = _psychometric_repair_entry(
         item=item,
@@ -1132,7 +1132,7 @@ def _psychometric_defer_entry(
                 "decision": "defer",
                 "summary": (
                     f"已完成 {completed_rounds} 轮返修仍未达标，"
-                    "自动进入 defer 确认队列。"
+                    "自动进入同一蓝图槽位补题队列。"
                 ),
                 "observed_discrepancies": [],
                 "candidate_diagnoses": [],
@@ -1866,7 +1866,7 @@ def run_item_selection(state: PSJTState) -> dict[str, Any]:
                     )
                 )
                 reasons[item_id] += (
-                    "；已完成三轮心理测量返修仍未达标，自动进入 defer 确认队列"
+                    "；已完成三轮心理测量返修仍未达标，自动进入同一蓝图槽位补题队列"
                 )
                 continue
             entry = _psychometric_repair_entry(
@@ -1942,7 +1942,7 @@ def run_item_selection(state: PSJTState) -> dict[str, Any]:
         for entry in revision_entries:
             reasons[entry["item_id"]] += (
                 (
-                    "；已完成三轮返修仍未达标，自动进入 defer 确认队列"
+                    "；已完成三轮返修仍未达标，自动进入同一蓝图槽位补题队列"
                     if entry.get("action") == "defer"
                     else (
                         f"；该蓝图单元存在保留题缺口，进入第 "

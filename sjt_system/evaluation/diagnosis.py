@@ -463,7 +463,7 @@ def build_deterministic_defer_advice(
                 "confidence": "low",
             }
         ],
-        "summary": "返修诊断证据链不完整，本题转为 defer，其他题继续处理。",
+        "summary": "返修诊断证据链不完整，本题自动转为同槽位补题，其他题继续处理。",
         "repair_tasks": [],
     }
 

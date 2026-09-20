@@ -233,12 +233,14 @@ def _resolve_response_paths(
     manifest = _read_json(manifest_path)
     _validate_analysis_identity(state, manifest)
     sjt_path = manifest_path.parent / "sjt_responses.jsonl"
-    neo_path = manifest_path.parent / "neo_ffi_responses.jsonl"
+    ipip_path = manifest_path.parent / "ipip_neo_responses.jsonl"
+    legacy_neo_path = manifest_path.parent / "neo_ffi_responses.jsonl"
     if not sjt_path.is_file():
         raise ValueError("虚拟作答目录缺少 SJT JSONL 文件")
-    if manifest.get("schema_version") not in {2, 3, MATCHED_CONDITION_SCHEMA_VERSION} and not neo_path.is_file():
+    if manifest.get("schema_version") not in {2, 3, MATCHED_CONDITION_SCHEMA_VERSION} and not legacy_neo_path.is_file():
         raise ValueError("旧版虚拟作答目录缺少 Neo-FFI JSONL 文件")
-    return manifest_path, sjt_path, neo_path, manifest
+    reference_path = ipip_path if ipip_path.is_file() else legacy_neo_path
+    return manifest_path, sjt_path, reference_path, manifest
 
 
 def _prepare_item_contract(
@@ -1228,6 +1230,9 @@ def _run_matched_condition_analysis(
     output_files = {"scored_matched_condition_sjt_responses": str(scored_path.resolve()), "scored_target_form_retest_sjt_responses": str(scored_target_retest_path.resolve()), "respondent_scores": str(respondent_path.resolve()), "item_statistics": str(item_path.resolve()), "item_quality": str(quality_path.resolve()), "option_statistics": str(option_path.resolve()), "option_choice_diagnostics": str(option_json_path.resolve()), "scale_statistics": str(scale_path.resolve()), "virtual_screening_metrics": str(validity_path.resolve()), "measurement_evaluation": str(measurement_path.resolve()), "analysis_manifest": str(analysis_path.resolve())}
     reference_questionnaires = response_manifest.get("reference_questionnaires") or {}
     if isinstance(reference_questionnaires, Mapping):
+        ipip_reference = reference_questionnaires.get("ipip_neo")
+        if isinstance(ipip_reference, Mapping) and isinstance(ipip_reference.get("path"), str) and Path(ipip_reference["path"]).is_file():
+            output_files["ipip_neo_responses"] = str(Path(ipip_reference["path"]).resolve())
         neo_reference = reference_questionnaires.get("neo_ffi")
         if isinstance(neo_reference, Mapping) and isinstance(neo_reference.get("path"), str) and Path(neo_reference["path"]).is_file():
             output_files["neo_ffi_responses"] = str(Path(neo_reference["path"]).resolve())
@@ -1463,7 +1468,7 @@ def _enrich_item_quality(
             "diagnostic_flags": flags,
             "decision_rule": (
                 "题项决策仅使用分面内CITC、标准化平均得分和"
-                "有效选项数；单题与Neo-FFI上位ddomain的相关不参与返修。"
+                "有效选项数；单题与IPIP-NEO目标facet的相关不参与返修。"
             ),
         }
         item["quality_evaluation"] = _json_safe(evaluation)

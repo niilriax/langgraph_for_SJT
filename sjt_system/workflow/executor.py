@@ -1111,7 +1111,7 @@ async def execute_item_selection_with_diagnosis(
                         "decision": "defer",
                         "summary": (
                             f"已完成 {completed_rounds} 轮返修仍未达标，"
-                            "自动进入 defer 确认队列。"
+                            "自动进入同一蓝图槽位补题队列。"
                         ),
                         "observed_discrepancies": [],
                         "candidate_diagnoses": [],
@@ -1146,7 +1146,7 @@ async def execute_item_selection_with_diagnosis(
         if fingerprint in prior_fingerprints:
             duplicate_advice = {
                 "decision": "defer",
-                "summary": "相同题目版本和统计指纹已经诊断，需要用户处置。",
+                "summary": "相同题目版本和统计指纹已经诊断，自动转为同槽位补题。",
                 "observed_discrepancies": [],
                 "candidate_diagnoses": [],
                 "repair_tasks": [],
@@ -1355,7 +1355,7 @@ async def execute_item_selection_with_diagnosis(
                             "item_id": item_id,
                             "queue_position": queue_position,
                             "queue_total": len(diagnosis_jobs),
-                            "message": "心理测量诊断请求超时，本题已安全转为 defer",
+                            "message": "心理测量诊断请求超时，本题已自动转为同槽位补题",
                         }
                     )
                     return {
@@ -1366,8 +1366,8 @@ async def execute_item_selection_with_diagnosis(
                         "error": None,
                     }
                 except Exception as exc:
-                    # 单题诊断异常：优先安全转 defer（人工处置），不让单题故障停整批；
-                    # 仅当连 defer 兜底都不可用时才标记该题失败。
+                    # 单题诊断异常：优先安全转 defer（后续自动同槽位补题），
+                    # 不让单题故障停整批；仅当连 defer 兜底都不可用时才标记该题失败。
                     try:
                         fallback = build_deterministic_defer_advice(
                             evidence,
@@ -1485,7 +1485,7 @@ async def execute_item_selection_with_diagnosis(
                 repair_queue[int(job["queue_index"])] = diagnosed_entry
                 repairs.append(diagnosed_entry)
                 reasons[item_id] = str(
-                    diagnosis.get("summary") or "证据不足，需要用户处置。"
+                    diagnosis.get("summary") or "证据不足，自动转为同槽位补题。"
                 )
                 continue
             diagnosed_entry = {

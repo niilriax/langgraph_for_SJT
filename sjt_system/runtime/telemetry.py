@@ -31,6 +31,7 @@ from typing import Any
 
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.outputs import LLMResult
+from sjt_system.runtime.output_paths import scoped_output
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_TELEMETRY_ROOT = PROJECT_ROOT / "outputs" / "run_telemetry"
@@ -128,7 +129,7 @@ def ledger_path(
     session: str | None = None,
     root: str | Path = DEFAULT_TELEMETRY_ROOT,
 ) -> Path:
-    root_path = Path(root)
+    root_path = scoped_output("telemetry", root)
     root_path.mkdir(parents=True, exist_ok=True)
     return root_path / f"calls_{session or _telemetry_session()}.jsonl"
 
@@ -192,6 +193,11 @@ class TelemetryHandler(BaseCallbackHandler):
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
             "total_tokens": total_tokens,
+            "cached_input_tokens": (
+                (token_usage.get("prompt_tokens_details") or {}).get("cached_tokens")
+                if (token_usage.get("prompt_tokens_details") or {}).get("cached_tokens") is not None
+                else token_usage.get("prompt_cache_hit_tokens")
+            ),
         }
         _append_record(record)
 

@@ -312,7 +312,7 @@ def virtual_sample_selection_node(state: PSJTState) -> dict:
             + "固定三个顶层臂：target、same_domain、cross_domain；每个非目标臂可配置多个facet group。"
             "每个facet group独立生成一组匹配条件并共享同一正态分数向量，只在提示中提供当前group facet。"
             "每组人数相同，主施测中每名被试对每题只回答一次；target组额外完成一次整卷重测以估计虚拟作答稳定性。"
-            "VTS在同域/跨域臂内取最大带符号rho；target被试同步完成Neo-FFI与Mussel参照问卷。"
+            "VTS在同域/跨域臂内取最大带符号rho；target被试同步完成目标facet对应的10题IPIP-NEO参照问卷。"
         ),
     }
 
@@ -554,7 +554,13 @@ def _dequeue_psychometric_item(state: Mapping[str, Any], item_id: str) -> dict[s
 
 
 def psychometric_repair_confirmation_node(state: PSJTState) -> dict:
-    """Confirm all validated repair tasks, while retaining defer choices."""
+    """Apply a psychometric repair or automatically replenish an exhausted item.
+
+    A defer diagnosis is not permission to invent a text patch.  It is handled
+    as an automatic same-cell replenishment transaction: discard the current
+    candidate, generate a new candidate under the same blueprint cell, and
+    send it through the normal review and measurement loop.
+    """
 
     pending = state.get("psychometric_repair_confirmation")
     if not isinstance(pending, Mapping) or pending.get("status") != "pending":
@@ -669,6 +675,9 @@ def psychometric_repair_confirmation_node(state: PSJTState) -> dict:
             "淘汰补题或暂停保存。每道 defer 题必须单独处置。"
         ),
     }
+
+    automatic_replenish = advice.get("decision") == "defer"
+
     def _has_replacement_capacity() -> bool:
         lineage = state.get("item_lineage") or {}
         root_id = str(
@@ -687,31 +696,72 @@ def psychometric_repair_confirmation_node(state: PSJTState) -> dict:
         )
 
     edited_item = None
-    while True:
-        raw = interrupt(payload)
-        decision = raw.get("decision") if isinstance(raw, Mapping) else None
-        available = set(payload["available_decisions"])
-        if decision not in available:
-            payload = {
-                **payload,
-                "validation_error": "请选择当前诊断允许的处置方式",
+    if automatic_replenish:
+        decision = "eliminate_replenish"
+        raw = {"decision": decision, "approval_source": "automatic"}
+        if not _has_replacement_capacity():
+            item_id = str(pending.get("item_id") or item.get("item_id") or "")
+            message = (
+                f"题目 {item_id} 的 defer 诊断已自动转为补题，"
+                f"已完成 {pending.get('completed_repair_rounds', 0)} 轮返修，"
+                "且同一蓝图槽位已达到自动补题上限；"
+                "系统无法在不降低质量门槛的前提下完成该槽位。"
+            )
+            return {
+                "status": "failed",
+                "errors": [
+                    *(state.get("errors") or []),
+                    {
+                        "action": "automatic_replenishment_exhausted",
+                        "item_id": item_id,
+                        "message": message,
+                    },
+                ],
+                "execution_history": [
+                    *state.get("execution_history", []),
+                    {
+                        "event_id": (
+                            f'{state.get("run_id", "unknown")}:'
+                            f'{state.get("step_count", 0)}:'
+                            "psychometric_repair_confirmation:failed"
+                        ),
+                        "run_id": state.get("run_id"),
+                        "step": state.get("step_count", 0),
+                        "node": "psychometric_repair_confirmation",
+                        "action": "automatic_replenishment_exhausted",
+                        "event_type": "failed",
+                        "recorded_at": utc_timestamp(),
+                        "reason": message,
+                        "approval_source": "automatic_after_defer",
+                    },
+                ],
             }
-            continue
-        if decision == "manual_edit":
-            try:
-                edited_item = _manual_psychometric_item(item, raw.get("manual_item"))
-            except ValueError as exc:
-                payload = {**payload, "validation_error": str(exc)}
+    else:
+        while True:
+            raw = interrupt(payload)
+            decision = raw.get("decision") if isinstance(raw, Mapping) else None
+            available = set(payload["available_decisions"])
+            if decision not in available:
+                payload = {
+                    **payload,
+                    "validation_error": "请选择当前诊断允许的处置方式",
+                }
                 continue
-        if decision == "eliminate_replenish" and not _has_replacement_capacity():
-            payload = {
-                **payload,
-                "validation_error": (
-                    "该蓝图槽位已达到补题次数上限，请选择人工修改或待SME审核"
-                ),
-            }
-            continue
-        break
+            if decision == "manual_edit":
+                try:
+                    edited_item = _manual_psychometric_item(item, raw.get("manual_item"))
+                except ValueError as exc:
+                    payload = {**payload, "validation_error": str(exc)}
+                    continue
+            if decision == "eliminate_replenish" and not _has_replacement_capacity():
+                payload = {
+                    **payload,
+                    "validation_error": (
+                        "该蓝图槽位已达到补题次数上限，请选择人工修改或待SME审核"
+                    ),
+                }
+                continue
+            break
     if decision == "stop":
         return {"status": "stopped"}
 
@@ -728,8 +778,14 @@ def psychometric_repair_confirmation_node(state: PSJTState) -> dict:
             "action": decision,
             "event_type": "completed",
             "recorded_at": utc_timestamp(),
-            "reason": "用户确认当前单题心理测量返修建议",
-            "approval_source": "user",
+            "reason": (
+                "defer 诊断不执行不充分证据下的原题修改，系统自动启动同槽位补题"
+                if automatic_replenish
+                else "用户确认当前单题心理测量返修建议"
+            ),
+            "approval_source": (
+                "automatic_after_defer" if automatic_replenish else "user"
+            ),
         },
     ]
     if decision == "approve":
@@ -754,7 +810,9 @@ def psychometric_repair_confirmation_node(state: PSJTState) -> dict:
             "item_id": item_id,
             "revision_round": pending.get("revision_round"),
             "diagnosis_fingerprint": pending.get("diagnosis_fingerprint"),
-            "approval_source": "user",
+            "approval_source": (
+                "automatic_after_defer" if automatic_replenish else "user"
+            ),
         },
     ]
     if decision == "manual_edit":
@@ -897,7 +955,17 @@ def psychometric_repair_confirmation_node(state: PSJTState) -> dict:
         "current_item_specification": None,
         "item_pool": [deepcopy(row) for row in state.get("item_pool") or [] if isinstance(row, Mapping) and str(row.get("item_id")) != item_id],
         "removed_items": [*deepcopy(state.get("removed_items") or []), deepcopy(dict(item))],
-        "rejected_items": [*deepcopy(state.get("rejected_items") or []), {"item": deepcopy(dict(item)), "reason": "user_eliminated_for_replenishment"}],
+        "rejected_items": [
+            *deepcopy(state.get("rejected_items") or []),
+            {
+                "item": deepcopy(dict(item)),
+                "reason": (
+                    "automatic_replenishment_after_defer"
+                    if automatic_replenish
+                    else "user_eliminated_for_replenishment"
+                ),
+            },
+        ],
         "item_final_dispositions": dispositions,
         "item_lineage": lineage,
         "blueprint": blueprint,

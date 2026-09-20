@@ -58,6 +58,26 @@ docs/
 # 本地研究/实验目录整体不入库；如需入库个别文件请用 ! 白名单
 blind_classification/
 experiments/
+# Version the isolated experiment implementation, but not other local experiments.
+!experiments/
+experiments/*
+!experiments/__init__.py
+!experiments/system_comparison/
+experiments/system_comparison/*
+!experiments/system_comparison/*.py
+!experiments/system_comparison/*.json
+!experiments/system_comparison/README.md
+!experiments/post_baseline_iteration_lab/
+experiments/post_baseline_iteration_lab/*
+!experiments/post_baseline_iteration_lab/*.py
+!experiments/post_baseline_iteration_lab/README.md
+experiment_data/
+# Only the new experiment acceptance tests are published.
+!tests/
+tests/*
+!tests/test_system_comparison.py
+!tests/test_combination_search.py
+!tests/test_post_baseline_iteration_lab.py
 docs/*.xlsx
 docs/*.xls
 experiments/**/*.xlsx

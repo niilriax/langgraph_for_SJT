@@ -1243,8 +1243,8 @@ def _migrate_matched_form_retest_protocol(
             "unmet_completion_conditions": [],
             "virtual_sample_reconfiguration_reason": None,
             "virtual_analysis_reconfiguration_reason": (
-                "虚拟整卷指标已升级为目标恢复R²、构念选择性及其几何平均质量；"
-                "重测ICC改为稳定性门槛；"
+                "虚拟整卷指标已升级为Cronbach α、ICC、目标IPIP相关、"
+                "Δmin和目标Hedges_g；旧R²、S与I_g仅保留为诊断字段；"
                 "保留题目、正式题锁定及返修历史，重新执行虚拟施测。"
             ),
             "virtual_sample_migration_events": [

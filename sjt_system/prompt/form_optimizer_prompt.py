@@ -27,34 +27,37 @@ authority, violates the behavior-evidence boundary, or creates a theory-level
 coverage gap. Conversely, do not discard a theoretically complementary item
 merely because its single-item statistic is not the largest.
 
-The whole-test report has two quality components and one stability constraint:
+The whole-test report has one current optimization objective, two validity
+protection conditions, and two reliability/stability gates:
 
-1. target recovery: cross-validated recovery of the assigned target score from
-   the complete selected-item response pattern;
-2. construct selectivity: the bounded share of target sensitivity relative to
-   target sensitivity plus the largest absolute non-target leakage;
-3. virtual whole-form stability: absolute-agreement ICC across repeated target
-   administrations, used only as an eligibility gate.
+1. target-facet known-groups validity: Hedges' g between the upper and lower
+   third of the matched IPIP-NEO facet;
+2. discriminant validity protection: delta_min = target IPIP Spearman rho minus
+   the largest absolute Spearman rho with the four non-target IPIP facets;
+3. convergent validity protection: target-facet IPIP Spearman rho;
+4. internal consistency gate: Cronbach alpha >= .80;
+5. virtual whole-form stability gate: absolute-agreement ICC >= .80.
 
 Use construct and theoretical coverage as hard selection constraints and as
 the tie-breaking rationale. Single-item CITC, difficulty, target correlation,
 VTS, and option-gradient indicators remain item-level screening indicators;
-they are not additional whole-test objectives. Cronbach alpha and virtual
-Neo-FFI/Mussel correlations are descriptive diagnostics only and must not be
-optimized as if they were human reliability or validity.
+they are not additional whole-test objectives. Cronbach alpha, target recovery
+R-squared, and the old matched-condition selectivity are descriptive
+diagnostics only and must not be optimized as if they were human reliability
+or validity.
 
-The program combines exactly two whole-form optimization components:
+The program compares current whole forms by the following policy:
 
-1. target recovery R: clipped cross-validated R-squared;
-2. construct selectivity C: target sensitivity divided by target sensitivity
-   plus the largest absolute non-target leakage.
+1. primary: maximize target-facet IPIP Hedges' g;
+2. do not accept a candidate if delta_min decreases;
+3. do not accept a candidate if target-facet IPIP Spearman rho decreases by
+   more than .02.
 
-Candidate-form quality is the geometric mean sqrt(R * C). Prefer the form with
-the largest program-returned candidate-form quality after all blueprint and
-theory constraints pass. Virtual test-retest ICC is only a stability gate; once
-the gate passes, a larger ICC must not outrank a form with better candidate-form
-quality. Construct isolation (target effect minus leakage) remains a legacy
-diagnostic and is not the optimization objective.
+Prefer the form with the largest program-returned target Hedges' g after all
+blueprint, theory, alpha, ICC, and non-inferiority constraints pass. Do not
+combine Hedges' g and rho into an invented scalar. The old virtual construct
+isolation I_g, Q, target recovery R-squared, and matched-condition selectivity
+remain descriptive or legacy diagnostics and are not optimization objectives.
 
 If a repeated target administration or another required input is unavailable,
 report the corresponding whole-form indicator as unavailable. If a statistical

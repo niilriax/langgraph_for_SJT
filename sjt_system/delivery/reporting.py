@@ -329,7 +329,7 @@ def _iteration_history_markdown(
         "",
         "每轮先组成临时测验，再计算整卷虚拟开发期指标；Token和耗时为模型调用记录。",
         "",
-        "| 轮次 | 临时题数 | 候选题数 | 目标恢复R² | 构念选择性 | 本轮候选质量 | 历史最优质量 | ICC门槛 | 平台期 | 累计Token | 累计模型耗时(ms) |",
+        "| 轮次 | 临时题数 | 候选题数 | Cronbach α | 目标Hedges’ g | 目标IPIP rho | Δmin区分效度 | ICC门槛 | 平台期 | 累计Token | 累计模型耗时(ms) |",
         "|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|---:|---:|",
     ]
     cumulative_tokens = 0
@@ -341,22 +341,24 @@ def _iteration_history_markdown(
         data_rows += 1
         metrics = entry.get("form_metrics") or {}
         validity = metrics.get("validity") or {}
-        recovery = validity.get("target_recovery") or {}
-        selectivity = validity.get("construct_selectivity") or {}
+        convergent = validity.get("convergent_validity") or {}
+        discriminant = validity.get("discriminant_validity") or {}
+        known_groups = validity.get("known_groups_validity") or {}
         quality = form_quality_summary(metrics)
+        uses_ipip_objective = quality.get("objective_source") == "ipip_human_style_v3"
         usage = entry.get("token_usage") or {}
         cumulative_tokens += int(usage.get("total_tokens") or 0)
         cumulative_duration += int(usage.get("duration_ms") or 0)
         plateau = entry.get("plateau_status") or {}
-        selectivity_value = selectivity.get("value")
-        if selectivity_value is None:
-            selectivity_value = quality.get("construct_selectivity")
-        candidate_quality = entry.get("candidate_form_quality")
-        if candidate_quality is None:
-            candidate_quality = quality.get("candidate_form_quality")
         best_quality = entry.get("best_so_far_form_quality")
         if best_quality is None:
             best_quality = plateau.get("best_form_quality")
+        objective_primary = entry.get("objective_primary")
+        if objective_primary is None:
+            objective_primary = quality.get("objective_primary")
+        if not uses_ipip_objective:
+            best_quality = None
+            objective_primary = None
         lines.append(
             "| "
             + " | ".join(
@@ -364,10 +366,18 @@ def _iteration_history_markdown(
                     str(entry.get("analysis_round") or "未记录"),
                     str(entry.get("item_count") or 0),
                     str(entry.get("candidate_count") or 0),
-                    _display_value(recovery.get("cross_validated_r2")),
-                    _display_value(selectivity_value),
-                    _display_value(candidate_quality),
-                    _display_value(best_quality),
+                    _display_value((quality.get("alpha_gate") or {}).get("observed")),
+                    _display_value(known_groups.get("target_hedges_g")),
+                    _display_value(
+                        convergent.get("spearman_rho")
+                        if uses_ipip_objective
+                        else None
+                    ),
+                    _display_value(
+                        discriminant.get("delta_min")
+                        if uses_ipip_objective
+                        else None
+                    ),
                     "通过" if (quality.get("stability_gate") or {}).get("passed") else "未通过",
                     str(plateau.get("status", "未开始")),
                     str(cumulative_tokens),
@@ -377,12 +387,12 @@ def _iteration_history_markdown(
             + " |"
         )
     if data_rows == 0:
-        lines.append("| 无 | - | - | - | - | - | - | - | - | - | - |")
+        lines.append("| 无 | - | - | - | - | - | - | - | - | - | - | - | - |")
     lines.extend(
         [
             "",
-            "> 本轮候选质量是目标恢复R²与构念选择性的几何平均；历史最优质量只会上升或持平。虚拟重测ICC仅作为稳定性门槛。",
-            "> 连续2轮候选卷未使历史最优质量提高至少0.01后，系统自动进入平台期并停止继续返修。",
+            "> 当前整卷迭代以目标IPIP facet高低组Hedges’ g为主要优化指标；Δmin不得下降，目标facet Spearman rho最多下降0.02。Cronbach α和ICC是整卷门槛。",
+            "> 连续2轮候选卷未使历史最优目标Hedges’ g提高至少0.01后，系统自动进入平台期并停止继续返修。",
             "> 这些是虚拟作答系统内部的开发期传导指标，不能替代真人样本的正式信效度验证。",
             "",
         ]
@@ -1048,7 +1058,7 @@ def run_report_generation(
                 "人格分数操纵与SJT作答来自同一模型提示流程，相关性可能"
                 "受到共同方法、提示响应和语义重叠影响。"
             ),
-            "主迭代未调用人格总结或Neo-FFI；固定三个顶层臂下每个facet group分别匹配，每名被试对每题各作答一次。",
+            "主迭代未调用人格总结；target组独立完成目标facet对应的IPIP-NEO参照量表，固定三个顶层臂下每个facet group分别匹配，每名被试对每题各作答一次。",
             "本报告不包含真实被试信度、真人效度或人口学DIF证据；虚拟重测ICC只描述模型作答稳定性。",
         ],
         "generated_at": generated_at,

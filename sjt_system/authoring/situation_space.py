@@ -459,7 +459,8 @@ def assign_expansion_ids(
 
 
 def expansion_cache_path(run_id: str, facet_id: str) -> Path:
-    return DEFAULT_RUN_KNOWLEDGE_ROOT / run_id / "expansions" / f"{facet_id}.json"
+    from sjt_system.runtime.output_paths import scoped_output
+    return scoped_output("run_knowledge", DEFAULT_RUN_KNOWLEDGE_ROOT) / run_id / "expansions" / f"{facet_id}.json"
 
 
 def load_facet_expansion(path: Path | str) -> FacetExpansion:

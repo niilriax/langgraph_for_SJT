@@ -110,7 +110,9 @@ class VirtualSampleConfig(TypedDict):
     generator_version: str
     prompt_version: str
     generation_diagnostics: dict[str, Any]
-    neo_ffi_in_main_iteration: bool
+    ipip_neo_reference_enabled: bool
+    ipip_neo_in_main_iteration: bool
+    neo_ffi_in_main_iteration: NotRequired[bool]
 
 # ============================================================
 # 3. 需求 State
@@ -749,7 +751,7 @@ class PSJTState(TypedDict):
     psychometric_repair_confirmation: dict[str, Any] | None
     # 各题已经完成的心理测量返修轮数
     psychometric_repair_rounds: dict[str, int]
-    # 三轮失败后自动进入 defer 确认队列；不是静默保留或淘汰上限。
+    # 任意 defer 诊断均自动进入同槽位补题队列；不是静默保留或淘汰。
     psychometric_repair_defer_after_rounds: int
     # 旧检查点兼容字段；新流程不再用它决定保留、淘汰或补题。
     max_psychometric_repair_rounds: int

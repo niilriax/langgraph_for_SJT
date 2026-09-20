@@ -8,6 +8,7 @@ from functools import lru_cache
 from hashlib import sha256
 import json
 import math
+import os
 from pathlib import Path
 import random
 from statistics import NormalDist
@@ -1089,7 +1090,16 @@ def build_matched_condition_sample_config(
         "generator_version": MATCHED_CONDITION_GENERATOR_VERSION,
         "prompt_version": MATCHED_CONDITION_PROMPT_VERSION,
         "generation_diagnostics": deepcopy(dict(generation_diagnostics)),
-        "neo_ffi_in_main_iteration": False,
+        # Pin the virtual-respondent model in the run configuration.  This
+        # lets the main CLI use a separate model from the authoring agents and
+        # keeps resumed runs reproducible even if .env changes later.
+        "model_id": (
+            os.getenv("VIRTUAL_RESPONDENT_MODEL_ID")
+            or os.getenv("MODEL_ID")
+            or "deepseek-v4-flash"
+        ),
+        "ipip_neo_reference_enabled": True,
+        "ipip_neo_in_main_iteration": False,
         "response_count_per_respondent_item": 1,
         # The primary administration remains the sole authority for item-level
         # screening.  One additional target-only administration supplies the

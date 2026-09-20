@@ -365,35 +365,118 @@ def _fallback_metrics_key(
 
 
 def _whole_test_metrics_key(metrics: Mapping[str, Any] | None) -> tuple[float, ...] | None:
-    """Rank complete forms by ICC eligibility and the predeclared utility."""
+    """Rank complete forms by ICC eligibility and the current objective.
+
+    Current v3 forms are ranked by target known-groups Hedges' g, then the
+    minimum discriminant correlation gap, then target-facet Spearman rho.  The
+    legacy tuple is retained only so historical experiment fixtures and old
+    checkpoints remain readable.
+    """
     if not isinstance(metrics, Mapping) or metrics.get("status") != "complete":
         return None
     summary = form_quality_summary(metrics)
-    quality = summary.get("candidate_form_quality")
+    primary = summary.get("objective_primary")
+    secondary = summary.get("objective_secondary")
+    tertiary = summary.get("objective_tertiary")
     recovery = summary.get("target_recovery_component")
     selectivity = summary.get("construct_selectivity")
     if any(
         not isinstance(value, (int, float)) or isinstance(value, bool)
-        for value in (quality, recovery, selectivity)
+        for value in (primary, secondary)
+    ):
+        return None
+    if summary.get("objective_source") == "ipip_human_style_v3":
+        if not isinstance(tertiary, (int, float)) or isinstance(tertiary, bool):
+            return None
+        return (
+            1.0 if summary.get("eligible_for_best_so_far") else 0.0,
+            float(primary),
+            float(secondary),
+            float(tertiary),
+        )
+    if summary.get("objective_source") == "ipip_human_style":
+        return (
+            1.0 if summary.get("eligible_for_best_so_far") else 0.0,
+            float(primary),
+            float(secondary),
+            0.0,
+        )
+    if any(
+        not isinstance(value, (int, float)) or isinstance(value, bool)
+        for value in (recovery, selectivity)
     ):
         return None
     return (
         1.0 if summary.get("eligible_for_best_so_far") else 0.0,
-        float(quality),
+        float(primary),
         float(selectivity),
         float(recovery),
     )
 
 
+def _whole_test_objective_improves(
+    current_key: tuple[float, ...] | None,
+    incumbent_key: tuple[float, ...] | None,
+    *,
+    min_delta: float,
+) -> bool:
+    """Apply the same meaningful-improvement rule as the plateau detector."""
+
+    if current_key is None:
+        return False
+    if incumbent_key is None:
+        return current_key[0] > 0.0
+    if current_key[0] < incumbent_key[0]:
+        return False
+    if current_key[0] > incumbent_key[0]:
+        return True
+    current_primary, incumbent_primary = current_key[1], incumbent_key[1]
+    if current_primary <= incumbent_primary + float(min_delta):
+        return False
+    # For v3 keys the second component is delta_min and the third is target
+    # rho.  Do not accept a larger target g if construct discrimination falls
+    # or convergent validity drops by more than the configured tolerance.
+    if current_key[2] < incumbent_key[2] - 1e-12:
+        return False
+    return current_key[3] >= incumbent_key[3] - 0.02
+
+
 def _historical_best_form(
     state: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    """Return the highest eligible historical whole-form utility."""
+    """Return the highest eligible historical form under the active metric.
+
+    A checkpoint may contain pre-IPIP rounds.  Once the current state carries
+    the five-facet IPIP reference, those old Q values are not comparable and
+    must not become the incumbent for the new objective.
+    """
+    test_statistics = state.get("test_statistics") or {}
+    reference_questionnaires = (
+        test_statistics.get("reference_questionnaires")
+        if isinstance(test_statistics, Mapping)
+        else None
+    )
+    ipip_meta = (
+        reference_questionnaires.get("ipip_neo")
+        if isinstance(reference_questionnaires, Mapping)
+        else None
+    )
+    active_ipip_objective = bool(
+        isinstance(ipip_meta, Mapping)
+        and isinstance(ipip_meta.get("facets"), list)
+        and ipip_meta.get("facets")
+    )
     best: dict[str, Any] | None = None
     for entry in state.get("psychometric_iteration_history") or []:
         if not isinstance(entry, Mapping):
             continue
         fm = entry.get("form_metrics") or {}
+        summary = form_quality_summary(fm)
+        if active_ipip_objective and summary.get("objective_source") not in {
+            "ipip_human_style",
+            "ipip_human_style_v3",
+        }:
+            continue
         key = _whole_test_metrics_key(fm)
         item_ids = entry.get("form_item_ids") or []
         if not (
@@ -489,9 +572,9 @@ def _search_best_test_forms(
                     if float(batch_quality["stability_proxy"][index])
                     >= VIRTUAL_FORM_ICC_DEFAULT_MINIMUM
                     else 0.0,
-                    float(batch_quality["candidate_form_quality_proxy"][index]),
-                    float(batch_quality["construct_selectivity"][index]),
-                    float(batch_quality["target_recovery_proxy"][index]),
+                    float(batch_quality["ipip_target_known_groups_hedges_g"][index]),
+                    float(batch_quality["ipip_discriminant_delta_min"][index]),
+                    float(batch_quality["ipip_target_facet_spearman_rho"][index]),
                     *fallback_key,
                     int(theory.get("mechanism_count") or 0),
                     int(theory.get("situation_count") or 0),
@@ -813,9 +896,9 @@ async def optimize_test_form_with_agent(
             "最终测验组合未通过程序校验："
             + "；".join(evaluation.get("errors") or [])
         )
-    # Historical incumbent protection (hill climbing): if the previous best
-    # form is still available, replace it only after candidate-form quality
-    # exceeds the incumbent by the configured minimum meaningful increment.
+    # Historical incumbent protection: if the previous best form is still
+    # available, replace it only after the current two-dimensional objective
+    # exceeds the incumbent by the configured meaningful increment.
     historical = _historical_best_form(state)
     if historical is not None:
         item_map_here = {
@@ -845,13 +928,10 @@ async def optimize_test_form_with_agent(
                     if state.get("psychometric_plateau_min_delta") is not None
                     else PLATEAU_DEFAULT_MIN_DELTA
                 )
-                historical_quality = (
-                    historical_key[1] if historical_key is not None else None
-                )
-                current_quality = current_key[1] if current_key is not None else None
-                if historical_quality is not None and (
-                    current_quality is None
-                    or current_quality <= historical_quality + min_delta
+                if not _whole_test_objective_improves(
+                    current_key,
+                    historical_key,
+                    min_delta=min_delta,
                 ):
                     selected_ids = list(historical["item_ids"])
                     evaluation = historical_evaluation

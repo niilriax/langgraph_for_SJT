@@ -37,7 +37,7 @@ from sjt_system.workflow.routes import (
 )
 
 
-def build_sjt_graph(checkpointer=None):
+def build_sjt_graph(checkpointer=None, *, interrupt_before=None):
     """创建带逐步用户确认的 Router–Execute 工作流。"""
 
     builder = StateGraph(PSJTState)
@@ -157,7 +157,7 @@ def build_sjt_graph(checkpointer=None):
     )
     builder.add_edge("prepare_regeneration", "execute")
     builder.add_edge("stop", END)
-    return builder.compile(checkpointer=checkpointer or InMemorySaver())
+    return builder.compile(checkpointer=checkpointer or InMemorySaver(), interrupt_before=interrupt_before)
 
 
 graph = build_sjt_graph()

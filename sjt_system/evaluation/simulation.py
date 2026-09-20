@@ -19,6 +19,10 @@ from sjt_system.agent.client import (
     with_compatible_structured_output,
 )
 from sjt_system.authoring.bank import build_virtual_response_context
+from sjt_system.knowledge.behavior_evidence import (
+    DEFAULT_CORPUS_PATH as DEFAULT_IPIP_NEO_PATH,
+    load_ipip_corpus,
+)
 from sjt_system.runtime.progress import emit_progress
 from sjt_system.runtime.telemetry import job_context as telemetry_job_context
 from sjt_system.runtime.io import write_json_atomic as _write_json_atomic
@@ -47,6 +51,17 @@ DEFAULT_NEO_FFI_PATH = PROJECT_ROOT / "docs" / "Neo-FFI.json"
 DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "virtual_responses"
 VIRTUAL_RESPONSE_PROMPT_VERSION = "matched-condition-single-sjt-v1"
 PERSONA_SUMMARY_PROMPT_VERSION = "liu-item-response-summary-v2"
+IPIP_NEO_REFERENCE_PROMPT_VERSION = "ipip-neo-mussel-five-facets-v3"
+# Mussel's five NEO-PI-R facets.  The SJT may target one facet at a time, but
+# the same target respondents answer this complete reference set so that
+# target and non-target effects use one fixed, human-comparable scope.
+MUSSEL_IPIP_FACET_IDS = (
+    "neuroticism_self_consciousness",  # N4
+    "extraversion_gregariousness",  # E2
+    "openness_ideas",  # O5
+    "agreeableness_compliance",  # A4
+    "conscientiousness_self_discipline",  # C5
+)
 
 
 class SJTSelectionOutput(BaseModel):
@@ -56,6 +71,12 @@ class SJTSelectionOutput(BaseModel):
 
 
 class NeoFFIBatchOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ratings: list[int]
+
+
+class IPIPNEOBatchOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     ratings: list[int]
@@ -112,6 +133,139 @@ def load_neo_ffi(
             }
         )
     return dimensions
+
+
+def _prepare_ipip_neo_scale(
+    scale_data: Mapping[str, Any],
+    *,
+    corpus: Any,
+) -> dict[str, Any]:
+    """Normalize one IPIP facet without exposing its construct to the model."""
+
+    scale = dict(scale_data)
+    items = list(scale.get("items") or [])
+    if len(items) != 10:
+        raise ValueError(
+            f"IPIP-NEO {scale.get('facet_code')} 必须恰好包含10题"
+        )
+    # The source corpus groups positive and negative items.  A deterministic
+    # mixed order prevents polarity blocks without introducing run-to-run noise.
+    scale["items"] = sorted(
+        items,
+        key=lambda item: sha256(
+            (
+                IPIP_NEO_REFERENCE_PROMPT_VERSION
+                + ":"
+                + str(item.get("item_id") or "")
+            ).encode("utf-8")
+        ).hexdigest(),
+    )
+    scale["corpus_hash"] = corpus.corpus_hash
+    scale["source_file"] = corpus.source_file
+    scale["source_sha256"] = corpus.source_sha256
+    return scale
+
+
+def load_ipip_neo_facet_scales(
+    facet_ids: Sequence[str],
+    path: str | Path = DEFAULT_IPIP_NEO_PATH,
+) -> list[dict[str, Any]]:
+    """Load the ten-item IPIP-NEO scale for every selected SJT facet.
+
+    The facet list is the measurement scope chosen during authoring.  It is
+    intentionally not replaced with a hard-coded target facet: if authoring
+    selected five facets, the same target respondents answer all five scales.
+    """
+
+    normalized_ids = list(
+        dict.fromkeys(str(value or "").strip() for value in facet_ids)
+    )
+    normalized_ids = [value for value in normalized_ids if value]
+    if not normalized_ids:
+        raise ValueError("IPIP-NEO参照问卷缺少出题阶段选定的facet")
+    corpus = load_ipip_corpus(Path(path))
+    by_facet_id = {
+        str(scale.facet_id): scale
+        for scale in corpus.scales
+    }
+    missing = [value for value in normalized_ids if value not in by_facet_id]
+    if missing:
+        raise ValueError(
+            "IPIP-NEO中无法匹配出题阶段选定的facet：" + "、".join(missing)
+        )
+    return [
+        _prepare_ipip_neo_scale(
+            by_facet_id[facet_id].model_dump(mode="json"),
+            corpus=corpus,
+        )
+        for facet_id in normalized_ids
+    ]
+
+
+def load_ipip_neo_target_scale(
+    target_dimension_id: str,
+    path: str | Path = DEFAULT_IPIP_NEO_PATH,
+) -> dict[str, Any]:
+    """Backward-compatible loader for one IPIP-NEO facet."""
+
+    scales = load_ipip_neo_facet_scales([target_dimension_id], path)
+    return scales[0]
+
+
+def resolve_ipip_neo_reference_facet_ids(
+    state: Mapping[str, Any],
+    items: Sequence[Mapping[str, Any]],
+) -> list[str]:
+    """Resolve the facet scope declared by authoring, with item fallback.
+
+    Explicit construct selection is authoritative.  The item-bank facet list
+    is only a compatibility fallback for older checkpoints that predate the
+    persisted construct-selection snapshot.
+    """
+
+    candidates: list[Any] = []
+    specification = state.get("test_specification")
+    if isinstance(specification, Mapping):
+        selection = specification.get("construct_selection")
+        if isinstance(selection, Mapping):
+            candidates.append(selection.get("facet_ids"))
+    profile = state.get("construct_profile")
+    if isinstance(profile, Mapping):
+        candidates.append(profile.get("selected_facet_ids"))
+        facets = profile.get("facets")
+        if isinstance(facets, list):
+            candidates.append(
+                [
+                    facet.get("facet_id")
+                    for facet in facets
+                    if isinstance(facet, Mapping)
+                ]
+            )
+    blueprint = state.get("blueprint")
+    if isinstance(blueprint, Mapping):
+        candidates.append(blueprint.get("selected_facet_ids"))
+        snapshot = blueprint.get("construct_profile_snapshot")
+        if isinstance(snapshot, Mapping):
+            candidates.append(snapshot.get("selected_facet_ids"))
+    candidates.append(
+        [
+            item.get("target_dimension_id")
+            for item in items
+            if isinstance(item, Mapping)
+        ]
+    )
+    for candidate in candidates:
+        if isinstance(candidate, list):
+            resolved = list(
+                dict.fromkeys(
+                    str(value).strip()
+                    for value in candidate
+                    if isinstance(value, str) and value.strip()
+                )
+            )
+            if resolved:
+                return resolved
+    raise ValueError("无法确定出题阶段选定的IPIP-NEO facet集合")
 
 
 def build_persona_prompt(
@@ -252,6 +406,46 @@ def build_neo_ffi_messages(
         ("system", system_message),
         ("human", "\n".join(description_lines)),
     ]
+
+
+def build_ipip_neo_messages(
+    persona_prompt: str,
+    items: Sequence[Mapping[str, Any]],
+) -> list[tuple[str, str]]:
+    """Build a facet-blind IPIP-NEO batch for one selected facet."""
+
+    if not items:
+        raise ValueError("IPIP-NEO参照问卷缺少题目")
+    description_lines = [
+        f"描述 {index}：{item['text']}"
+        for index, item in enumerate(items, 1)
+    ]
+    count = len(description_lines)
+    system_message = (
+        persona_prompt
+        + "\n\n请判断你扮演的这个人对下面每项描述的同意程度："
+        "1=非常不同意，2=比较不同意，3=不确定，4=比较同意，"
+        "5=非常同意。不要猜测量表名称、人格维度、计分方向或研究者期待；"
+        f"每题独立判断，并按题目顺序返回{count}个整数。"
+        "只返回一个JSON对象，不要解释，格式为："
+        '{"ratings":[1,2,3,4,5,1,2,3,4,5]}。'
+    )
+    return [
+        ("system", system_message),
+        ("human", "\n".join(description_lines)),
+    ]
+
+
+def score_ipip_neo_rating(rating: int, polarity: str) -> int:
+    """Score one 1-5 IPIP response using the corpus polarity."""
+
+    if isinstance(rating, bool) or not isinstance(rating, int) or not 1 <= rating <= 5:
+        raise ValueError("IPIP-NEO评分必须是1到5之间的整数")
+    if polarity == "positive":
+        return rating
+    if polarity == "negative":
+        return 6 - rating
+    raise ValueError(f"IPIP-NEO计分方向无效：{polarity!r}")
 
 
 def _structured_result_dict(result: object) -> dict[str, Any]:
@@ -430,6 +624,10 @@ def _simulation_signature(
         "criterion": dict(criterion),
         "model_id": model_id,
     }
+    # Preserve old CLI signatures; an experimental protocol must also bind its
+    # full settings when resuming partially written response files.
+    if "experiment_sample_role" in config:
+        payload["experiment_config"] = dict(config)
     serialized = json.dumps(
         payload,
         ensure_ascii=False,
@@ -569,7 +767,7 @@ def _seed_matched_response_files(
     sjt_items: Sequence[Mapping[str, Any]],
     sjt_path: Path,
     target_retest_path: Path,
-    neo_path: Path,
+    ipip_neo_path: Path,
     option_order_path: Path,
 ) -> dict[str, Any]:
     """Seed a new formal bank with reusable raw records.
@@ -583,14 +781,14 @@ def _seed_matched_response_files(
 
     source_ref = state.get("previous_virtual_response_data_ref")
     if not isinstance(source_ref, str) or not source_ref:
-        return {"source_manifest_path": None, "source_compatible": False, "reused_sjt_records": 0, "reused_local_item_count": 0, "reused_target_retest_records": 0, "reused_neo_ffi_records": 0}
+        return {"source_manifest_path": None, "source_compatible": False, "reused_sjt_records": 0, "reused_local_item_count": 0, "reused_target_retest_records": 0, "reused_ipip_neo_records": 0}
     source_manifest_path = Path(source_ref).resolve()
     if not source_manifest_path.is_file():
-        return {"source_manifest_path": None, "source_compatible": False, "reused_sjt_records": 0, "reused_local_item_count": 0, "reused_target_retest_records": 0, "reused_neo_ffi_records": 0}
+        return {"source_manifest_path": None, "source_compatible": False, "reused_sjt_records": 0, "reused_local_item_count": 0, "reused_target_retest_records": 0, "reused_ipip_neo_records": 0}
     try:
         source_manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
     except (OSError, TypeError, ValueError):
-        return {"source_manifest_path": None, "source_compatible": False, "reused_sjt_records": 0, "reused_local_item_count": 0, "reused_target_retest_records": 0, "reused_neo_ffi_records": 0}
+        return {"source_manifest_path": None, "source_compatible": False, "reused_sjt_records": 0, "reused_local_item_count": 0, "reused_target_retest_records": 0, "reused_ipip_neo_records": 0}
     if not isinstance(source_manifest, Mapping) or not _matched_source_is_compatible(
         source_manifest,
         state=state,
@@ -598,7 +796,7 @@ def _seed_matched_response_files(
         conditions=conditions,
         model_id=model_id,
     ):
-        return {"source_manifest_path": str(source_manifest_path), "source_compatible": False, "reused_sjt_records": 0, "reused_local_item_count": 0, "reused_target_retest_records": 0, "reused_neo_ffi_records": 0}
+        return {"source_manifest_path": str(source_manifest_path), "source_compatible": False, "reused_sjt_records": 0, "reused_local_item_count": 0, "reused_target_retest_records": 0, "reused_ipip_neo_records": 0}
 
     current_versions = {
         str(item.get("item_id")): item.get("item_version")
@@ -698,7 +896,7 @@ def _seed_matched_response_files(
 
     reused_reference_counts: dict[str, int] = {}
     references = source_manifest.get("reference_questionnaires") or {}
-    for name, target_path in (("neo_ffi", neo_path),):
+    for name, target_path in (("ipip_neo", ipip_neo_path),):
         metadata = references.get(name) if isinstance(references, Mapping) else None
         source_path = metadata.get("path") if isinstance(metadata, Mapping) else None
         records = (
@@ -726,7 +924,7 @@ def _seed_matched_response_files(
         "reused_sjt_records": len(reusable_sjt),
         "reused_local_item_count": len(local_records_by_item),
         "reused_target_retest_records": len(target_retest_records),
-        "reused_neo_ffi_records": reused_reference_counts.get("neo_ffi", 0),
+        "reused_ipip_neo_records": reused_reference_counts.get("ipip_neo", 0),
     }
 
 
@@ -764,7 +962,7 @@ def balanced_option_order(
 
 
 class VirtualResponseRunner:
-    """以受控并发执行 SJT、Neo-FFI 与 Mussel 参照问卷作答。"""
+    """以受控并发执行SJT、IPIP-NEO参照问卷与整卷重测。"""
 
     def __init__(
         self,
@@ -810,12 +1008,16 @@ class VirtualResponseRunner:
                 SJTSelectionOutput,
             )
         )
-        self.neo_ffi_model, neo_method = (
+        self.ipip_neo_model, reference_method = (
             with_compatible_structured_output(
                 self.base_model,
-                NeoFFIBatchOutput,
+                IPIPNEOBatchOutput,
             )
         )
+        # Historical experiment add-ons still administer NEO-FFI explicitly.
+        # The output contract is the same ratings-only schema, so keep the old
+        # attribute as a compatibility alias without using it in the main flow.
+        self.neo_ffi_model = self.ipip_neo_model
         self.persona_summary_model, summary_method = (
             with_compatible_structured_output(
                 self.base_model,
@@ -823,7 +1025,7 @@ class VirtualResponseRunner:
             )
         )
         if (
-            neo_method != self.structured_output_method
+            reference_method != self.structured_output_method
             or summary_method != self.structured_output_method
         ):
             raise ValueError("同一模型的结构化输出方式不一致")
@@ -865,7 +1067,7 @@ class VirtualResponseRunner:
         config: Mapping[str, Any],
         respondent_refs: Sequence[Mapping[str, Any]],
         criterion: Mapping[str, str],
-        neo_ffi_path: str | Path,
+        ipip_neo_path: str | Path,
     ) -> dict[str, Any]:
         """Run the matched-facet protocol plus a target-only form retest."""
 
@@ -887,9 +1089,36 @@ class VirtualResponseRunner:
             raise ValueError("匹配 facet 协议只支持 score_profile")
         persona_mode = persona_modes[0]
         sjt_items = list(context["items"])
-        neo_dimensions = load_neo_ffi(neo_ffi_path)
+        condition_rows = {
+            str(row["condition_id"]): dict(row) for row in condition_groups
+        }
+        target_dimension_id = str(
+            condition_rows["target"].get("dimension_id") or ""
+        )
+        # The main SJT target can be one facet, but the external reference
+        # scope is fixed to Mussel's five facets for every run.  This is what
+        # makes the non-target part of I_g observable instead of silently
+        # dropping the other four constructs.
+        selected_ipip_facet_ids = list(MUSSEL_IPIP_FACET_IDS)
+        # Experiment-only opt-out. Existing CLI runs preserve reference behavior.
+        ipip_scales = (
+            None
+            if config.get("reference_questionnaires_enabled") is False
+            or config.get("ipip_neo_reference_enabled") is False
+            else load_ipip_neo_facet_scales(
+                selected_ipip_facet_ids,
+                ipip_neo_path,
+            )
+        )
+        target_ipip_scale = next(
+            (
+                scale
+                for scale in (ipip_scales or [])
+                if str(scale.get("facet_id") or "") == target_dimension_id
+            ),
+            None,
+        )
         seed = int(config.get("seed", 0))
-        condition_rows = {str(row["condition_id"]): dict(row) for row in condition_groups}
         condition_specs: dict[str, list[dict[str, Any]]] = {}
         for condition_id, row in condition_rows.items():
             dimension_id = str(row.get("dimension_id") or "")
@@ -906,7 +1135,7 @@ class VirtualResponseRunner:
         output_dir.mkdir(parents=True, exist_ok=True)
         sjt_path = output_dir / "sjt_responses.jsonl"
         target_retest_path = output_dir / "target_form_retest_responses.jsonl"
-        neo_path = output_dir / "neo_ffi_responses.jsonl"
+        ipip_path = output_dir / "ipip_neo_responses.jsonl"
         option_order_path = output_dir / "option_orders.jsonl"
         manifest_path = output_dir / "manifest.json"
         scoring_snapshot_path = output_dir / "scoring_snapshot.json"
@@ -936,10 +1165,57 @@ class VirtualResponseRunner:
             existing_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             if existing_manifest.get("simulation_signature") != signature:
                 raise ValueError("输出目录已包含不同配置的虚拟作答，拒绝混合数据")
-        elif sjt_path.exists() or option_order_path.exists():
+            existing_references = (
+                existing_manifest.get("reference_questionnaires") or {}
+            )
+            existing_ipip = (
+                existing_references.get("ipip_neo")
+                if isinstance(existing_references, Mapping)
+                else None
+            )
+            existing_facet_ids = (
+                existing_ipip.get("facet_ids")
+                if isinstance(existing_ipip, Mapping)
+                else None
+            )
+            if not isinstance(existing_facet_ids, list) and isinstance(
+                existing_ipip, Mapping
+            ):
+                # Manifests written by the first single-facet IPIP version did
+                # not have facet_ids yet.
+                legacy_facet_id = existing_ipip.get("target_dimension_id")
+                existing_facet_ids = (
+                    [str(legacy_facet_id)]
+                    if isinstance(legacy_facet_id, str) and legacy_facet_id
+                    else None
+                )
+            expected_facet_ids = [
+                str(scale.get("facet_id"))
+                for scale in (ipip_scales or [])
+            ]
+            existing_corpus_hash = (
+                existing_ipip.get("corpus_hash")
+                if isinstance(existing_ipip, Mapping)
+                else None
+            )
+            expected_corpus_hash = (
+                (ipip_scales[0] or {}).get("corpus_hash")
+                if ipip_scales
+                else None
+            )
+            if (
+                isinstance(existing_ipip, Mapping)
+                and ipip_scales is not None
+                and (
+                    existing_facet_ids != expected_facet_ids
+                    or existing_corpus_hash != expected_corpus_hash
+                )
+            ):
+                raise ValueError("现有IPIP-NEO作答使用了不同题库版本，拒绝混合数据")
+        elif sjt_path.exists() or option_order_path.exists() or ipip_path.exists():
             raise ValueError("输出目录存在作答文件但缺少 manifest.json")
 
-        reuse_summary = {"source_manifest_path": None, "source_compatible": False, "reused_sjt_records": 0, "reused_local_item_count": 0, "reused_target_retest_records": 0, "reused_neo_ffi_records": 0}
+        reuse_summary = {"source_manifest_path": None, "source_compatible": False, "reused_sjt_records": 0, "reused_local_item_count": 0, "reused_target_retest_records": 0, "reused_ipip_neo_records": 0}
         if not manifest_path.exists():
             reuse_summary = _seed_matched_response_files(
                 state=state,
@@ -949,7 +1225,7 @@ class VirtualResponseRunner:
                 sjt_items=sjt_items,
                 sjt_path=sjt_path,
                 target_retest_path=target_retest_path,
-                neo_path=neo_path,
+                ipip_neo_path=ipip_path,
                 option_order_path=option_order_path,
             )
 
@@ -993,16 +1269,18 @@ class VirtualResponseRunner:
         )
         if scheduled_target_retest_calls < 0:
             raise ValueError("现有 target 重测记录数超过当前配置预期")
-        neo_keys = _load_jsonl_keys(
-            neo_path,
-            ("respondent_id", "dimension_code", "item_id"),
+        ipip_keys = _load_jsonl_keys(
+            ipip_path,
+            ("respondent_id", "facet_code", "item_id"),
         )
-        initial_neo_count = len(neo_keys)
-        expected_neo_records = len(target_references) * sum(
-            len(dimension.get("items") or []) for dimension in neo_dimensions
+        initial_ipip_count = len(ipip_keys)
+        expected_ipip_records = len(target_references) * sum(
+            len(scale.get("items") or [])
+            for scale in (ipip_scales or [])
+            if isinstance(scale, Mapping)
         )
-        if len(neo_keys) > expected_neo_records:
-            raise ValueError("现有 Neo-FFI 记录数超过当前配置预期")
+        if len(ipip_keys) > expected_ipip_records:
+            raise ValueError("现有IPIP-NEO记录数超过当前配置预期")
         _write_json_atomic(score_profiles_path, {
             "schema_version": 2,
             "sampling_design": config.get("sampling_design"),
@@ -1068,16 +1346,60 @@ class VirtualResponseRunner:
                 "response_mode": "target_form_retest_balanced_order",
             },
             "reference_questionnaires": {
-                "neo_ffi": {
-                    "path": str(neo_path.resolve()),
-                    "target_domain_id": condition_rows["target"].get("domain_id"),
-                    "target_dimension_id": condition_rows["target"].get("dimension_id"),
+                "ipip_neo": {
+                    "enabled": ipip_scales is not None,
+                    "path": str(ipip_path.resolve()),
+                    "facet_ids": [
+                        str(scale.get("facet_id"))
+                        for scale in (ipip_scales or [])
+                    ],
+                    "facet_codes": [
+                        str(scale.get("facet_code"))
+                        for scale in (ipip_scales or [])
+                    ],
+                    "facets": [
+                        {
+                            "facet_id": scale.get("facet_id"),
+                            "facet_code": scale.get("facet_code"),
+                            "item_count": len(scale.get("items") or []),
+                            "source_reported_alpha": scale.get("alpha"),
+                        }
+                        for scale in (ipip_scales or [])
+                    ],
                     "item_count": sum(
-                        len(dimension.get("items") or [])
-                        for dimension in neo_dimensions
+                        len(scale.get("items") or [])
+                        for scale in (ipip_scales or [])
                     ),
-                    "response_mode": "independent_dimension_batch",
+                    "items_per_facet": 10,
+                    "response_mode": "independent_mussel_five_facet_batches",
+                    "scope": "mussel_five_facets_fixed",
                     "score_scale": "1-5",
+                    "prompt_version": IPIP_NEO_REFERENCE_PROMPT_VERSION,
+                    "corpus_hash": (
+                        ipip_scales[0].get("corpus_hash")
+                        if ipip_scales
+                        else None
+                    ),
+                    "source_file": (
+                        ipip_scales[0].get("source_file")
+                        if ipip_scales
+                        else None
+                    ),
+                    "source_reported_alpha": (
+                        target_ipip_scale.get("alpha")
+                        if isinstance(target_ipip_scale, Mapping)
+                        else None
+                    ),
+                    # Deprecated one-facet aliases remain for readers of old
+                    # reports; new reports must use facets/facet_ids.
+                    "target_dimension_id": (
+                        target_dimension_id or None
+                    ),
+                    "target_facet_code": (
+                        target_ipip_scale.get("facet_code")
+                        if isinstance(target_ipip_scale, Mapping)
+                        else None
+                    ),
                 },
             },
             "model_id": self.model_id,
@@ -1089,7 +1411,7 @@ class VirtualResponseRunner:
             "expected_target_form_retest_records": (
                 expected_target_retest_records
             ),
-            "expected_neo_ffi_records": expected_neo_records,
+            "expected_ipip_neo_records": expected_ipip_records,
             "source_manifest_path": reuse_summary.get("source_manifest_path"),
             "source_response_reuse": deepcopy(reuse_summary),
             "score_profiles_path": str(score_profiles_path.resolve()),
@@ -1100,7 +1422,7 @@ class VirtualResponseRunner:
                 "These are exploratory virtual screening results, not formal human psychometric evidence.",
                 "The three top-level arms share one matched score sequence; each facet group is simulated independently and only its named facet is provided to the model.",
                 "The target-form retest measures model/prompt response stability under a second balanced option order; it is not human test-retest reliability.",
-                "Neo-FFI is a virtual reference questionnaire generated from the same synthetic persona inputs; it is development evidence, not human criterion data.",
+                "Mussel's five IPIP-NEO facet scales are answered by the same target respondents; this is development-stage convergent/discriminant evidence, not human criterion data.",
             ],
         }
         _write_json_atomic(manifest_path, manifest)
@@ -1326,12 +1648,18 @@ class VirtualResponseRunner:
                 }
             )
         reference_errors: list[Exception] = []
-        scheduled_neo_calls = 0
+        scheduled_ipip_calls = 0
 
-        def validate_neo_reference(result: Mapping[str, Any]) -> list[int]:
+        def validate_ipip_reference(
+            result: Mapping[str, Any],
+            *,
+            expected_count: int,
+        ) -> list[int]:
             ratings = result.get("ratings")
-            if not isinstance(ratings, list) or len(ratings) != 12:
-                raise ValueError("Neo-FFI 批次必须返回12个评分")
+            if not isinstance(ratings, list) or len(ratings) != expected_count:
+                raise ValueError(
+                    f"IPIP-NEO批次必须返回{expected_count}个评分"
+                )
             if any(
                 not isinstance(value, int)
                 or isinstance(value, bool)
@@ -1339,87 +1667,97 @@ class VirtualResponseRunner:
                 or value > 5
                 for value in ratings
             ):
-                raise ValueError("Neo-FFI 评分必须是1到5之间的整数")
+                raise ValueError("IPIP-NEO评分必须是1到5之间的整数")
             return ratings
 
-        async def run_neo_reference_job(
+        async def run_ipip_reference_job(
             respondent_ref: Mapping[str, Any],
-            dimension: Mapping[str, Any],
+            ipip_scale: Mapping[str, Any],
         ) -> None:
-            nonlocal scheduled_neo_calls
+            nonlocal scheduled_ipip_calls
             respondent_id = str(respondent_ref["respondent_id"])
-            dimension_code = str(dimension["dimension_code"])
-            items = list(dimension.get("items") or [])
+            facet_code = str(ipip_scale["facet_code"])
+            facet_id = str(ipip_scale["facet_id"])
+            items = list(ipip_scale.get("items") or [])
             keys = {
-                (respondent_id, dimension_code, str(item["item_id"]))
+                (respondent_id, facet_code, str(item["item_id"]))
                 for item in items
             }
-            present = keys.intersection(neo_keys)
+            present = keys.intersection(ipip_keys)
             if present:
                 if len(present) != len(keys):
                     raise ValueError(
-                        f"Neo-FFI {respondent_id}/{dimension_code} 存在不完整批次，拒绝混合恢复"
+                        f"IPIP-NEO {respondent_id}/{facet_code} 存在不完整批次，拒绝混合恢复"
                     )
                 return
-            scheduled_neo_calls += 1
+            scheduled_ipip_calls += 1
             ratings = await _invoke_with_retry(
-                self.neo_ffi_model,
-                build_neo_ffi_messages(
+                self.ipip_neo_model,
+                build_ipip_neo_messages(
                     persona_prompts[respondent_id],
                     items,
                 ),
                 semaphore=self.semaphore,
-                validator=validate_neo_reference,
+                validator=lambda result: validate_ipip_reference(
+                    result,
+                    expected_count=len(items),
+                ),
                 max_retries=self.max_retries,
                 retry_delay_seconds=self.retry_delay_seconds,
                 request_timeout_seconds=self.request_timeout_seconds,
-                job_label=f"Neo-FFI target reference {respondent_id}/{dimension_code}",
+                job_label=f"IPIP-NEO selected facet reference {respondent_id}/{facet_code}",
             )
             records = []
             for item, rating in zip(items, ratings):
-                direction = str(item.get("scoring_direction") or "+")
-                scored = int(rating) if direction == "+" else 6 - int(rating)
+                polarity = str(item.get("polarity") or "")
+                scored = score_ipip_neo_rating(int(rating), polarity)
                 records.append(
                     {
-                        "record_type": "neo_ffi_response",
+                        "record_type": "ipip_neo_response",
                         "run_id": state["run_id"],
                         "respondent_id": respondent_id,
                         "matched_subject_id": str(respondent_ref["matched_subject_id"]),
                         "condition_id": "target",
-                        "dimension_code": dimension_code,
+                        "facet_code": facet_code,
+                        "facet_id": facet_id,
                         "item_id": item["item_id"],
                         "raw_response": int(rating),
-                        "scoring_direction": direction,
+                        "polarity": polarity,
                         "score": scored,
-                        "response_mode": "target_reference_dimension_batch_12",
+                        "response_mode": "selected_reference_facet_batch_10",
                         "model_id": self.model_id,
-                        "prompt_version": VIRTUAL_RESPONSE_PROMPT_VERSION,
+                        "prompt_version": IPIP_NEO_REFERENCE_PROMPT_VERSION,
                     }
                 )
-            await self._append_records(neo_path, records)
-            neo_keys.update(keys)
+            await self._append_records(ipip_path, records)
+            ipip_keys.update(keys)
 
-        if not sjt_errors and not target_retest_errors:
-            emit_progress({"type": "simulation_stage", "stage": "Neo-FFI reference response", "status": "started", "total": len(target_references) * len(neo_dimensions)})
-            neo_results = await asyncio.gather(
-                *(run_neo_reference_job(reference, dimension) for reference in target_references for dimension in neo_dimensions),
+        if not sjt_errors and not target_retest_errors and ipip_scales is not None:
+            ipip_job_count = len(target_references) * len(ipip_scales)
+            emit_progress({"type": "simulation_stage", "stage": "IPIP-NEO selected facet response", "status": "started", "total": ipip_job_count})
+            ipip_results = await asyncio.gather(
+                *(
+                    run_ipip_reference_job(reference, scale)
+                    for reference in target_references
+                    for scale in ipip_scales
+                ),
                 return_exceptions=True,
             )
-            reference_errors.extend(result for result in neo_results if isinstance(result, Exception))
-            emit_progress({"type": "simulation_stage", "stage": "Neo-FFI reference response", "status": "failed" if reference_errors else "completed", "total": len(target_references) * len(neo_dimensions)})
+            reference_errors.extend(result for result in ipip_results if isinstance(result, Exception))
+            emit_progress({"type": "simulation_stage", "stage": "IPIP-NEO selected facet response", "status": "failed" if reference_errors else "completed", "total": ipip_job_count})
 
         errors = [*sjt_errors, *target_retest_errors, *reference_errors]
         completed = (
             not errors
             and len(sjt_keys) == expected_sjt_records
             and len(target_retest_keys) == expected_target_retest_records
-            and len(neo_keys) == expected_neo_records
+            and len(ipip_keys) == expected_ipip_records
         )
         manifest.update({
             "status": "completed" if completed else "failed",
             "completed_sjt_records": len(sjt_keys),
             "completed_target_form_retest_records": len(target_retest_keys),
-            "completed_neo_ffi_records": len(neo_keys),
+            "completed_ipip_neo_records": len(ipip_keys),
             "resumed_sjt_records": initial_sjt_count,
             "resumed_target_form_retest_records": (
                 initial_target_retest_count
@@ -1428,7 +1766,7 @@ class VirtualResponseRunner:
             "errors": [str(error) for error in errors[:20]],
         })
         _write_json_atomic(manifest_path, manifest)
-        emit_progress({"type": "simulation_stage", "stage": "matched facet virtual response", "status": "completed" if completed else "failed", "total": expected_sjt_records + expected_target_retest_records + expected_neo_records})
+        emit_progress({"type": "simulation_stage", "stage": "matched facet virtual response", "status": "completed" if completed else "failed", "total": expected_sjt_records + expected_target_retest_records + expected_ipip_records})
         if not completed:
             if errors:
                 raise RuntimeError(f"虚拟作答有 {len(errors)} 个任务失败；首个错误：{errors[0]}")
@@ -1453,14 +1791,14 @@ class VirtualResponseRunner:
             "sjt_item_count": len(sjt_items),
             "sjt_response_count": len(sjt_keys),
             "target_form_retest_response_count": len(target_retest_keys),
-            "neo_ffi_path": str(neo_path.resolve()),
-            "neo_ffi_response_count": len(neo_keys),
+            "ipip_neo_path": str(ipip_path.resolve()),
+            "ipip_neo_response_count": len(ipip_keys),
             "scheduled_persona_summary_api_calls": 0,
             "scheduled_sjt_api_calls": scheduled_sjt_calls,
             "scheduled_target_form_retest_api_calls": (
                 scheduled_target_retest_calls
             ),
-            "scheduled_neo_ffi_api_calls": scheduled_neo_calls,
+            "scheduled_ipip_neo_api_calls": scheduled_ipip_calls,
             "max_concurrency": self.max_concurrency,
             "max_retries": self.max_retries,
             "request_timeout_seconds": self.request_timeout_seconds,
@@ -1471,7 +1809,7 @@ class VirtualResponseRunner:
             "reused_persona_summary_records": 0,
             "reused_sjt_records": initial_sjt_count,
             "reused_target_retest_records": initial_target_retest_count,
-            "reused_neo_ffi_records": initial_neo_count,
+            "reused_ipip_neo_records": initial_ipip_count,
             "reused_local_item_count": reuse_summary.get("reused_local_item_count", 0),
             "source_response_reuse": deepcopy(reuse_summary),
             "source_manifest_path": reuse_summary.get("source_manifest_path"),
@@ -1490,7 +1828,7 @@ class VirtualResponseRunner:
         """施测一个候选题，复用同一批匹配 facet 被试和随机化条件。
 
         这是题目返修 Agent 的局部反馈工具，不会修改正式作答目录，也不会
-        生成 Neo-FFI、Mussel 或整卷重测数据。正式测量仍由 ``run`` 统一完成。
+        生成IPIP-NEO参照问卷或整卷重测数据。正式测量仍由 ``run`` 统一完成。
         候选作答按候选题内容缓存，进程中断后不会因为同一个候选重复调用模型。
         """
 
@@ -1745,7 +2083,7 @@ class VirtualResponseRunner:
         *,
         state: PSJTState,
         output_dir: Path,
-        neo_ffi_path: str | Path = DEFAULT_NEO_FFI_PATH,
+        ipip_neo_path: str | Path = DEFAULT_IPIP_NEO_PATH,
     ) -> dict[str, Any]:
         profile = state.get("construct_profile")
         if not isinstance(profile, Mapping):
@@ -1781,7 +2119,7 @@ class VirtualResponseRunner:
                 config=config,
                 respondent_refs=respondent_refs,
                 criterion=criterion,
-                neo_ffi_path=neo_ffi_path,
+                ipip_neo_path=ipip_neo_path,
             )
         raise ValueError(
             "旧 tier/重复作答虚拟样本配置已停用；请重新配置三臂匹配 facet 条件"
@@ -1793,7 +2131,8 @@ def resolve_virtual_response_output_dir(
 ) -> Path:
     """Isolate responses by frozen-bank identity while supporting old runs."""
 
-    run_dir = Path(output_root) / str(state["run_id"])
+    from sjt_system.runtime.output_paths import scoped_output
+    run_dir = scoped_output("virtual_responses", output_root) / str(state["run_id"])
     fingerprint = str(state.get("item_bank_fingerprint") or "unknown")
     version = state.get("item_bank_version") or 0
     config = state.get("virtual_sample_config") or {}
@@ -1839,13 +2178,17 @@ async def run_virtual_response_simulation(
     *,
     output_root: str | Path = DEFAULT_OUTPUT_ROOT,
     base_model: Any | None = None,
-    neo_ffi_path: str | Path = DEFAULT_NEO_FFI_PATH,
+    ipip_neo_path: str | Path = DEFAULT_IPIP_NEO_PATH,
     retry_delay_seconds: float = 1.0,
     request_timeout_seconds: float | None = None,
 ) -> dict[str, Any]:
     """执行虚拟作答并返回允许提交到 State 的轻量更新。"""
 
     config = state.get("virtual_sample_config") or {}
+    if base_model is None:
+        configured_model_id = str(config.get("model_id") or "").strip()
+        if configured_model_id:
+            base_model = get_model(configured_model_id)
     max_concurrency = config.get(
         "max_concurrency",
         DEFAULT_MAX_CONCURRENCY,
@@ -1862,7 +2205,7 @@ async def run_virtual_response_simulation(
     summary = await runner.run(
         state=state,
         output_dir=output_dir,
-        neo_ffi_path=neo_ffi_path,
+        ipip_neo_path=ipip_neo_path,
     )
     return {
         "state_update": {
@@ -1883,7 +2226,7 @@ async def run_virtual_response_simulation(
             f"复用target重测记录 {summary.get('reused_target_retest_records', 0)} 条；"
             f"新增主施测SJT调用 {summary['scheduled_sjt_api_calls']} 次，"
             f"新增target重测调用 {summary.get('scheduled_target_form_retest_api_calls', 0)} 次，"
-            f"Neo-FFI 共 {summary.get('neo_ffi_response_count', 0)} 条（新增调用 {summary.get('scheduled_neo_ffi_api_calls', 0)} 次），"
+            f"IPIP-NEO Mussel五个facet共 {summary.get('ipip_neo_response_count', 0)} 条（新增调用 {summary.get('scheduled_ipip_neo_api_calls', 0)} 次），"
             f"最大并发 {summary['max_concurrency']}"
         ),
     }
@@ -1900,7 +2243,13 @@ async def run_single_item_virtual_retest(
 ) -> dict[str, Any]:
     """为单题返修提供局部虚拟施测，不改变正式作答数据。"""
 
+    from sjt_system.runtime.output_paths import scoped_output
+    output_root = scoped_output("virtual_responses", output_root)
     config = state.get("virtual_sample_config") or {}
+    if base_model is None:
+        configured_model_id = str(config.get("model_id") or "").strip()
+        if configured_model_id:
+            base_model = get_model(configured_model_id)
     runner = VirtualResponseRunner(
         base_model=base_model,
         max_concurrency=config.get("max_concurrency", DEFAULT_MAX_CONCURRENCY),
