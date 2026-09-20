@@ -67,6 +67,9 @@ experiments/system_comparison/*
 !experiments/system_comparison/*.py
 !experiments/system_comparison/*.json
 !experiments/system_comparison/README.md
+!experiments/system_comparison/five_facet_configs/
+experiments/system_comparison/five_facet_configs/*
+!experiments/system_comparison/five_facet_configs/*.json
 !experiments/post_baseline_iteration_lab/
 experiments/post_baseline_iteration_lab/*
 !experiments/post_baseline_iteration_lab/*.py
