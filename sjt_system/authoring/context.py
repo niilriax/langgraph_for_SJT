@@ -72,6 +72,73 @@ def build_item_model_state(
     return projected
 
 
+def build_psychometric_repair_model_state(
+    state: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Project only semantic item content to the psychometric repair agent."""
+
+    projected = build_item_model_state(state)
+    item = projected.get("current_item")
+    if isinstance(item, Mapping):
+        projected["current_item"] = {
+            key: deepcopy(item[key])
+            for key in ("scenario", "response_instruction", "response_options", "scoring_key")
+            if item.get(key) is not None
+        }
+        projected["current_item"]["response_options"] = [
+            {
+                key: deepcopy(option[key])
+                for key in ("option_id", "text", "behavioral_level")
+                if option.get(key) is not None
+            }
+            for option in projected["current_item"].get("response_options") or []
+            if isinstance(option, Mapping)
+        ]
+    for field in ("current_item_specification", "current_blueprint_cell"):
+        value = projected.get(field)
+        if isinstance(value, Mapping):
+            projected[field] = _strip_repair_metadata(value)
+    for field in ("current_facet_profile", "current_construct_dimension"):
+        value = projected.get(field)
+        if isinstance(value, Mapping):
+            projected[field] = _strip_repair_metadata(value)
+    projected.pop("construct_profile_ref", None)
+    projected["test_specification"] = None
+    projected["user_feedback"] = None
+    projected["current_item_review"] = None
+    return projected
+
+
+def build_psychometric_repair_generation_context(
+    state: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Keep only semantic generation context for a psychometric repair call."""
+
+    context = build_item_generation_context(state)
+    for field in ("current_item_specification", "current_blueprint_cell"):
+        value = context.get(field)
+        if isinstance(value, Mapping):
+            context[field] = _strip_repair_metadata(value)
+    context.pop("context_usage", None)
+    context.pop("context_quotas", None)
+    return context
+
+
+def _strip_repair_metadata(value: Any) -> Any:
+    """Recursively remove routing IDs while preserving the three useful refs."""
+
+    if isinstance(value, Mapping):
+        return {
+            key: _strip_repair_metadata(raw)
+            for key, raw in value.items()
+            if key in {"option_id", "observation_id", "constraint_id"}
+            or not str(key).endswith("_id")
+        }
+    if isinstance(value, list):
+        return [_strip_repair_metadata(raw) for raw in value]
+    return deepcopy(value)
+
+
 def build_requirement_model_state(
     state: Mapping[str, Any],
 ) -> dict[str, Any]:

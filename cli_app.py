@@ -1,6 +1,7 @@
 """Legacy command-line interface for the SJT workflow."""
 
 import asyncio
+import math
 import os
 from pathlib import Path
 from pprint import pprint
@@ -18,6 +19,7 @@ from sjt_system.runtime.checkpoint import (
     prepare_resumed_state,
     save_run_checkpoint,
 )
+from sjt_system.runtime.telemetry import run_context as telemetry_run_context
 from sjt_system.state import TraceEvent, create_initial_state
 from sjt_system.authoring.items import derive_item_review_decision
 from sjt_system.authoring.construct_registry import (
@@ -27,6 +29,11 @@ from sjt_system.authoring.generation_plan import (
     planned_generation_count,
     planned_retention_count,
 )
+from sjt_system.evaluation.round_results import (
+    build_psychometric_round_result,
+    metric_scalar,
+)
+from sjt_system.evaluation.form_metrics import form_quality_summary
 
 app = build_sjt_graph()
 
@@ -48,6 +55,7 @@ ACTION_LABELS = {
     "simulate_responses": "虚拟被试作答",
     "analyze_psychometrics": "心理测量分析",
     "select_items": "心理测量返修诊断",
+    "psychometric_repair_batch": "并发心理测量返修",
     "assemble_test": "测验组卷",
     "review_test": "测验整体审核",
     "rescore_test": "重新计分",
@@ -107,6 +115,60 @@ def print_runtime_progress(event: dict) -> None:
             f"{completed}/{total}（{percent}%）",
             flush=True,
         )
+    elif event_type == "psychometric_subagent_progress":
+        status = {
+            "batch_started": "批次启动",
+            "batch_completed": "批次完成",
+            "started": "启动",
+            "editing": "修改中",
+            "retesting": "局部复测中",
+            "round_completed": "本轮完成",
+            "completed": "完成",
+            "failed": "失败",
+        }.get(event.get("status"), event.get("status"))
+        position = ""
+        if event.get("queue_position") and event.get("queue_total"):
+            position = (
+                f" [{event.get('queue_position')}/{event.get('queue_total')}]"
+            )
+        round_text = ""
+        if event.get("round"):
+            round_text = (
+                f"；局部轮次 {event.get('round')}/"
+                f"{event.get('max_rounds', '?')}"
+            )
+        gate_text = ""
+        if event.get("passed_gate_count") is not None:
+            gate_text = (
+                f"；通过门槛 {event.get('passed_gate_count')}/"
+                f"{event.get('gate_total', 4)}"
+            )
+        elapsed_text = ""
+        if event.get("elapsed_ms") is not None:
+            elapsed_text = f"；耗时 {event.get('elapsed_ms')} ms"
+        details = str(event.get("message") or "")
+        if event.get("diagnosis_id"):
+            details += f"；诊断={event.get('diagnosis_id')}"
+        if event.get("failed_gates"):
+            details += "；未通过=" + ",".join(
+                str(value) for value in event.get("failed_gates") or []
+            )
+        if event.get("local_status"):
+            details += f"；局部状态={event.get('local_status')}"
+        if event.get("batch_total") is not None:
+            details += (
+                f"；批次进度={event.get('completed_count', 0)}/"
+                f"{event.get('batch_total')}"
+            )
+        if event.get("concurrency") is not None:
+            details += f"；最大并发={event.get('concurrency')}"
+        print(
+            f"[心理测量 subagent]{position} "
+            f"{event.get('item_id', 'unknown')}：{status}"
+            f"{round_text}{gate_text}{elapsed_text}"
+            + (f"；{details}" if details else ""),
+            flush=True,
+        )
     elif event_type in {"request_retry", "output_repair"}:
         print(
             f"\n[重试] {event.get('job_label', '模型请求')}："
@@ -159,9 +221,226 @@ def print_automatic_item_result(
 
 
 def _format_metric(value: object, *, digits: int = 3) -> str:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    numeric = metric_scalar(value)
+    if numeric is None:
         return "证据不足"
-    return f"{float(value):.{digits}f}"
+    return f"{numeric:.{digits}f}"
+
+
+def _cli_gate_display(gate: dict) -> str:
+    status = "通过" if gate.get("passes") is True else (
+        "未通过" if gate.get("estimable") is True else "不可估计"
+    )
+    return (
+        f"{_format_metric(gate.get('value'))}/"
+        f"≥{_format_metric(gate.get('threshold'))}/{status}"
+    )
+
+
+def _cli_frequency_display(option: dict, group_n: object) -> str:
+    rate = option.get("selection_rate")
+    count = option.get("selection_count")
+    if isinstance(rate, bool) or not isinstance(rate, (int, float)):
+        return f"-({count or 0}/{group_n or 0})"
+    return f"{float(rate) * 100:.1f}%({count}/{group_n})"
+
+
+def _print_option_choice_diagnostics(diagnostics: dict) -> None:
+    aggregate = diagnostics.get("aggregate") or diagnostics.get("all") or {}
+    option_ids = [
+        str(row.get("option_id"))
+        for row in aggregate.get("options") or []
+        if isinstance(row, dict)
+    ]
+    if not option_ids:
+        print("选项选择频率：无可用数据")
+        return
+    print("选项选择频率（仅用于定位文本核查点，不参与过滤）：")
+    print("| 分组 | N | 可用于定位 | " + " | ".join(option_ids) + " |")
+    print("|---|---:|---|" + "---:|" * len(option_ids))
+
+    def print_group(label: str, group: dict, estimable: bool) -> None:
+        options = {
+            str(row.get("option_id")): row
+            for row in group.get("options") or []
+            if isinstance(row, dict)
+        }
+        values = [
+            _cli_frequency_display(options.get(option_id) or {}, group.get("group_n"))
+            for option_id in option_ids
+        ]
+        print(
+            f"| {label} | {group.get('group_n', 0)} | "
+            f"{'是' if estimable else '否'} | " + " | ".join(values) + " |"
+        )
+
+    print_group("全样本", aggregate, True)
+    for condition in diagnostics.get("by_condition") or []:
+        if isinstance(condition, dict):
+            print_group(
+                f"条件 {condition.get('condition_id')}",
+                condition,
+                True,
+            )
+
+
+def _print_option_score_comparisons(rows: list[dict]) -> None:
+    if not rows:
+        print("按选项对齐的设定分数均值：无可用数据")
+        return
+    print("按 option_id 对齐的设定分数均值（仅诊断，不参与过滤）：")
+    print("| 题目 | 选项 | 计分 | 目标N | 目标组均值 | 同域N | 同域组均值 | 跨域N | 跨域组均值 |")
+    print("|---|---|---:|---:|---:|---:|---:|---:|---:|")
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        print(
+            f"| {row.get('item_id')} | {row.get('option_id')} | "
+            f"{_format_metric(row.get('option_score', row.get('score')))} | "
+            f"{row.get('target_n', 0)} | {_format_metric(row.get('target_mean_score'))} | "
+            f"{row.get('same_domain_n', 0)} | {_format_metric(row.get('same_domain_mean_score'))} | "
+            f"{row.get('cross_domain_n', 0)} | {_format_metric(row.get('cross_domain_mean_score'))} |"
+        )
+
+
+def _print_diagnosis_option_score_comparisons(rows: list[dict]) -> None:
+    if not rows:
+        return
+    print("VTS 按 option_id 对齐的均值定位证据：")
+    print("| VTS类别 | 选项 | 计分 | 目标组均值 | 对应非目标组均值 |")
+    print("|---|---|---:|---:|---:|")
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        category = str(row.get("vts_category") or "")
+        print(
+            f"| {category or '-'} | {row.get('option_id')} | "
+            f"{_format_metric(row.get('score'))} | "
+            f"{_format_metric(row.get('target_mean_score'))} | "
+            f"{_format_metric(row.get(f'{category}_mean_score'))} |"
+        )
+
+
+def print_psychometric_round_result(round_result: dict) -> None:
+    summary = round_result.get("summary") or {}
+    print(f"\n===== 第 {round_result.get('analysis_round', '?')} 轮虚拟筛查 =====")
+    print(
+        f"分析题目={summary.get('item_count', 0)}；"
+        f"本轮新合格={summary.get('newly_qualified_count', 0)}；"
+        f"待处理={summary.get('pending_treatment_count', 0)}；"
+        f"正式题已锁定={summary.get('qualified_locked_count', 0)}；"
+        f"监测警告={summary.get('monitoring_warning_count', 0)}；"
+        f"不可估计门槛={summary.get('unestimable_metric_count', 0)}"
+    )
+    print("\n| 门槛 | 通过题数 | 阈值 | 不可估计 |")
+    print("|---|---:|---:|---:|")
+    for gate in round_result.get("gate_summary") or []:
+        if isinstance(gate, dict):
+            print(
+                f"| {gate.get('label')} | {gate.get('pass_count', 0)}/"
+                f"{gate.get('item_count', 0)} | ≥{_format_metric(gate.get('threshold'))} | "
+                f"{gate.get('unestimable_count', 0)} |"
+            )
+
+    def print_overview(title: str, rows: list[dict]) -> None:
+        print(f"\n{title}：{len(rows)} 题")
+        if not rows:
+            print("  无")
+            return
+        print("| 题目 | 状态 | CITC | 目标rho_s | 同域VTS/污染facet | 跨域VTS/污染facet |")
+        print("|---|---|---|---|---|---|")
+        for entry in rows:
+            gates = {
+                row.get("gate_id"): row
+                for row in entry.get("gates") or []
+                if isinstance(row, dict)
+            }
+            contaminants = entry.get("max_contaminants") or {}
+            same = contaminants.get("same_domain") or {}
+            cross = contaminants.get("cross_domain") or {}
+            print(
+                f"| {entry.get('item_id')} | {entry.get('status')} | "
+                f"{_cli_gate_display(gates.get('citc_pass') or {})} | "
+                f"{_cli_gate_display(gates.get('target_rho_pass') or {})} | "
+                f"{_cli_gate_display(gates.get('same_domain_vts_pass') or {})} / "
+                f"{same.get('facet_name') or same.get('dimension_id') or '-'} | "
+                f"{_cli_gate_display(gates.get('cross_domain_vts_pass') or {})} / "
+                f"{cross.get('facet_name') or cross.get('dimension_id') or '-'} |"
+            )
+
+    candidate_rows = [
+        row
+        for row in round_result.get("items") or []
+        if isinstance(row, dict)
+        and row.get("status") in {"pending_treatment", "newly_qualified"}
+    ]
+    print_overview("本轮候选题总览", candidate_rows)
+    print_overview(
+        "已锁定正式题监测",
+        [row for row in round_result.get("locked_items") or [] if isinstance(row, dict)],
+    )
+    option_score_rows = [
+        row
+        for row in round_result.get("option_score_comparisons") or []
+        if isinstance(row, dict)
+    ]
+    print(f"\n所有题目的按选项对齐设定分数均值：{len(option_score_rows)} 行（仅诊断）")
+    _print_option_score_comparisons(option_score_rows)
+    for entry in round_result.get("pending_items") or []:
+        if not isinstance(entry, dict):
+            continue
+        print(
+            f"\n--- 待处理题 {entry.get('item_id')}；失败门槛="
+            f"{','.join(entry.get('failed_thresholds') or [])} ---"
+        )
+        print("| 指标 | 当前值 | 门槛 | 状态 | 参与过滤 |")
+        print("|---|---:|---:|---|---|")
+        for gate in entry.get("gates") or []:
+            if isinstance(gate, dict):
+                status = "通过" if gate.get("passes") is True else (
+                    "未通过" if gate.get("estimable") is True else "不可估计"
+                )
+                print(
+                    f"| {gate.get('label')} | {_format_metric(gate.get('value'))} | "
+                    f"≥{_format_metric(gate.get('threshold'))} | {status} | 是 |"
+                )
+        for condition in entry.get("per_condition_metrics") or []:
+            if isinstance(condition, dict):
+                print(
+                    f"  - {condition.get('condition_id')}（过滤权={'是' if condition.get('filtering_authority') else '否'}）："
+                    f"CITC={_format_metric(condition.get('citc'))}；"
+                    f"rho={_format_metric(condition.get('rho'))}"
+                )
+        gradient = entry.get("target_option_gradient") or {}
+        if gradient:
+            print(f"  目标组选项梯度：{'通过' if gradient.get('passes') else '失败'}；失败相邻对=" + ",".join(f"{row.get('lower_option_id')}<{row.get('higher_option_id')}" for row in gradient.get('failed_adjacent_pairs') or []))
+        arm_diagnostics = entry.get("arm_difference_diagnostics") or {}
+        for comparison in arm_diagnostics.get("comparisons") or []:
+            if not isinstance(comparison, dict):
+                continue
+            overall = comparison.get("overall") or {}
+            high_band = next(
+                (
+                    row
+                    for row in comparison.get("by_score_band") or []
+                    if isinstance(row, dict) and row.get("score_band") == "high"
+                ),
+                {},
+            )
+            print(
+                f"  实验臂差异 {comparison.get('comparison_id')}（仅定位）："
+                f"同选项率={_format_metric(overall.get('same_option_rate'))}；"
+                f"总体题分差={_format_metric(overall.get('target_minus_comparator_mean_item_score'))}；"
+                f"高分组三四级选择率差={_format_metric(high_band.get('target_minus_comparator_high_option_rate'))}"
+            )
+        item = entry.get("item") or {}
+        if isinstance(item, dict) and item:
+            print_item_candidate(item)
+        comparisons = entry.get("option_score_comparisons") or []
+        if isinstance(comparisons, list) and comparisons:
+            _print_option_score_comparisons(
+                [row for row in comparisons if isinstance(row, dict)]
+            )
 
 
 def print_psychometric_summary(
@@ -169,69 +448,51 @@ def print_psychometric_summary(
     state: dict,
 ) -> None:
     statistics = proposed_update.get("test_statistics") or {}
-    evaluation = statistics.get("measurement_evaluation") or {}
-    reliability = evaluation.get("reliability") or {}
-    validity = evaluation.get("validity") or {}
-    convergent = validity.get("convergent") or {}
-    discriminant = validity.get("discriminant") or {}
-    counts = evaluation.get("item_recommendation_counts") or {}
-    print("\n===== 心理测量核心结果 =====")
-    print(
-        f"样本量：{(state.get('virtual_sample_config') or {}).get('sample_size', '未知')}"
+    virtual_summary = (
+        (statistics.get("virtual_screening_metrics") or {}).get("summary")
+        or {}
     )
+    config = state.get("virtual_sample_config") or {}
+    print("\n===== 探索性虚拟迭代四门槛（三臂匹配 facet） =====")
     print(
-        "信度："
-        f"Cronbach α={_format_metric(statistics.get('cronbach_alpha'))}；"
-        f"等级={reliability.get('overall_grade', '证据不足')}"
+        f"总样本量：{config.get('sample_size', '未知')}；"
+        f"固定顶层臂：{config.get('condition_count', statistics.get('condition_count', 3))}；"
+        f"facet group：{config.get('group_count', statistics.get('group_count', '?'))}；"
+        f"每组人数：{config.get('sample_size_per_condition', '未知')}；"
+        "主施测每人每题一次，target组另做一次整卷重测"
     )
     print(
-        "效度："
-        f"目标 {convergent.get('target', '?')} 相关="
-        f"{_format_metric(convergent.get('rho'))}；"
-        f"最大非目标维度={discriminant.get('largest_non_target_dimension', '?')}；"
-        f"最大非目标相关="
-        f"{_format_metric(discriminant.get('largest_non_target_rho'))}；"
-        f"区分差值={_format_metric(discriminant.get('target_margin'))}"
+        "分面内题项一致性：CITC中位数="
+        f"{_format_metric(virtual_summary.get('median_citc'))}；单题门槛CITC≥.20"
     )
     print(
-        "题目建议："
-        f"retain={counts.get('retain', 0)}，"
-        f"revise={counts.get('revise', 0)}，"
-        f"remove={counts.get('remove', 0)}"
+        "三臂匹配 facet 相关：目标ρs中位数="
+        f"{_format_metric(virtual_summary.get('median_target_rho'))}；"
+        "最小同域VTS="
+        f"{_format_metric(virtual_summary.get('minimum_same_domain_vts'))}；"
+        "最小跨域VTS="
+        f"{_format_metric(virtual_summary.get('minimum_cross_domain_vts'))}；"
+        "单题门槛目标ρs≥.30、同域VTS≥.10、跨域VTS≥.20"
     )
-    item_statistics = proposed_update.get("item_statistics") or {}
-    dimensions = statistics.get("dimensions") or {}
-    dimension_ids = list(
-        dict.fromkeys(
-            str(item.get("dimension_id") or "unknown")
-            for item in item_statistics.values()
-        )
+    combined_state = {**state, **proposed_update}
+    round_result = proposed_update.get("psychometric_round_result") or (
+        build_psychometric_round_result(combined_state)
     )
-    for dimension_id in dimension_ids:
-        dimension = dimensions.get(dimension_id) or {}
+    print_psychometric_round_result(round_result)
+    print("\n描述性诊断（不参与返修）：")
+    print(
+        "Cronbach α="
+        f"{_format_metric(statistics.get('cronbach_alpha'))}"
+    )
+    print("| 题目 | 难度 | 有效选项数 |")
+    print("|---|---:|---:|")
+    for item_id, item in (proposed_update.get("item_statistics") or {}).items():
+        quality = item.get("quality_evaluation") or {}
         print(
-            f"\nFacet {dimension_id} 题项测量结果："
-            f"Cronbach α={_format_metric(dimension.get('cronbach_alpha'))}"
+            f"| {item_id} | {_format_metric(item.get('difficulty'))} | "
+            f"{quality.get('effective_option_count', '?')} |"
         )
-        print("| 题目 | 分面内CITC | 难度 | 有效选项数 | 结果 |")
-        print("|---|---:|---:|---:|---|")
-        for item_id, item in item_statistics.items():
-            if str(item.get("dimension_id") or "unknown") != dimension_id:
-                continue
-            quality = item.get("quality_evaluation") or {}
-            corrected = (
-                item.get("facet_corrected_item_total_correlation") or {}
-            )
-            flags = "；".join(quality.get("diagnostic_flags") or []) or "无"
-            row_label = item_id.split("-row-")[-1].split("-")[0]
-            print(
-                f"| Row {row_label} | {_format_metric(corrected.get('r'))} | "
-                f"{_format_metric(item.get('difficulty'))} | "
-                f"{quality.get('effective_option_count', '?')} | "
-                f"{quality.get('recommendation', '?')} |"
-            )
-            if flags:
-                print(f"  Row {row_label} 诊断：{flags}")
+    print("注：上述结果仅是探索性虚拟筛查证据，不是正式单题信效度。")
 
 
 def _print_item_id_list(
@@ -249,11 +510,88 @@ def _print_item_id_list(
         print(f"  - {item_id}：{reason}")
 
 
+def print_provisional_iteration_summary(proposed_update: dict) -> None:
+    """Print the whole-test baseline assembled before single-item repair."""
+
+    history = [
+        row
+        for row in proposed_update.get("psychometric_iteration_history") or []
+        if isinstance(row, dict)
+    ]
+    if not history:
+        return
+    provisional = max(
+        history,
+        key=lambda row: int(row.get("analysis_round") or 0),
+    )
+    form_metrics = provisional.get("form_metrics") or {}
+    reliability = form_metrics.get("reliability") or {}
+    validity = form_metrics.get("validity") or {}
+    recovery = validity.get("target_recovery") or {}
+    selectivity = validity.get("construct_selectivity") or {}
+    optimization = form_metrics.get("optimization") or {}
+    derived_quality = form_quality_summary(form_metrics)
+    stability_gate = (
+        optimization.get("stability_gate")
+        or derived_quality.get("stability_gate")
+        or {}
+    )
+    selectivity_value = selectivity.get("value")
+    if selectivity_value is None:
+        selectivity_value = derived_quality.get("construct_selectivity")
+    candidate_quality = provisional.get("candidate_form_quality")
+    if candidate_quality is None:
+        candidate_quality = derived_quality.get("candidate_form_quality")
+    plateau = provisional.get("plateau_status") or {}
+    best_quality = provisional.get("best_so_far_form_quality")
+    if best_quality is None:
+        best_quality = plateau.get("best_form_quality")
+    print("\n===== 本轮临时组卷（单题返修前基线） =====")
+    print(
+        f"轮次={provisional.get('analysis_round', '?')}；"
+        f"候选题={provisional.get('candidate_count', 0)}；"
+        f"单题通过={provisional.get('qualified_item_count', 0)}；"
+        f"临时测验={provisional.get('item_count', 0)}；"
+        f"状态={provisional.get('form_status', '未记录')}"
+    )
+    print(
+        "整卷指标："
+        "目标恢复R²="
+        f"{_format_metric(recovery.get('cross_validated_r2'))}；"
+        "构念选择性="
+        f"{_format_metric(selectivity_value)}；"
+        "本轮候选质量="
+        f"{_format_metric(candidate_quality)}；"
+        "历史最优质量="
+        f"{_format_metric(best_quality)}"
+    )
+    print(
+        "稳定性门槛："
+        "虚拟重测ICC="
+        f"{_format_metric(reliability.get('virtual_test_retest_icc'))}；"
+        f"最低={_format_metric(stability_gate.get('minimum'))}；"
+        f"通过={'是' if stability_gate.get('passed') else '否'}"
+    )
+    usage = provisional.get("token_usage") or {}
+    print(
+        "本轮成本："
+        f"Token={usage.get('total_tokens', 0)}；"
+        f"模型耗时={usage.get('duration_ms', 0)} ms"
+    )
+    if plateau.get("reached"):
+        print(
+            "平台期：已达到，"
+            f"连续未改善轮数={plateau.get('non_improving_rounds', '?')}"
+        )
+    if provisional.get("form_selection_error"):
+        print(f"临时组卷备注：{provisional['form_selection_error']}")
+
+
 def print_selection_summary(proposed_update: dict) -> None:
-    selection = proposed_update.get("selection_results") or {}
+    raw_selection = proposed_update.get("selection_results")
+    selection = raw_selection if isinstance(raw_selection, dict) else {}
     reasons = proposed_update.get("selection_reasons") or {}
     selected = proposed_update.get("selected_items") or []
-    reserve = proposed_update.get("reserve_items") or []
     repair_by_id = {
         str(entry.get("item_id")): entry
         for entry in [
@@ -262,132 +600,73 @@ def print_selection_summary(proposed_update: dict) -> None:
         ]
         if isinstance(entry, dict) and entry.get("item_id")
     }
-    repair_order = selection.get("revision_item_ids") or list(repair_by_id)
+    repair_order = list(repair_by_id)
     revise = [
         repair_by_id[str(item_id)]
         for item_id in repair_order
         if str(item_id) in repair_by_id
     ]
-    deferred = proposed_update.get("items_deferred_for_revision") or []
-    removed_by_id = {
-        str(item.get("item_id")): item
-        for item in proposed_update.get("removed_items") or []
-        if isinstance(item, dict) and item.get("item_id")
-    }
-    current_removed = [
-        removed_by_id[item_id]
-        for item_id in selection.get("removed_item_ids") or []
-        if item_id in removed_by_id
+    dispositions = proposed_update.get("item_final_dispositions") or selection.get("final_dispositions") or {}
+    pending_sme = [
+        {"item_id": item_id}
+        for item_id, disposition in dispositions.items()
+        if isinstance(disposition, dict)
+        and disposition.get("status") == "pending_sme_review"
+    ]
+    eliminated = [
+        {"item_id": item_id}
+        for item_id, disposition in dispositions.items()
+        if isinstance(disposition, dict) and disposition.get("status") == "eliminated"
     ]
 
     print("\n===== 心理测量返修诊断结果 =====")
-    print(
-        f"状态：{selection.get('status', '?')}；"
-        f"证据等级：{selection.get('evidence_level', '?')}"
-    )
-    suppressed = selection.get("automatic_removal_suppressed") is True
-    sample_size = selection.get("sample_size")
-    minimum = selection.get("automatic_selection_minimum_sample_size")
-    if suppressed:
-        print(
-            "为何没有自动删除："
-            f"样本量 {sample_size} 低于自动筛选阈值 {minimum}，"
-            "retain/revise/remove 仅作探索性报告。"
-        )
-    else:
-        print(
-            "自动删除与返修：已启用；"
-            f"样本量 {sample_size} 达到阈值 {minimum}。"
-        )
-    locked_count = selection.get("locked_retained_count")
-    if isinstance(locked_count, int):
-        print(
-            f"通过资格锁定：{locked_count}题；"
-            "锁定版本继续参与整体统计与组卷，但不再自动返修。"
-        )
-    admission = selection.get("monotonic_admission")
-    if isinstance(admission, dict):
-        print(
-            "组合准入："
-            f"{admission.get('decision', '?')}；"
-            f"{admission.get('reason', '未记录原因')}。"
-        )
-        admitted_metrics = admission.get("admitted_metrics")
-        if isinstance(admitted_metrics, dict):
-            print(
-                "当前历史最佳正式组合："
-                f"区分差值="
-                f"{admitted_metrics.get('worst_case_discriminant_margin')}；"
-                f"目标相关="
-                f"{admitted_metrics.get('worst_case_target_rho')}；"
-                f"Cronbach α="
-                f"{admitted_metrics.get('worst_case_cronbach_alpha')}。"
-            )
-    developed_count = selection.get("developed_candidate_count")
-    if isinstance(developed_count, int):
-        print(
-            f"累计开发候选：{developed_count} 题；"
-            "按返修轮次与蓝图完成条件收敛，不设固定 25 题上限。"
-        )
+    status = selection.get("status")
+    if not status and revise:
+        status = "逐题诊断进行中"
+    print(f"状态：{status or '等待下一步'}")
+    print("筛选权：仅使用三臂匹配条件的总指标；各条件臂诊断与输入相关不参与过滤。")
+
+    print_provisional_iteration_summary(proposed_update)
 
     _print_item_id_list("正式题", selected, reasons)
-    _print_item_id_list("备用题", reserve, reasons)
-    _print_item_id_list("返修题", revise, reasons)
-    _print_item_id_list("待后续返修题（不阻塞组卷）", deferred, reasons)
-    _print_item_id_list("本轮退出题", current_removed, reasons)
+    _print_item_id_list("待诊断题" if not raw_selection else "待处理题", revise, reasons)
+    _print_item_id_list("待 SME 题（不进入正式题）", pending_sme, reasons)
+    _print_item_id_list("淘汰题", eliminated, reasons)
     if revise:
-        print("返修意见（将自动传给出题专家）：")
+        print("逐题诊断队列：")
         for entry in revise:
-            review = entry.get("review")
-            if not isinstance(review, dict):
-                continue
-            print(f"\n  题目 {entry.get('item_id', '?')}：")
-            print_review_candidate(
-                {
-                    "current_item_review": review,
-                    "current_item_repair_attempted": False,
-                }
-            )
-
-    effects = selection.get("next_effect") or {}
-    print("后续流程触发：")
-    print(
-        "  - 补题："
-        + ("是" if effects.get("supplement_items") else "否")
-    )
-    print(
-        "  - 返回出题专家修改："
-        + ("是" if effects.get("repair_items") else "否")
-    )
-    print(
-        "  - 重新模拟并分析："
-        + ("是" if effects.get("reanalyze_after_bank_change") else "否")
-    )
-    print(
-        "  - 再次组卷："
-        + ("是" if effects.get("reassemble") else "否")
-    )
-    optimizer = (
-        proposed_update.get("blueprint_coverage") or {}
-    ).get("optimizer") or {}
-    if optimizer:
-        print(
-            "组合选择："
-            f"{optimizer.get('method')}；"
-            f"候选组合={optimizer.get('combination_count', 0)}；"
-            f"已执行组合优化={'是' if optimizer.get('optimized') else '否'}"
-        )
-        selected_metrics = optimizer.get("selected_metrics") or {}
-        if selected_metrics:
-            print(
-                "正式组合指标："
-                "最差模式目标相关="
-                f"{_format_metric(selected_metrics.get('worst_case_target_rho'))}；"
-                "最差模式Cronbach α="
-                f"{_format_metric(selected_metrics.get('worst_case_cronbach_alpha'))}；"
-                "区分差值="
-                f"{_format_metric(selected_metrics.get('worst_case_discriminant_margin'))}"
-            )
+            advice = entry.get("atomic_repair_advice") or {}
+            if (
+                entry.get("queue_status") == "deferred_decision"
+                and entry.get("diagnosis_status") == "repair_rounds_exhausted"
+            ):
+                print(
+                    f"  - {entry.get('item_id', '?')}：已完成三轮返修仍未达标，"
+                    "自动 defer，等待 SME/人工修改/淘汰处置"
+                )
+            else:
+                print(
+                    f"  - {entry.get('item_id', '?')} / "
+                    f"第 {entry.get('revision_round', '?')} 轮 / "
+                    f"{entry.get('queue_status', 'pending_diagnosis')}："
+                    f"{advice.get('summary') or '等待诊断'}"
+                )
+    monitoring = proposed_update.get("psychometric_monitoring_warnings") or []
+    if monitoring:
+        print("正式题监测警告（资格不撤销且不返修）：")
+        for entry in monitoring:
+            if isinstance(entry, dict):
+                print(f"  - {entry.get('item_id', '?')}：{entry.get('message', '')}")
+    lineage = proposed_update.get("item_lineage") or {}
+    replacement_rows = [
+        (item_id, row)
+        for item_id, row in lineage.items()
+        if isinstance(row, dict) and row.get("replaces_item_id")
+    ]
+    if replacement_rows:
+        print("补题 lineage：")
+        for item_id, row in replacement_rows:
+            print(f"  - {item_id} 替代 {row.get('replaces_item_id')}（槽位根题 {row.get('root_item_id')}）")
 
 
 def print_workflow_effect(action: str, proposed_update: dict) -> None:
@@ -396,11 +675,10 @@ def print_workflow_effect(action: str, proposed_update: dict) -> None:
         print(
             "\n[虚拟作答] "
             f"复用未变题作答 {summary.get('reused_sjt_records', 0)} 条；"
-            f"新增SJT调用 {summary.get('scheduled_sjt_api_calls', 0)} 次；"
-            f"复用人格总结 "
-            f"{summary.get('reused_persona_summary_records', 0)} 条；"
-            f"复用Neo-FFI作答 "
-            f"{summary.get('reused_neo_ffi_records', 0)} 条。"
+            f"新增主施测SJT调用 {summary.get('scheduled_sjt_api_calls', 0)} 次；"
+            "新增target重测调用 "
+            f"{summary.get('scheduled_target_form_retest_api_calls', 0)} 次；"
+            f"匹配条件组 {summary.get('condition_count', '?')} 个。"
         )
     elif action == "assemble_test":
         assembled = proposed_update.get("assembled_test") or {}
@@ -804,7 +1082,7 @@ def prompt_requirement_decision(payload: dict) -> dict:
 
 
 def prompt_virtual_sample_selection(payload: dict) -> dict:
-    """展示内置人格档案池，并让用户选择本次使用人数。"""
+    """Collect three fixed arms with independently matched facet groups."""
 
     pool = payload.get("pool") or {}
     recommendations = payload.get("recommendations") or []
@@ -813,20 +1091,11 @@ def prompt_virtual_sample_selection(payload: dict) -> dict:
     default_max_concurrency = payload.get("default_max_concurrency", 5)
     default_max_retries = payload.get("default_max_retries", 2)
 
-    print("\n===== 选择虚拟被试人数 =====")
+    print("\n===== 配置三臂匹配 facet 虚拟被试 =====")
     print(
-        f"可用匿名人格档案：{pool.get('available_count', '?')} 名；"
-        f"每人 {pool.get('item_count', '?')} 道人格作答。"
+        f"最多生成：{pool.get('available_count', '?')} 名；"
+        "主施测中每名虚拟被试对每题回答1次；target组额外完成一次整卷重测。"
     )
-    facet_counts = pool.get("facet_item_counts") or {}
-    if facet_counts:
-        print(
-            "人格题构成："
-            + "、".join(
-                f"{facet} {count}题"
-                for facet, count in facet_counts.items()
-            )
-        )
     if payload.get("method_note"):
         print(f"说明：{payload['method_note']}")
     print(
@@ -855,39 +1124,28 @@ def prompt_virtual_sample_selection(payload: dict) -> dict:
         if recommended_size is not None
         else ""
     )
-    while True:
+    sample_size = None
+    while sample_size is None:
         choice = input(
             f"你的选择 [1-{custom_index}{prompt_suffix}]："
         ).strip()
         if not choice and recommended_size is not None:
-            return {
-                "sample_size": recommended_size,
-                "seed": default_seed,
-                "max_concurrency": default_max_concurrency,
-                "max_retries": default_max_retries,
-            }
+            sample_size = int(recommended_size)
+            break
         if choice.isdigit():
             selected_index = int(choice)
             if 1 <= selected_index <= len(recommendations):
-                return {
-                    "sample_size": recommendations[selected_index - 1][
-                        "sample_size"
-                    ],
-                    "seed": default_seed,
-                    "max_concurrency": default_max_concurrency,
-                    "max_retries": default_max_retries,
-                }
+                sample_size = int(
+                    recommendations[selected_index - 1]["sample_size"]
+                )
+                break
             if selected_index == custom_index:
                 custom_value = input(
                     "请输入希望使用的虚拟被试人数："
                 ).strip()
                 if custom_value.isdigit():
-                    return {
-                        "sample_size": int(custom_value),
-                        "seed": default_seed,
-                        "max_concurrency": default_max_concurrency,
-                        "max_retries": default_max_retries,
-                    }
+                    sample_size = int(custom_value)
+                    break
                 print("人数必须是正整数")
                 continue
         default_hint = (
@@ -897,6 +1155,129 @@ def prompt_virtual_sample_selection(payload: dict) -> dict:
         )
         print(f"请输入 1 到 {custom_index}{default_hint}")
 
+    catalog = [
+        row for row in payload.get("dimension_catalog") or []
+        if isinstance(row, dict) and row.get("dimension_id")
+    ]
+    catalog_by_id = {str(row["dimension_id"]): row for row in catalog}
+    targets = [
+        row for row in catalog if row.get("required_target") is True
+    ]
+    def read_score(label: str) -> float:
+        while True:
+            raw_value = input(f"{label} 的样本平均分 [>0 且 <100]：").strip()
+            try:
+                value = float(raw_value)
+            except ValueError:
+                print("请输入0–100范围内的有限数值。")
+                continue
+            if math.isfinite(value) and 0.0 < value < 100.0:
+                return value
+            print("自动迭代需要非零方差，因此平均分须大于0且小于100。")
+
+    if not targets:
+        raise ValueError("题库没有可选择的目标 facet")
+    print("\n请选择目标 facet：")
+    for row in targets:
+        print(f"  {row['dimension_id']} = {row.get('display_label', row['dimension_id'])}")
+    print("\n请选择固定三臂中的 facet groups；同域/跨域臂可分别包含多个 group：")
+    optional_facets = [
+        row for row in catalog
+        if not row.get("required_target") and row.get("level") == "facet"
+    ]
+    current_domain = None
+    for row in optional_facets:
+        domain = row.get("domain_name_en") or row.get("domain_name") or row.get("domain_id")
+        if domain != current_domain:
+            current_domain = domain
+            print(f"  [{domain}]")
+        print(f"    {row['dimension_id']} = {row.get('facet_name_en') or row.get('facet_name')}")
+    def choose_facet(label: str, candidates: list[dict]) -> str:
+        allowed = {str(row["dimension_id"]): row for row in candidates}
+        while True:
+            value = input(f"请输入{label} facet ID：").strip()
+            if value in allowed:
+                return value
+            print("请选择当前列表中的 facet：" + "、".join(allowed))
+    target_id = (
+        str(targets[0]["dimension_id"])
+        if len(targets) == 1
+        else choose_facet("目标", targets)
+    )
+    target_row = catalog_by_id[target_id]
+    target_domain = target_row.get("domain_id") if target_row else None
+    same_candidates = [row for row in optional_facets if row.get("domain_id") == target_domain]
+    cross_candidates = [row for row in optional_facets if row.get("domain_id") != target_domain]
+    def choose_many(label: str, candidates: list[dict]) -> list[str]:
+        if not candidates:
+            raise ValueError(f"没有可用于{label}的 facet")
+        while True:
+            raw_count = input(f"请输入{label} group 数量（默认1）：").strip()
+            if not raw_count:
+                count = 1
+            elif raw_count.isdigit():
+                count = int(raw_count)
+            else:
+                print("group 数量必须是正整数")
+                continue
+            if 1 <= count <= len(candidates):
+                break
+            print(f"group 数量必须在1到{len(candidates)}之间")
+        selected: list[str] = []
+        remaining = list(candidates)
+        for index in range(count):
+            selected_id = choose_facet(f"{label}第{index + 1}", remaining)
+            selected.append(selected_id)
+            remaining = [row for row in remaining if str(row.get("dimension_id")) != selected_id]
+        return selected
+
+    same_ids = choose_many("同域非目标", same_candidates)
+    cross_ids = choose_many("跨域非目标", cross_candidates)
+    def read_numeric(prompt: str, default: float) -> float:
+        while True:
+            raw = input(f"{prompt}（默认 {default:g}）：").strip()
+            if not raw:
+                return default
+            try:
+                return float(raw)
+            except ValueError:
+                print("请输入有限数值")
+    mean_score = read_numeric("请输入共享正态分布均值", 50.0)
+    standard_deviation = read_numeric("请输入共享正态分布 SD", 15.0)
+    def condition_row(condition_id: str, role: str, dimension_id: str) -> dict:
+        return {
+            **dict(catalog_by_id[dimension_id]),
+            "condition_id": condition_id,
+            "role": role,
+            "dimension_id": dimension_id,
+        }
+    conditions = [
+        {
+            "condition_id": "target",
+            "role": "target",
+            "groups": [condition_row("target", "target", str(target_row["dimension_id"]))],
+        },
+        {
+            "condition_id": "same_domain",
+            "role": "same_domain_non_target",
+            "groups": [condition_row(f"same_domain_group_{index + 1}", "same_domain_non_target", dimension_id) for index, dimension_id in enumerate(same_ids)],
+        },
+        {
+            "condition_id": "cross_domain",
+            "role": "cross_domain_non_target",
+            "groups": [condition_row(f"cross_domain_group_{index + 1}", "cross_domain_non_target", dimension_id) for index, dimension_id in enumerate(cross_ids)],
+        },
+    ]
+
+    return {
+        "sample_size_per_condition": sample_size,
+        "score_distribution": {"family": "normal", "mean": mean_score, "sd": standard_deviation},
+        "conditions": conditions,
+        "seed": default_seed,
+        "max_concurrency": default_max_concurrency,
+        "max_retries": default_max_retries,
+    }
+
 
 def prompt_user_decision(payload: dict) -> dict:
     """按任务类型收集一次有效的用户决策。"""
@@ -905,20 +1286,175 @@ def prompt_user_decision(payload: dict) -> dict:
         return prompt_virtual_sample_selection(payload)
 
     if payload.get("type") == "post_virtual_response_decision":
-        print("\n===== 虚拟被试作答完成 =====")
         print(payload.get("summary") or "")
-        print("  1. 开始根据心理测量结果修改题目")
-        print("  2. 暂不修改，继续后续流程")
-        print("  3. 停止本次运行")
+        round_result = payload.get("round_result") or {}
+        if isinstance(round_result, dict) and round_result:
+            print_psychometric_round_result(round_result)
+        else:
+            print("本轮缺少统一结果结构，请重新运行心理测量分析。")
+        print_provisional_iteration_summary(payload)
+        diagnostics = payload.get("condition_score_diagnostics") or {}
+        print("\n补充：匹配条件组分数分布（不参与过滤）")
+        for condition in diagnostics.get("conditions") or []:
+            if isinstance(condition, dict):
+                print(
+                    f"  - {condition.get('condition_id')}："
+                    f"均值={_format_metric(condition.get('actual_mean'))}；"
+                    f"SD={_format_metric(condition.get('actual_sample_sd'))}"
+                )
+        print("正式题资格一经锁定不撤销，监测警告不会触发返修。")
+        print("  1. 开始处理未通过题目")
+        print("  2. 暂停并保存本次运行")
         while True:
-            choice = input("你的选择 [1-3]：").strip()
+            choice = input("你的选择 [1-2]：").strip()
             if choice == "1":
                 return {"decision": "start"}
             if choice == "2":
-                return {"decision": "skip"}
-            if choice == "3":
                 return {"decision": "stop"}
-            print("请输入 1、2 或 3")
+            print("请输入 1 或 2")
+
+    if payload.get("type") == "plateau_gap_decision":
+        print("\n===== 平台期收卷：蓝图缺口处置 =====")
+        print(payload.get("summary") or "")
+        gap_cells = payload.get("gap_cells") or []
+        resolutions: list[dict] = []
+        stopped = False
+        for index, cell in enumerate(gap_cells, start=1):
+            cell_id = cell.get("blueprint_cell_id")
+            candidates = cell.get("candidates") or []
+            eligible = [row for row in candidates if row.get("eligible")]
+            sme_rows = [
+                row for row in candidates if row.get("force_allowed")
+            ]
+            print(
+                f"\n[{index}/{len(gap_cells)}] 缺口单元 {cell_id}"
+                f"（需保留 {cell.get('planned_retention_count')} 题）"
+            )
+            for row in candidates:
+                if row.get("eligible"):
+                    tag = "（可直接补位/手动改）"
+                elif row.get("force_allowed"):
+                    tag = "（待SME：可强制补位）"
+                else:
+                    tag = "（不可选：已淘汰）"
+                gates = "、".join(row.get("failed_gates") or []) or "无"
+                print(
+                    f"  - {row.get('item_id')} v{row.get('version')} "
+                    f"状态={row.get('disposition_status') or 'none'}{tag} "
+                    f"失败门槛={gates}"
+                )
+            if not eligible and not sme_rows:
+                print("  该单元没有可选的候选（已淘汰）。")
+                print("  请选择停止，先人工处置后再恢复。")
+                stopped = True
+                break
+            while True:
+                cmd = input(
+                    f"  单元 {cell_id} 处理：输入候选 ID 直接补位；"
+                    "改:<ID> 手动修改；强制:<ID> 待SME题开发版补位；"
+                    "强改:<ID> 手动改待SME题；stop 停止："
+                ).strip()
+                if cmd.lower() == "stop":
+                    stopped = True
+                    break
+                manual = False
+                sme_override = False
+                item_id = cmd
+                for prefix in ("强改:", "强改："):
+                    if cmd.startswith(prefix):
+                        manual = True
+                        sme_override = True
+                        item_id = cmd[len(prefix):].strip()
+                        break
+                if not manual:
+                    for prefix in ("强制:", "强制："):
+                        if cmd.startswith(prefix):
+                            sme_override = True
+                            item_id = cmd[len(prefix):].strip()
+                            break
+                if not manual:
+                    for prefix in ("改:", "改："):
+                        if cmd.startswith(prefix):
+                            manual = True
+                            item_id = cmd[len(prefix):].strip()
+                            break
+                if not manual:
+                    for prefix in ("pick:", "pick："):
+                        if cmd.startswith(prefix):
+                            item_id = cmd[len(prefix):].strip()
+                            break
+                candidate = next(
+                    (row for row in eligible if str(row.get("item_id")) == item_id),
+                    None,
+                )
+                if candidate is None and sme_override:
+                    candidate = next(
+                        (
+                            row
+                            for row in sme_rows
+                            if str(row.get("item_id")) == item_id
+                        ),
+                        None,
+                    )
+                if candidate is None:
+                    print(
+                        "  请输入上面列出的候选 ID；待SME题需加 强制:/强改: 前缀"
+                    )
+                    continue
+                if sme_override and not candidate.get("force_allowed"):
+                    print("  该题不是待SME题，不需要 强制 前缀")
+                    continue
+                if manual:
+                    options = candidate.get("response_options") or []
+                    print(
+                        "  当前情境："
+                        + str(candidate.get("scenario") or "")
+                    )
+                    scenario = input("  新的情境文本：").strip()
+                    option_texts = {}
+                    for option in options:
+                        print(
+                            f"  当前选项 {option.get('option_id')}："
+                            f"{option.get('text')}"
+                        )
+                        option_texts[str(option.get("option_id"))] = input(
+                            f"  选项 {option.get('option_id')} 新文本："
+                        ).strip()
+                    resolutions.append(
+                        {
+                            "cell_id": cell_id,
+                            "item_id": item_id,
+                            "mode": "manual",
+                            "sme_override": sme_override,
+                            "manual_item": {
+                                "scenario": scenario,
+                                "response_options": [
+                                    {
+                                        "option_id": option.get("option_id"),
+                                        "text": option_texts.get(
+                                            str(option.get("option_id")), ""
+                                        ),
+                                    }
+                                    for option in options
+                                ],
+                            },
+                        }
+                    )
+                else:
+                    resolutions.append(
+                        {
+                            "cell_id": cell_id,
+                            "item_id": item_id,
+                            "mode": "pick",
+                            "sme_override": sme_override,
+                        }
+                    )
+                break
+            if stopped:
+                break
+        if stopped:
+            return {"decision": "stop"}
+        return {"decision": "resolve", "resolutions": resolutions}
 
     if payload.get("type") == "psychometric_repair_confirmation":
         print("\n===== 心理测量返修确认 =====")
@@ -927,6 +1463,49 @@ def prompt_user_decision(payload: dict) -> dict:
         if isinstance(item, dict):
             print_item_candidate(item)
         diagnosis = payload.get("diagnosis") or {}
+        print(
+            f"返修轮次：{payload.get('revision_round', '?')}；"
+            f"队列位置：1/{max(1, len(payload.get('pending_item_queue') or []))}"
+        )
+        observations = payload.get("observations") or []
+        if observations:
+            print("四门槛与最大污染facet：")
+            for observation in observations:
+                if not isinstance(observation, dict) or observation.get("role") == "descriptive_only":
+                    continue
+                facet = observation.get("facet_name") or observation.get("dimension_id")
+                suffix = f"；facet={facet}" if facet else ""
+                signed = observation.get("signed_rho")
+                if signed is not None:
+                    suffix += f"；rho={_format_metric(signed)}"
+                print(
+                    f"  - {observation.get('metric', '?')}="
+                    f"{_format_metric(observation.get('value'))}；"
+                    f"阈值={_format_metric(observation.get('threshold'))}{suffix}"
+                )
+        constraints = payload.get("non_target_construct_constraints") or []
+        target_constraints = payload.get("target_construct_constraints") or []
+        if target_constraints:
+            print("目标 facet 的构念约束：")
+            for constraint in target_constraints:
+                if isinstance(constraint, dict):
+                    print(
+                        f"  - {constraint.get('constraint_id', '?')}："
+                        f"{constraint.get('statement', constraint.get('text', ''))}"
+                    )
+        if constraints:
+            print("最大污染 facet 的构念定义与高低行为边界：")
+            for constraint in constraints:
+                if isinstance(constraint, dict):
+                    print(
+                        f"  - {constraint.get('constraint_id', '?')}："
+                        f"{constraint.get('statement', '')}"
+                    )
+        option_score_comparisons = payload.get("option_score_comparisons") or []
+        if isinstance(option_score_comparisons, list) and option_score_comparisons:
+            _print_diagnosis_option_score_comparisons(
+                [row for row in option_score_comparisons if isinstance(row, dict)]
+            )
         if diagnosis.get("summary"):
             print(f"诊断摘要：{diagnosis['summary']}")
         candidates = diagnosis.get("candidate_diagnoses") or []
@@ -958,18 +1537,54 @@ def prompt_user_decision(payload: dict) -> dict:
                     f"{edit.get('problem', '')}"
                 )
                 print(f"    修改要求：{edit.get('instruction', '')}")
-        print("  1. 确认全部任务，逐条修改后统一重测")
-        print("  2. 跳过本题修改并保留警告")
-        print("  3. 停止本次运行")
+        if diagnosis.get("decision") == "repair":
+            print("  1. 确认全部任务，自动原子返修后统一重测")
+            print("  2. 暂停并保存")
+            while True:
+                choice = input("你的选择 [1-2]：").strip()
+                if choice == "1":
+                    return {"decision": "approve"}
+                if choice == "2":
+                    return {"decision": "stop"}
+                print("请输入 1 或 2")
+
+        print("诊断结论为 defer，请选择处置：")
+        print("  1. 人工修改情境与四个选项")
+        print("  2. 保留待 SME 审核")
+        print("  3. 淘汰并在同一蓝图槽位补题")
+        print("  4. 暂停并保存")
         while True:
-            choice = input("你的选择 [1-3]：").strip()
+            choice = input("你的选择 [1-4]：").strip()
             if choice == "1":
-                return {"decision": "approve"}
+                if not isinstance(item, dict):
+                    print("当前题目不可用，不能人工修改")
+                    continue
+                original_scenario = str(item.get("scenario") or "")
+                scenario = input(f"情境（回车保留原文）\n[{original_scenario}]\n> ").strip() or original_scenario
+                options = []
+                for option in item.get("response_options") or []:
+                    if not isinstance(option, dict):
+                        continue
+                    option_id = str(option.get("option_id") or "")
+                    original_text = str(option.get("text") or "")
+                    revised_text = input(
+                        f"选项 {option_id}（回车保留原文）\n[{original_text}]\n> "
+                    ).strip() or original_text
+                    options.append({"option_id": option_id, "text": revised_text})
+                return {
+                    "decision": "manual_edit",
+                    "manual_item": {
+                        "scenario": scenario,
+                        "response_options": options,
+                    },
+                }
             if choice == "2":
-                return {"decision": "skip"}
+                return {"decision": "pending_sme"}
             if choice == "3":
+                return {"decision": "eliminate_replenish"}
+            if choice == "4":
                 return {"decision": "stop"}
-            print("请输入 1、2 或 3")
+            print("请输入 1、2、3 或 4")
 
     if payload.get("type") == "item_development_mode_selection":
         print("\n===== 选择题目开发模式 =====")
@@ -1045,6 +1660,24 @@ def get_interrupt_payload(interrupt_update: object) -> dict:
 
 
 async def run_with_trace(
+    initial_state: dict,
+    *,
+    debug: bool = False,
+    heartbeat_interval_seconds: float | None = None,
+    checkpoint_root: Path | None = None,
+) -> dict:
+    """流式执行图，并在每个 Agent 结果后暂停等待用户确认。"""
+
+    with telemetry_run_context(initial_state["run_id"]):
+        return await _run_with_trace_impl(
+            initial_state,
+            debug=debug,
+            heartbeat_interval_seconds=heartbeat_interval_seconds,
+            checkpoint_root=checkpoint_root,
+        )
+
+
+async def _run_with_trace_impl(
     initial_state: dict,
     *,
     debug: bool = False,

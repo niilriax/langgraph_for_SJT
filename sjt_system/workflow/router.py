@@ -13,6 +13,7 @@ from sjt_system.authoring.bank import (
 )
 from sjt_system.authoring.blueprint import select_next_blueprint_cell
 from sjt_system.authoring.context import select_item_specification
+from sjt_system.authoring.generation_plan import GENERATION_BLUEPRINT_VERSION
 from sjt_system.delivery.lifecycle import (
     evaluate_completion,
     psychometric_results_are_current,
@@ -97,6 +98,25 @@ def _psychometric_confirmation_is_approved(state: Mapping[str, Any]) -> bool:
         isinstance(confirmation, Mapping)
         and confirmation.get("decision") == "approve"
     )
+
+
+def _has_batchable_psychometric_repairs(state: Mapping[str, Any]) -> bool:
+    """Whether the diagnosed queue can be handed to parallel item workers."""
+
+    for entry in [
+        *(state.get("items_to_regenerate") or []),
+        *(state.get("items_to_revise") or []),
+    ]:
+        if not isinstance(entry, Mapping):
+            continue
+        advice = entry.get("atomic_repair_advice")
+        if (
+            isinstance(advice, Mapping)
+            and advice.get("decision") == "repair"
+            and advice.get("repair_tasks")
+        ):
+            return True
+    return False
 
 
 def _stage_psychometric_repair(
@@ -206,7 +226,10 @@ def _stage_psychometric_repair(
 
 def _blueprint_review_allows_item_generation(state: Mapping[str, Any]) -> bool:
     blueprint = state.get("blueprint")
-    return isinstance(blueprint, Mapping) and blueprint.get("version") == 7
+    return (
+        isinstance(blueprint, Mapping)
+        and blueprint.get("version") == GENERATION_BLUEPRINT_VERSION
+    )
 
 
 async def router_node(state: PSJTState) -> dict:
@@ -335,6 +358,20 @@ async def router_node(state: PSJTState) -> dict:
             "target_item_id": None,
             "target_blueprint_cell_id": None,
         }
+    elif (
+        isinstance(state.get("active_psychometric_repair"), Mapping)
+        and state["active_psychometric_repair"].get("manual_edit_pending_review")
+        and isinstance(state.get("current_item"), Mapping)
+        and state.get("current_item_review") is None
+    ):
+        raw_decision = {
+            "next_action": "review_item",
+            "reason": "人工修改已通过本地字段锁定校验，进入完整内容审查",
+            "target_item_id": state["current_item"].get("item_id"),
+            "target_blueprint_cell_id": state["current_item"].get(
+                "blueprint_cell_id"
+            ),
+        }
     elif _psychometric_confirmation_is_pending(state):
         raw_decision = {
             "next_action": "confirm_psychometric_repair",
@@ -356,26 +393,29 @@ async def router_node(state: PSJTState) -> dict:
             # Psychometric repairs are always atomic patches. Even legacy
             # queue entries marked regenerate_item must use the scoped repair
             # agent so the fixed slot and diagnosis scope are preserved.
-            "next_action": "revise_item",
-            "reason": "用户已确认当前单题诊断，进入原子修改",
+            "next_action": (
+                "psychometric_repair_batch"
+                if _has_batchable_psychometric_repairs(state)
+                else "revise_item"
+            ),
+            "reason": (
+                "当前批次诊断已确认，启动并发单题修改—复测闭环"
+                if _has_batchable_psychometric_repairs(state)
+                else "用户已确认当前单题诊断，进入原子修改"
+            ),
             "target_item_id": pending_psychometric_repair["item_id"],
             "target_blueprint_cell_id": pending_psychometric_repair.get(
                 "blueprint_cell_id"
             ),
         }
     elif (
-        pending_psychometric_repair is not None
-        and not psychometrics_complete_before_route
-        and not responses_bound_to_current_bank
+        pending_replacement_cell is not None
     ):
-        # A repaired item invalidates the current response/statistics snapshot.
-        # Re-measure the bank before diagnosing the next queued item; otherwise
-        # a bare queue entry could be diagnosed against empty or stale metrics.
         raw_decision = {
-            "next_action": "simulate_responses",
-            "reason": "题目修订已使心理测量结果失效，先重新施测再处理外层队列下一题",
+            "next_action": "generate_item",
+            "reason": "先完成当前淘汰题的同槽位补题，再继续处理本轮其余未通过题",
             "target_item_id": None,
-            "target_blueprint_cell_id": None,
+            "target_blueprint_cell_id": pending_replacement_cell.get("cell_id"),
         }
     elif pending_psychometric_repair is not None:
         if (
@@ -390,12 +430,14 @@ async def router_node(state: PSJTState) -> dict:
         raw_decision = {
             "next_action": "select_items",
             "reason": (
-                "外层待处理队列中的下一道异常题尚未诊断，进入单题诊断"
+                "沿用本轮基线指标，继续诊断外层待处理队列中的下一道异常题；"
+                "队列清空后再统一重新施测"
                 if not isinstance(
                     pending_psychometric_repair.get("atomic_repair_advice"),
                     Mapping,
                 )
-                else "当前待修题尚未形成用户确认记录，重新进入单题诊断"
+                else "当前待修题尚未形成用户确认记录，重新进入单题诊断；"
+                "整批处理完成后再统一重新施测"
             ),
             "target_item_id": None,
             "target_blueprint_cell_id": None,
@@ -412,17 +454,6 @@ async def router_node(state: PSJTState) -> dict:
         }
     elif (
         psychometrics_complete_before_route
-        and state.get("psychometric_repair_user_decision") == "skip"
-        and state.get("selection_results") is not None
-    ):
-        raw_decision = {
-            "next_action": "assemble_test",
-            "reason": "用户选择不返修，直接使用当前题库组卷",
-            "target_item_id": None,
-            "target_blueprint_cell_id": None,
-        }
-    elif (
-        psychometrics_complete_before_route
         and state.get("selection_results") is None
     ):
         raw_decision = {
@@ -431,6 +462,75 @@ async def router_node(state: PSJTState) -> dict:
             "target_item_id": None,
             "target_blueprint_cell_id": None,
         }
+    elif selection_status == "awaiting_sme_review":
+        return {
+            "status": "stopped",
+            "route": {
+                "next_action": "finish",
+                "reason": "待SME题造成蓝图缺口，暂停组卷并保留检查点",
+                "target_item_id": None,
+                "target_blueprint_cell_id": None,
+            },
+            "execution_history": [
+                *state.get("execution_history", []),
+                {
+                    "event_id": (
+                        f'{state.get("run_id", "unknown")}:'
+                        f'{state.get("step_count", 0)}:awaiting_sme_review'
+                    ),
+                    "run_id": state.get("run_id"),
+                    "step": state.get("step_count", 0),
+                    "node": "router",
+                    "action": "awaiting_sme_review",
+                    "event_type": "paused",
+                    "recorded_at": utc_timestamp(),
+                    "reason": "待SME题不进入正式题集合，当前蓝图不足以组卷",
+                },
+            ],
+        }
+    elif selection_status == "awaiting_plateau_gap":
+        pending = state.get("plateau_gap_decision")
+        if (
+            isinstance(pending, Mapping)
+            and pending.get("status") == "pending"
+        ):
+            raw_decision = {
+                "next_action": "plateau_gap_decision",
+                "reason": (
+                    "平台期收卷存在蓝图缺口，等待用户处置缺口单元"
+                    "（点选补位或手动修改）"
+                ),
+                "target_item_id": None,
+                "target_blueprint_cell_id": None,
+            }
+        else:
+            return {
+                "status": "stopped",
+                "route": {
+                    "next_action": "finish",
+                    "reason": "平台期收卷存在蓝图缺口，等待人工处置",
+                    "target_item_id": None,
+                    "target_blueprint_cell_id": None,
+                },
+                "execution_history": [
+                    *state.get("execution_history", []),
+                    {
+                        "event_id": (
+                            f'{state.get("run_id", "unknown")}:'
+                            f'{state.get("step_count", 0)}:awaiting_plateau_gap'
+                        ),
+                        "run_id": state.get("run_id"),
+                        "step": state.get("step_count", 0),
+                        "node": "router",
+                        "action": "awaiting_plateau_gap",
+                        "event_type": "paused",
+                        "recorded_at": utc_timestamp(),
+                        "reason": (
+                            "平台期收卷完成，但蓝图仍有缺口，等待人工处置"
+                        ),
+                    },
+                ],
+            }
     elif (
         selection_status == "fixed_blueprint_gap"
         and bool(retention_gaps)

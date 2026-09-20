@@ -15,6 +15,8 @@ RouteType = Literal[
     "analyze_psychometrics",         # 计算项目和测验统计指标
     "select_items",                  # 筛选题目并检查筛选后的蓝图覆盖度
     "confirm_psychometric_repair",   # 用户确认当前单题诊断后再执行返修
+    "plateau_gap_decision",          # 平台期收卷存在蓝图缺口时用户处置缺口单元
+    "psychometric_repair_batch",     # 并发执行整批单题修改—复测闭环
     "assemble_test",                 # 根据筛选结果组卷
     "review_test",                   # 对组卷后的完整测验进行综合审核
     "rescore_test",                  # 调整计分并重新分析
@@ -71,32 +73,44 @@ class UserDecision(TypedDict, total=False):
 
 
 class VirtualRespondentRef(TypedDict):
-    """工作流 State 中保存的匿名被试池引用。"""
+    """工作流 State 中保存的确定性分数型虚拟被试。"""
 
     respondent_id: str
-    pool_index: int
+    condition_id: str
+    matched_subject_id: str
+    active_dimension_id: str
+    score_values: dict[str, float]
 
 
 class VirtualSampleConfig(TypedDict):
     """一次虚拟样本选择的可复现配置。"""
 
     pool_id: str
-    pool_ref: str
-    source_file: str
+    schema_version: int
+    pool_ref: str | None
+    source_file: str | None
     source_sha256: str
     available_count: int
     sample_size: int
+    sample_size_per_condition: int
+    condition_count: int
     recommended_sample_size: int
     automatic_selection_minimum_sample_size: int
     seed: int
     max_concurrency: int
     max_retries: int
-    persona_modes: list[Literal["summary_plus_items"]]
-    selection_strategy: Literal[
-        "all_in_source_order",
-        "simple_random_without_replacement",
-    ]
+    persona_modes: list[Literal["score_profile"]]
+    selection_strategy: Literal["deterministic_matched_normal_generation"]
+    sampling_design: Literal["matched_facet_conditions"]
     persona_method: str
+    conditions: list[dict[str, Any]]
+    score_distribution: dict[str, Any]
+    score_scale: list[float]
+    response_count_per_respondent_item: Literal[1]
+    generator_version: str
+    prompt_version: str
+    generation_diagnostics: dict[str, Any]
+    neo_ffi_in_main_iteration: bool
 
 # ============================================================
 # 3. 需求 State
@@ -206,6 +220,7 @@ class ConstructProfileReference(TypedDict):
 class GenerationSlot(TypedDict):
     specification_id: str
     blueprint_cell_id: str
+    candidate_reference: dict[str, str]
 
 
 class GenerationCell(TypedDict):
@@ -214,6 +229,7 @@ class GenerationCell(TypedDict):
     behavior_id: str
     mechanism_id: str
     situation_id: str
+    candidate_references: list[dict[str, str]]
     planned_generation_count: int
     planned_retention_count: int
 
@@ -314,10 +330,7 @@ class ItemResult(TypedDict):
 
 class ItemOptionTextPatch(TypedDict):
     option_id: str
-    text: NotRequired[str]
-    behavioral_level: NotRequired[
-        Literal["low", "medium_low", "medium_high", "high"]
-    ]
+    text: str
 
 
 class ItemRevisionStateUpdate(TypedDict):
@@ -451,16 +464,16 @@ class AtomicEdit(TypedDict):
 class AtomicRepairTask(TypedDict):
     diagnosis_id: str
     atomic_edit: AtomicEdit
+    # The workflow reserves the first executable task for target-facet
+    # gradient optimization. Every current diagnosis task declares its phase.
+    phase: Literal["target_facet_gradient", "other"]
 
 
 class AtomicRepairAdvice(TypedDict):
-    item_id: str
     decision: Literal["repair", "defer"]
     observed_discrepancies: list[AtomicDiagnosisDiscrepancy]
     candidate_diagnoses: list[AtomicDiagnosisCandidate]
     repair_tasks: list[AtomicRepairTask]
-    selected_diagnosis_id: NotRequired[str | None]
-    atomic_edit: NotRequired[AtomicEdit | None]
     summary: str
 
 
@@ -468,6 +481,12 @@ class MechanismValidationResult(TypedDict):
     ranking: list[str]
     target_is_first: bool
     reason: str
+
+
+class ItemRequiredEdit(TypedDict):
+    field: Literal["scenario", "response_options"]
+    option_ids: list[str]
+    instruction: str
 
 
 class ItemReviewFinding(TypedDict):
@@ -489,13 +508,8 @@ class ItemReviewFinding(TypedDict):
     evidence: str
     problem: str
     repair_instruction: str
-    required_edits: NotRequired[list["ItemRequiredEdit"]]
-
-
-class ItemRequiredEdit(TypedDict):
-    field: Literal["scenario", "response_options", "behavioral_level"]
-    option_ids: list[str]
-    instruction: str
+    # 审题提示词要求每个 finding 都返回此字段；没有具体修改任务时使用空列表。
+    required_edits: list[ItemRequiredEdit]
 
 
 class ItemReviewDiagnosis(TypedDict):
@@ -645,6 +659,8 @@ class PSJTState(TypedDict):
     max_item_replacement_attempts: int
     # 每道题的完整版本、审题结果和修改历史
     item_history: dict[str, list[dict[str, Any]]]
+    # 淘汰补题使用新ID时保留稳定的替代关系。
+    item_lineage: dict[str, dict[str, Any]]
 
     # --------------------------------------------------------
     # G. 题库冻结与定向补题
@@ -656,11 +672,18 @@ class PSJTState(TypedDict):
     frozen_item_bank: list[dict[str, Any]]
     # 被程序强制纳入开发版候选池的题目及其质量警告。
     provisional_item_flags: dict[str, dict[str, Any]]
+    # 局部返修候选汇总后、统一正式施测前的程序审计结果。
+    candidate_bank_audit: NotRequired[dict[str, Any] | None]
     # 全运行最多开发的不同候选题数相对最终题量的倍数。
     # --------------------------------------------------------
     # H. 虚拟被试设计与数据
     # 虚拟样本的模型、人格水平、重复次数和随机化方案
     virtual_sample_config: VirtualSampleConfig | None
+    # 旧虚拟协议恢复时，向用户说明为何必须重新配置
+    virtual_sample_reconfiguration_reason: str | None
+    # 兼容旧等分档配置时记录迁移证据；旧指标仍必须重算。
+    virtual_sample_migration_events: list[dict[str, Any]]
+    virtual_analysis_reconfiguration_reason: str | None
     # 虚拟被试的人格参数和模型参数
     virtual_respondents: list[VirtualRespondentRef]
     # 虚拟作答数据文件的位置或数据库标识
@@ -675,6 +698,16 @@ class PSJTState(TypedDict):
 
     # --------------------------------------------------------
     # I. 心理测量分析结果
+    # 每次成功完成心理测量分析递增；恢复或重复展示不递增。
+    psychometric_analysis_round: int
+    # 最近一次分析的统一轮次展示结构，供CLI、网页与报告共用。
+    psychometric_round_result: dict[str, Any] | None
+    # 每一轮临时组卷的虚拟整卷传导指标、题量、Token 与时间记录。
+    psychometric_iteration_history: list[dict[str, Any]]
+    # 连续多轮整卷指标没有实质改善时的自动停止状态。
+    psychometric_plateau_status: NotRequired[dict[str, Any] | None]
+    psychometric_plateau_patience: NotRequired[int]
+    psychometric_plateau_min_delta: NotRequired[float]
     # 每道题的难度、区分度、项目总分相关和选项功能等
     item_statistics: dict[str, dict[str, Any]]
     # 信度、总分分布、分量表相关和测验信息等
@@ -716,11 +749,17 @@ class PSJTState(TypedDict):
     psychometric_repair_confirmation: dict[str, Any] | None
     # 各题已经完成的心理测量返修轮数
     psychometric_repair_rounds: dict[str, int]
-    # 单题允许的最大心理测量返修轮数
+    # 三轮失败后自动进入 defer 确认队列；不是静默保留或淘汰上限。
+    psychometric_repair_defer_after_rounds: int
+    # 旧检查点兼容字段；新流程不再用它决定保留、淘汰或补题。
     max_psychometric_repair_rounds: int
     # 心理测量返修、淘汰和重新验证历史
     psychometric_repair_history: list[dict[str, Any]]
-    psychometric_repair_user_decision: Literal["start", "skip"] | None
+    # 最近一次并发返修批次的并发度与成功/失败摘要。
+    psychometric_repair_batch_summary: NotRequired[dict[str, Any] | None]
+    # 已锁定正式题的最新重算指标若漂移，只记录监测警告，不撤销资格。
+    psychometric_monitoring_warnings: list[dict[str, Any]]
+    psychometric_repair_user_decision: Literal["start"] | None
     item_final_dispositions: dict[str, dict[str, Any]]
 
     # --------------------------------------------------------
@@ -880,19 +919,30 @@ def create_initial_state(
         "max_item_rewrite_rounds": 3,
         "max_item_replacement_attempts": 2,
         "item_history": {},
+        "item_lineage": {},
         "item_bank_id": None,
         "item_bank_version": 0,
         "item_bank_fingerprint": None,
         "item_bank_frozen_at": None,
         "frozen_item_bank": [],
         "provisional_item_flags": {},
+        "candidate_bank_audit": None,
         "virtual_sample_config": None,
+        "virtual_sample_reconfiguration_reason": None,
+        "virtual_sample_migration_events": [],
+        "virtual_analysis_reconfiguration_reason": None,
         "virtual_respondents": [],
         "virtual_response_data_ref": None,
         "previous_virtual_response_data_ref": None,
         "virtual_response_summary": None,
         "virtual_response_item_bank_id": None,
         "virtual_response_item_bank_version": None,
+        "psychometric_analysis_round": 0,
+        "psychometric_round_result": None,
+        "psychometric_iteration_history": [],
+        "psychometric_plateau_status": None,
+        "psychometric_plateau_patience": 2,
+        "psychometric_plateau_min_delta": 0.01,
         "item_statistics": {},
         "test_statistics": None,
         "factor_results": None,
@@ -912,8 +962,11 @@ def create_initial_state(
         "active_psychometric_repair": None,
         "psychometric_repair_confirmation": None,
         "psychometric_repair_rounds": {},
+        "psychometric_repair_defer_after_rounds": 3,
         "max_psychometric_repair_rounds": 3,
         "psychometric_repair_history": [],
+        "psychometric_repair_batch_summary": None,
+        "psychometric_monitoring_warnings": [],
         "psychometric_repair_user_decision": None,
         "item_final_dispositions": {},
         "assembled_test": None,

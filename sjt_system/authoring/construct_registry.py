@@ -427,6 +427,9 @@ def construct_selection_catalog() -> list[dict[str, Any]]:
                             "facet_id": facet["facet_id"],
                             "facet_name": facet["facet_name"],
                             "facet_name_en": facet["facet_name_en"],
+                            "definition": facet.get("definition"),
+                            "high_behavior": facet.get("high_behavior"),
+                            "low_behavior": facet.get("low_behavior"),
                         }
                         for facet in domain["facets"].values()
                     ],

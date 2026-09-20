@@ -29,6 +29,9 @@ Scenario rules:
   plausible event for the target population. Address the respondent as “你”.
 - Keep stakes at the supplied level. Clearly instantiate activation_mechanism
   and preserve core_tension without naming the construct or desired response.
+- Include at least one directly observable cue that activates the target facet;
+  do not make a same-domain or cross-domain non-target facet the main decision
+  basis.
 - The situation must be a weak situation with trait-relevant cues: include a
   real behavioral conflict that can activate the target Behavior Evidence, but
   do not use an explicit legal prohibition, severe moral violation, obvious
@@ -57,6 +60,9 @@ Strategy rules:
   3-point and 4-point options, must show visible differences in actions,
   timing, communication, or follow-through. Do not distinguish neighbors only
   by private thoughts, confidence, or degree adverbs.
+- Make every adjacent pair a visible continuation of the same target-facet
+  gradient. Change action, timing, communication, or follow-through, not only
+  words such as “稍微” or “非常”.
 - Beware of Over-sacrifice: the 4-point option must be principled and
   constructive, including proportionate communication and boundary management
   when appropriate. It must not require blindly sacrificing legitimate needs,
@@ -98,16 +104,61 @@ psychological skeleton. For psychometric repair you receive one selected
 diagnosis and exactly one atomic_edit. Apply only that edit; do not invent a
 different scope and do not create a separate plan.
 
-Read only state.current_item, state.current_item_specification,
+Read only state.current_item, item_content, target_construct_constraints,
+target_gradient_plan, state.current_item_specification,
 state.current_blueprint_cell, state.current_facet_profile, repair_source,
 atomic_repair_advice, normal_constraints, blocking_findings, option_evidence,
-validation_feedback, and previous_invalid_candidate.
+option_score_comparisons,
+validation_feedback, previous_invalid_candidate, local_retest_feedback, and
+local_retest_round.
+
+The psychometric packet contains only semantic evidence and the option_id,
+observation_id, and constraint_id references needed for local validation. It
+does not contain item/run/blueprint/specification IDs, revision rounds,
+fingerprints, routing state, group/domain/condition IDs, raw choice counts, or
+history. Do not return or infer any of those fields.
 
 When repair_source=psychometric_diagnosis, atomic_repair_advice already fixes
 the scope. Read its selected candidate and atomic_edit together with the
-normal_constraints and option_evidence. Do not reinterpret the diagnosis or
+normal_constraints, option_evidence, and option_score_comparisons. The
+option-aligned target-versus-contaminant mean comparisons are localization
+context already evaluated by the diagnosis agent; do not reinterpret them,
+choose a different option, or broaden the edit. Do not
+reinterpret the diagnosis or
 choose a different location. Do not infer target-trait relationships that are
 not supplied.
+
+The first task in every psychometric repair batch has
+phase="target_facet_gradient". Execute that task before any other task. Use
+target_gradient_plan's numeric scoring order and edit only its one or two
+named adjacent option texts to strengthen the target-facet construct gradient.
+This mandatory preflight still preserves every behavioral_level, scoring_key,
+psychological skeleton, activation mechanism, and target facet. Do not turn it
+into a scenario edit or a global rewrite. Later tasks remain limited to their
+own non-overlapping atomic scopes.
+When normal_constraints name a largest same-domain or cross-domain non-target
+facet, remove only the diagnosed wording that expresses that facet and retain
+the target facet's activation and behavioral continuum. The diagnosed
+contaminant wording may coexist with the target facet; do not restore it merely
+because it does not contradict the target construct.
+
+When atomic_repair_advice cites
+OBS:SAME_DOMAIN_VTS_OPTION_MEAN_GRADIENT or
+OBS:CROSS_DOMAIN_VTS_OPTION_MEAN_GRADIENT, the selected response_options task
+always names exactly the score-1 and score-4 options. Locate these by the
+immutable scoring_key, not by option_id spelling. Pull the score-1 option
+toward the named contaminant facet's HIGH behavior and pull the score-4 option
+toward that facet's LOW behavior. This is a contamination-gradient repair:
+keep the target facet's score-ordered behavior gradient increasing, keep all
+four behavioral levels and the scoring key unchanged, and do not edit any
+other option. The target-group mean gradient must remain increasing when the
+item is re-tested.
+
+If local_retest_feedback is present, it is feedback from the immediately
+previous candidate-only virtual administration. Use it to repair the same
+atomic scope while preserving the fixed skeleton. It is not a reason to change
+the target facet, scoring key, or edit scope, and it is not a whole-form
+psychometric result.
 
 When atomic_edit.target_field=scenario, rewrite the scenario only. When it is
 response_options, rewrite every named option and no others. Do not change any
@@ -122,6 +173,11 @@ affected_option_ids. Do not broaden that target.
 Use the diagnosis to understand the defect, but choose the concrete wording
 yourself. Do not copy illustrative replacement wording from a diagnosis as a
 required answer. The diagnosis says what failed; you perform the realization.
+
+When the diagnosis cites OBS:TARGET_OPTION_GRADIENT, edit only the one or two
+named adjacent options. Strengthen the higher-level option's target-facet cue
+or weaken the lower-level option's non-target/overstrong cue, preserving every
+behavioral level and the scoring key.
 
 Preserve item identity, blueprint cell, target facet, context category, fixed
 activation condition, core tension, response instruction, option order, and

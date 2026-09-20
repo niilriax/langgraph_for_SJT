@@ -25,7 +25,14 @@ ITEM_AGENT_OUTPUT_FIELDS: dict[str, set[str]] = {
         "skeleton_reviews",
         "skeleton_review_history",
     },
-    "regenerate_item": {"current_item"},
+    "regenerate_item": {
+        "current_item",
+        "current_item_specification",
+        "item_specifications",
+        "item_skeletons",
+        "skeleton_reviews",
+        "skeleton_review_history",
+    },
     "revise_item": {"current_item"},
     "review_item": {
         "current_item_review",
@@ -862,25 +869,6 @@ def _append_history(
     return history
 
 
-def _deduplicate_items_by_id(
-    items: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    output: list[dict[str, Any]] = []
-    positions: dict[str, int] = {}
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        item_id = item.get("item_id")
-        if not isinstance(item_id, str) or not item_id:
-            continue
-        if item_id in positions:
-            output[positions[item_id]] = deepcopy(item)
-        else:
-            positions[item_id] = len(output)
-            output.append(deepcopy(item))
-    return output
-
-
 def _increment_progress(
     state: PSJTState,
     cell_id: str,
@@ -976,6 +964,24 @@ def next_step_after_review(state: PSJTState) -> str:
     unified_review = state.get("current_item_review")
     if not isinstance(unified_review, dict):
         raise ValueError("当前题目缺少统一审题结果")
+
+    # An invalid psychometric patch is an output/repair failure, not a
+    # skeleton-review failure.  The fallback review created by execute_node
+    # uses locus="skeleton" for compatibility, which otherwise routes through
+    # the rewrite budget and can bypass the directed-revision limit forever.
+    # Respect the item-level revision budget before deciding whether to retry.
+    if (
+        state.get("current_item_repair_failure")
+        and isinstance(state.get("active_psychometric_repair"), Mapping)
+    ):
+        repair_attempts = int(state.get("current_item_revision_count") or 0)
+        max_repair_attempts = int(
+            state.get("max_item_revision_attempts") or 3
+        )
+        if repair_attempts >= max_repair_attempts:
+            return "abandon"
+        return "revise"
+
     decision = derive_item_review_decision(
         unified_review,
         repair_attempted=bool(state.get("current_item_repair_attempted")),
@@ -1197,6 +1203,7 @@ def build_accept_item_update(state: PSJTState) -> dict[str, Any]:
         for entry in state.get("items_to_regenerate") or []
         if isinstance(entry, dict) and entry.get("item_id") != item_id
     ]
+    batch_has_remaining = bool(remaining_revise or remaining_regenerate)
     rounds = dict(state.get("psychometric_repair_rounds") or {})
     rounds[item_id] = int(active_repair.get("revision_round") or 1)
     repair_history = deepcopy(
@@ -1226,9 +1233,9 @@ def build_accept_item_update(state: PSJTState) -> dict[str, Any]:
             "atomic_repair_advice": deepcopy(
                 active_repair.get("atomic_repair_advice")
             ),
+            "local_retest": deepcopy(active_repair.get("local_retest")),
         }
     )
-    previous_response_ref = state.get("virtual_response_data_ref")
     update.update(
         {
             "active_psychometric_repair": None,
@@ -1238,15 +1245,6 @@ def build_accept_item_update(state: PSJTState) -> dict[str, Any]:
             "items_deferred_for_revision": [],
             "psychometric_repair_rounds": rounds,
             "psychometric_repair_history": repair_history,
-            "virtual_response_data_ref": None,
-            "virtual_response_summary": None,
-            "virtual_response_item_bank_id": None,
-            "virtual_response_item_bank_version": None,
-            "item_statistics": {},
-            "test_statistics": None,
-            "factor_results": None,
-            "irt_results": None,
-            "dif_results": None,
             "selected_items": [],
             "reserve_items": [],
             "selection_reasons": {},
@@ -1267,8 +1265,24 @@ def build_accept_item_update(state: PSJTState) -> dict[str, Any]:
             "virtual_respondent_report": None,
         }
     )
-    if isinstance(previous_response_ref, str) and previous_response_ref:
-        update["previous_virtual_response_data_ref"] = previous_response_ref
+    if not batch_has_remaining:
+        previous_response_ref = state.get("virtual_response_data_ref")
+        update.update(
+            {
+                "virtual_response_data_ref": None,
+                "virtual_response_summary": None,
+                "virtual_response_item_bank_id": None,
+                "virtual_response_item_bank_version": None,
+                "item_statistics": {},
+                "psychometric_round_result": None,
+                "test_statistics": None,
+                "factor_results": None,
+                "irt_results": None,
+                "dif_results": None,
+            }
+        )
+        if isinstance(previous_response_ref, str) and previous_response_ref:
+            update["previous_virtual_response_data_ref"] = previous_response_ref
     return update
 
 

@@ -349,6 +349,7 @@ def run_test_rescore(state: PSJTState) -> dict[str, Any]:
         "virtual_response_item_bank_id": None,
         "virtual_response_item_bank_version": None,
         "item_statistics": {},
+        "psychometric_round_result": None,
         "test_statistics": None,
         "factor_results": None,
         "irt_results": None,

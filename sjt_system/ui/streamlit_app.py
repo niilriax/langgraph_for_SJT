@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import Mapping
+import math
+from collections.abc import Mapping, Sequence
 from typing import Any
 
+import pandas as pd
 import streamlit as st
 from langgraph.types import Command
 
@@ -33,6 +35,8 @@ from sjt_system.ui.presenters import (
 )
 from sjt_system.ui.workflow_runner import WorkflowRunError, run_until_pause
 from sjt_system.workflow.graph import build_sjt_graph
+from sjt_system.evaluation.form_metrics import form_quality_summary
+from sjt_system.evaluation.round_results import metric_scalar
 
 
 SESSION_DEFAULTS = {
@@ -57,6 +61,8 @@ CONTENT_LABELS = {
     "virtual_response_summary": "虚拟作答摘要",
     "test_statistics": "测验统计",
     "item_statistics": "题目统计",
+    "psychometric_round_result": "本轮虚拟筛查结果",
+    "psychometric_iteration_history": "整卷迭代曲线",
     "factor_results": "因素分析",
     "irt_results": "IRT 分析",
     "dif_results": "DIF 分析",
@@ -557,6 +563,541 @@ def _render_generic(value: object) -> None:
         st.write(value)
 
 
+def _metric_text(value: object) -> str:
+    numeric = metric_scalar(value)
+    if numeric is None:
+        return "证据不足"
+    return f"{numeric:.3f}"
+
+
+_ROUND_STATUS_LABELS = {
+    "pending_treatment": "待处理",
+    "newly_qualified": "本轮新合格",
+    "qualified_locked": "正式题已锁定",
+    "qualified_locked_warning": "正式题监测警告",
+    "pending_sme_review": "待SME审核",
+    "eliminated": "已淘汰",
+}
+
+
+def _gate_display(gate: Mapping[str, Any]) -> str:
+    status = "通过" if gate.get("passes") is True else (
+        "未通过" if gate.get("estimable") is True else "不可估计"
+    )
+    return (
+        f"{_metric_text(gate.get('value'))} / "
+        f"≥{_metric_text(gate.get('threshold'))} / {status}"
+    )
+
+
+def _frequency_display(option: Mapping[str, Any], group_n: object) -> str:
+    rate = option.get("selection_rate")
+    count = option.get("selection_count")
+    if isinstance(rate, bool) or not isinstance(rate, (int, float)):
+        return f"- ({count or 0}/{group_n or 0})"
+    return f"{float(rate) * 100:.1f}% ({count}/{group_n})"
+
+
+def _option_frequency_rows(diagnostics: Mapping[str, Any]) -> list[dict[str, Any]]:
+    aggregate = diagnostics.get("aggregate") or diagnostics.get("all") or {}
+    option_ids = [
+        str(row.get("option_id"))
+        for row in aggregate.get("options") or []
+        if isinstance(row, Mapping)
+    ]
+    rows: list[dict[str, Any]] = []
+
+    def add_group(label: str, group: Mapping[str, Any], estimable: object) -> None:
+        by_option = {
+            str(row.get("option_id")): row
+            for row in group.get("options") or []
+            if isinstance(row, Mapping)
+        }
+        result = {
+            "分组": label,
+            "N": group.get("group_n"),
+            "可用于定位": "是" if estimable is True else "否",
+        }
+        for option_id in option_ids:
+            result[option_id] = _frequency_display(
+                by_option.get(option_id) or {}, group.get("group_n")
+            )
+        rows.append(result)
+
+    add_group("全样本", aggregate, True)
+    for condition in diagnostics.get("by_condition") or []:
+        if isinstance(condition, Mapping):
+            add_group(
+                f"条件 {condition.get('condition_id')}",
+                condition,
+                True,
+            )
+    return rows
+
+
+def _option_facet_mean_display_rows(
+    rows: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "题目": row.get("item_id"),
+            "实验臂": row.get("condition_id"),
+            "facet": row.get("facet_name") or row.get("facet_id"),
+            "选项": row.get("option_id"),
+            "计分": _metric_text(row.get("option_score", row.get("score"))),
+            "选择人数": row.get("n"),
+            "facet均值": _metric_text(row.get("facet_mean")),
+            "标准误": _metric_text(row.get("facet_standard_error")),
+            "参与过滤": "否",
+        }
+        for row in rows
+        if isinstance(row, Mapping)
+    ]
+
+
+def _option_score_comparison_display_rows(
+    rows: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "题目": row.get("item_id"),
+            "选项": row.get("option_id"),
+            "计分": _metric_text(row.get("option_score")),
+            "目标N": row.get("target_n"),
+            "目标组平均设定分数": _metric_text(row.get("target_mean_score")),
+            "同域N": row.get("same_domain_n"),
+            "同域非目标组平均设定分数": _metric_text(
+                row.get("same_domain_mean_score")
+            ),
+            "跨域N": row.get("cross_domain_n"),
+            "跨域非目标组平均设定分数": _metric_text(
+                row.get("cross_domain_mean_score")
+            ),
+            "参与过滤": "否",
+        }
+        for row in rows
+        if isinstance(row, Mapping)
+    ]
+
+
+def _agent_option_score_comparison_display_rows(
+    rows: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "VTS类别": row.get("vts_category"),
+            "选项": row.get("option_id"),
+            "计分": _metric_text(row.get("score")),
+            "目标组平均设定分数": _metric_text(row.get("target_mean_score")),
+            "污染组平均设定分数": _metric_text(
+                row.get(f"{row.get('vts_category')}_mean_score")
+            ),
+        }
+        for row in rows
+        if isinstance(row, Mapping)
+    ]
+
+
+def _arm_difference_display_rows(
+    diagnostics: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for comparison in diagnostics.get("comparisons") or []:
+        if not isinstance(comparison, Mapping):
+            continue
+        overall = comparison.get("overall") or {}
+        high_band = next(
+            (
+                row
+                for row in comparison.get("by_score_band") or []
+                if isinstance(row, Mapping) and row.get("score_band") == "high"
+            ),
+            {},
+        )
+        rows.append(
+            {
+                "比较": comparison.get("comparison_id"),
+                "污染facet": comparison.get("comparator_facet_name")
+                or comparison.get("comparator_dimension_id"),
+                "配对N": comparison.get("matched_subject_count"),
+                "同选项率": _metric_text(overall.get("same_option_rate")),
+                "总体目标-污染臂题分": _metric_text(
+                    overall.get("target_minus_comparator_mean_item_score")
+                ),
+                "高分组三四级选择率差": _metric_text(
+                    high_band.get("target_minus_comparator_high_option_rate")
+                ),
+                "可估计": "是" if comparison.get("estimable") is True else "否",
+                "参与过滤": "否",
+            }
+        )
+    return rows
+
+
+def _round_overview_row(entry: Mapping[str, Any]) -> dict[str, Any]:
+    gates = {
+        str(row.get("gate_id")): row
+        for row in entry.get("gates") or []
+        if isinstance(row, Mapping)
+    }
+    contaminants = entry.get("max_contaminants") or {}
+    same = contaminants.get("same_domain") or {}
+    cross = contaminants.get("cross_domain") or {}
+    return {
+        "题目": entry.get("item_id"),
+        "状态": _ROUND_STATUS_LABELS.get(
+            str(entry.get("status")), entry.get("status")
+        ),
+        "CITC（值/门槛/状态）": _gate_display(gates.get("citc_pass") or {}),
+        "目标rho_s（值/门槛/状态）": _gate_display(
+            gates.get("target_rho_pass") or {}
+        ),
+        "同域VTS（值/门槛/状态）": _gate_display(
+            gates.get("same_domain_vts_pass") or {}
+        ),
+        "同域最大污染facet": same.get("facet_name") or same.get("dimension_id"),
+        "跨域VTS（值/门槛/状态）": _gate_display(
+            gates.get("cross_domain_vts_pass") or {}
+        ),
+        "跨域最大污染facet": cross.get("facet_name") or cross.get("dimension_id"),
+    }
+
+
+def _render_round_item_details(entry: Mapping[str, Any]) -> None:
+    st.dataframe(
+        [
+            {
+                "指标": gate.get("label"),
+                "当前值": _metric_text(gate.get("value")),
+                "门槛": "≥" + _metric_text(gate.get("threshold")),
+                "状态": (
+                    "通过" if gate.get("passes") is True else (
+                        "未通过" if gate.get("estimable") is True else "不可估计"
+                    )
+                ),
+                "参与过滤": "是" if gate.get("filtering_authority") else "否",
+            }
+            for gate in entry.get("gates") or []
+            if isinstance(gate, Mapping)
+        ],
+        hide_index=True,
+        use_container_width=True,
+    )
+    contaminants = entry.get("max_contaminants") or {}
+    contaminant_rows = []
+    for category, label in (("same_domain", "同域"), ("cross_domain", "跨域")):
+        row = contaminants.get(category) or {}
+        contaminant_rows.append(
+            {
+                "类别": label,
+                "最大污染facet": row.get("facet_name") or row.get("dimension_id"),
+                "选中group": row.get("group_id") or row.get("condition_id"),
+                "domain": row.get("domain_id"),
+                "条件rho_s": _metric_text(row.get("signed_rho")),
+                "VTS": _metric_text(row.get("vts")),
+                "定义": row.get("definition"),
+            }
+        )
+    st.markdown("**最大污染 facet**")
+    st.dataframe(contaminant_rows, hide_index=True, use_container_width=True)
+    condition_rows = []
+    for condition in entry.get("per_condition_metrics") or []:
+        if isinstance(condition, Mapping):
+            condition_rows.append(
+                {
+                    "条件": condition.get("condition_id"),
+                    "CITC": _metric_text(condition.get("citc")),
+                    "rho": _metric_text(condition.get("rho")),
+                    "参与过滤": "是" if condition.get("filtering_authority") else "否",
+                }
+            )
+    if condition_rows:
+        st.markdown("**各条件臂诊断指标**")
+        st.dataframe(condition_rows, hide_index=True, use_container_width=True)
+    gradient = entry.get("target_option_gradient") or {}
+    if gradient:
+        st.markdown("**目标组选项梯度（返修触发器）**")
+        st.dataframe(gradient.get("options") or [], hide_index=True, use_container_width=True)
+        if gradient.get("failed_adjacent_pairs"):
+            st.warning("失败相邻对：" + "、".join(f"{row.get('lower_option_id')} < {row.get('higher_option_id')}" for row in gradient.get("failed_adjacent_pairs") or []))
+    item = entry.get("item") or {}
+    if isinstance(item, Mapping) and item:
+        st.markdown("**题面与选项**")
+        _render_item(item)
+    score_rows = _option_score_comparison_display_rows(
+        entry.get("option_score_comparisons") or []
+    )
+    if score_rows:
+        st.markdown("**按 option_id 对齐的设定分数均值**")
+        st.dataframe(score_rows, hide_index=True, use_container_width=True)
+
+
+def _render_psychometric_round_result(round_result: Mapping[str, Any]) -> None:
+    summary = round_result.get("summary") or {}
+    st.markdown(
+        f"**第 {round_result.get('analysis_round', '?')} 轮虚拟筛查**"
+    )
+    summary_values = (
+        ("分析题目", summary.get("item_count")),
+        ("本轮新合格", summary.get("newly_qualified_count")),
+        ("待处理", summary.get("pending_treatment_count")),
+        ("正式题已锁定", summary.get("qualified_locked_count")),
+        ("监测警告", summary.get("monitoring_warning_count")),
+        ("不可估计门槛", summary.get("unestimable_metric_count")),
+    )
+    for offset in (0, 3):
+        columns = st.columns(3)
+        for column, (label, value) in zip(columns, summary_values[offset:offset + 3]):
+            column.metric(label, value if value is not None else 0)
+    st.markdown("**四门槛通过概况**")
+    gate_columns = st.columns(4)
+    for column, gate in zip(gate_columns, round_result.get("gate_summary") or []):
+        column.metric(
+            str(gate.get("label")),
+            f"{gate.get('pass_count', 0)}/{gate.get('item_count', 0)}",
+        )
+        column.caption(f"门槛 ≥{_metric_text(gate.get('threshold'))}")
+
+    candidates = [
+        row
+        for row in round_result.get("items") or []
+        if isinstance(row, Mapping)
+        and row.get("status") in {"pending_treatment", "newly_qualified"}
+    ]
+    st.markdown("**本轮候选题总览**")
+    if candidates:
+        st.dataframe(
+            [_round_overview_row(row) for row in candidates],
+            hide_index=True,
+            use_container_width=True,
+        )
+    else:
+        st.info("本轮没有待处理或新合格的候选题。")
+    locked = [
+        row for row in round_result.get("locked_items") or []
+        if isinstance(row, Mapping)
+    ]
+    st.markdown("**已锁定正式题监测**")
+    if locked:
+        st.dataframe(
+            [_round_overview_row(row) for row in locked],
+            hide_index=True,
+            use_container_width=True,
+        )
+    else:
+        st.info("当前没有已锁定正式题。")
+    st.markdown("**所有题目的按 option_id 对齐设定分数均值**")
+    all_score_rows = _option_score_comparison_display_rows(
+        round_result.get("option_score_comparisons") or []
+    )
+    if all_score_rows:
+        st.dataframe(
+            all_score_rows,
+            hide_index=True,
+            use_container_width=True,
+        )
+        st.caption("均值按各实验臂内选择同一选项的虚拟被试计算；不参与资格过滤。")
+    else:
+        st.info("本轮没有可展示的选项 facet 均值。")
+    pending = [
+        row for row in round_result.get("pending_items") or []
+        if isinstance(row, Mapping)
+    ]
+    st.markdown(f"**待处理题目明细：{len(pending)} 题**")
+    for entry in pending:
+        failed = "、".join(entry.get("failed_thresholds") or [])
+        with st.expander(
+            f"{entry.get('item_id')} · 失败门槛：{failed or '无'}",
+            expanded=False,
+        ):
+            _render_round_item_details(entry)
+
+
+def _render_virtual_test_statistics(value: object) -> bool:
+    if not isinstance(value, Mapping):
+        return False
+    screening = value.get("virtual_screening_metrics") or {}
+    summary = screening.get("summary") if isinstance(screening, Mapping) else None
+    if not isinstance(summary, Mapping):
+        return False
+    st.markdown("**探索性虚拟迭代四门槛**")
+    columns = st.columns(5)
+    columns[0].metric(
+        "CITC中位数",
+        _metric_text(summary.get("median_citc")),
+    )
+    columns[1].metric(
+        "目标ρs中位数",
+        _metric_text(summary.get("median_target_rho")),
+    )
+    columns[2].metric(
+        "最小同域VTS",
+        _metric_text(summary.get("minimum_same_domain_vts")),
+    )
+    columns[3].metric(
+        "最小跨域VTS",
+        _metric_text(summary.get("minimum_cross_domain_vts")),
+    )
+    columns[4].metric(
+        "描述性Cronbach α",
+        _metric_text(value.get("cronbach_alpha")),
+    )
+    st.caption(
+        "保留条件：目标组CITC≥.20、目标ρs≥.30、同域VTS≥.10且跨域VTS≥.20。"
+        "三组使用完全匹配的分数序列；目标组CITC拥有过滤权，其他条件只作诊断。"
+        "难度、选项使用率与Cronbach alpha仅作描述；结果不是正式单题信效度。"
+    )
+    with st.expander("查看完整分析配置与路径"):
+        st.json(dict(value), expanded=False)
+    return True
+
+
+def _render_iteration_history(value: object) -> bool:
+    """Render whole-test quality and cost curves across development rounds."""
+
+    if not isinstance(value, list) or not value:
+        return False
+    rows: list[dict[str, Any]] = []
+    for entry in value:
+        if not isinstance(entry, Mapping):
+            continue
+        form_metrics = entry.get("form_metrics") or {}
+        reliability = form_metrics.get("reliability") or {}
+        validity = form_metrics.get("validity") or {}
+        recovery = validity.get("target_recovery") or {}
+        selectivity = validity.get("construct_selectivity") or {}
+        quality = form_quality_summary(form_metrics)
+        plateau = entry.get("plateau_status") or {}
+        usage = entry.get("token_usage") or {}
+        rows.append(
+            {
+                "轮次": int(entry.get("analysis_round") or 0),
+                "题目数": entry.get("item_count"),
+                "候选题数": entry.get("candidate_count"),
+                "虚拟重测ICC": reliability.get(
+                    "virtual_test_retest_icc"
+                ),
+                "ICC门槛通过": (quality.get("stability_gate") or {}).get(
+                    "passed"
+                ),
+                "目标恢复R²": recovery.get("cross_validated_r2"),
+                "构念选择性": (
+                    selectivity.get("value")
+                    if selectivity.get("value") is not None
+                    else quality.get("construct_selectivity")
+                ),
+                "本轮候选质量": (
+                    entry.get("candidate_form_quality")
+                    if entry.get("candidate_form_quality") is not None
+                    else quality.get("candidate_form_quality")
+                ),
+                "历史最优质量": (
+                    entry.get("best_so_far_form_quality")
+                    if entry.get("best_so_far_form_quality") is not None
+                    else plateau.get("best_form_quality")
+                ),
+                "本轮Token": usage.get("total_tokens"),
+                "本轮模型耗时(ms)": usage.get("duration_ms"),
+                "模型调用次数": usage.get("calls"),
+                "整卷状态": entry.get("form_status"),
+                "平台期状态": plateau.get("status", "未开始"),
+            }
+        )
+    if not rows:
+        return False
+    frame = pd.DataFrame(rows).sort_values("轮次").set_index("轮次")
+    frame["累计Token"] = pd.to_numeric(
+        frame["本轮Token"], errors="coerce"
+    ).fillna(0).cumsum()
+    frame["累计模型耗时(ms)"] = pd.to_numeric(
+        frame["本轮模型耗时(ms)"], errors="coerce"
+    ).fillna(0).cumsum()
+    st.markdown("**整卷虚拟开发指标迭代曲线**")
+    st.caption(
+        "每轮先用候选题组成临时测验，再计算整卷指标；这些是虚拟开发期筛查结果，"
+        "不能替代真人样本的正式信效度。本轮候选质量由目标恢复R²和构念选择性的"
+        "几何平均得到；历史最优质量只会上升或持平。虚拟重测ICC只作为稳定性门槛。"
+    )
+    primary_columns = [
+        column
+        for column in ("历史最优质量", "本轮候选质量")
+        if column in frame.columns and frame[column].notna().any()
+    ]
+    if primary_columns:
+        st.line_chart(frame[primary_columns], use_container_width=True)
+    else:
+        st.info("当前轮次尚无可计算的虚拟整卷传导指标。")
+    diagnostic_columns = [
+        column
+        for column in ("目标恢复R²", "构念选择性")
+        if column in frame.columns and frame[column].notna().any()
+    ]
+    if diagnostic_columns:
+        st.markdown("**原始诊断指标（允许波动）**")
+        st.line_chart(frame[diagnostic_columns], use_container_width=True)
+    st.markdown("**迭代成本曲线**")
+    cost_columns = [
+        column
+        for column in ("累计Token", "累计模型耗时(ms)")
+        if column in frame.columns and frame[column].notna().any()
+    ]
+    if cost_columns:
+        st.line_chart(frame[cost_columns], use_container_width=True)
+    else:
+        st.info("当前尚无可归属到迭代轮次的 Token 或耗时记录。")
+    st.dataframe(frame.reset_index(), hide_index=True, use_container_width=True)
+    return True
+
+
+def _render_virtual_item_statistics(value: object) -> bool:
+    if not isinstance(value, Mapping) or not value:
+        return False
+    rows: list[dict[str, Any]] = []
+    detected = False
+    for item_id, item in value.items():
+        if not isinstance(item, Mapping):
+            continue
+        quality = item.get("quality_evaluation") or {}
+        citc = quality.get("facet_citc") or {}
+        specificity = quality.get("virtual_target_specificity") or {}
+        if not citc and not specificity:
+            continue
+        detected = True
+        target = specificity.get("rho_target") or specificity.get("target_spearman") or {}
+        same_domain = specificity.get("same_domain_non_target") or {}
+        cross_domain = specificity.get("cross_domain_non_target") or {}
+        rows.append(
+            {
+                "题目": item_id,
+                "CITC": citc.get("r"),
+                "目标ρs": target.get("rho"),
+                "同域最大污染facet": same_domain.get("facet_name") or same_domain.get("largest_non_target_facet_name"),
+                "同域最大带符号相关": same_domain.get("max_non_target_rho") if same_domain.get("max_non_target_rho") is not None else same_domain.get("largest_non_target_conditional_rho"),
+                "同域VTS": same_domain.get("specificity_margin"),
+                "跨域最大污染facet": cross_domain.get("facet_name") or cross_domain.get("largest_non_target_facet_name"),
+                "跨域最大带符号相关": cross_domain.get("max_non_target_rho") if cross_domain.get("max_non_target_rho") is not None else cross_domain.get("largest_non_target_conditional_rho"),
+                "跨域VTS": cross_domain.get("specificity_margin"),
+                "建议": quality.get("recommendation"),
+                "难度(描述)": item.get("difficulty"),
+                "有效选项(描述)": quality.get("effective_option_count"),
+            }
+        )
+        for condition_id, condition_metric in (quality.get("per_condition_metrics") or {}).items():
+            rows.append(
+                {
+                    "题目": f"{item_id} / {condition_id}（诊断）",
+                    "CITC": (condition_metric or {}).get("citc", {}).get("r"),
+                    "rho": (condition_metric or {}).get("rho", {}).get("rho"),
+                    "参与过滤": "是" if condition_id == "target" else "否",
+                }
+            )
+    if not detected:
+        return False
+    st.markdown("**单题总指标与各条件臂诊断**")
+    st.dataframe(rows, hide_index=True, use_container_width=True)
+    return True
+
+
 def _render_content(content: Mapping[str, Any]) -> None:
     for field, value in content.items():
         if field == "test_specification":
@@ -565,6 +1106,15 @@ def _render_content(content: Mapping[str, Any]) -> None:
             _render_item(value)
         elif field == "blueprint":
             _render_blueprint(value)
+        elif field == "test_statistics" and _render_virtual_test_statistics(value):
+            continue
+        elif field == "item_statistics" and _render_virtual_item_statistics(value):
+            continue
+        elif field == "psychometric_round_result" and isinstance(value, Mapping):
+            _render_psychometric_round_result(value)
+            continue
+        elif field == "psychometric_iteration_history" and _render_iteration_history(value):
+            continue
         elif field in {
             "blueprint_review",
             "current_item_review",
@@ -737,15 +1287,82 @@ def _render_sample_selection(payload: Mapping[str, Any]) -> None:
                 label += "（推荐）"
             options[label] = int(option.get("sample_size", 0))
     options["自定义"] = None
+    catalog = [
+        dict(row)
+        for row in payload.get("dimension_catalog") or []
+        if isinstance(row, Mapping) and row.get("dimension_id")
+    ]
+    catalog_by_id = {str(row["dimension_id"]): row for row in catalog}
+    targets = [row for row in catalog if row.get("required_target")]
+    target_ids = {str(row["dimension_id"]) for row in targets}
+    optional_by_domain: dict[str, list[dict[str, Any]]] = {}
+    for row in catalog:
+        if row.get("required_target") or row.get("level") != "facet":
+            continue
+        optional_by_domain.setdefault(
+            str(row.get("domain_name") or row.get("domain_id") or "其他"),
+            [],
+        ).append(row)
 
     with st.form("sample_selection"):
+        st.caption(payload.get("method_note") or "")
         selected = st.radio("虚拟被试规模", list(options))
         custom_size = st.number_input(
             "自定义人数",
-            min_value=1,
+            min_value=30,
+            max_value=int((payload.get("pool") or {}).get("available_count", 500)),
             value=int(payload.get("recommended_sample_size") or 100),
             disabled=options[selected] is not None,
         )
+        target_labels = {
+            str(row["dimension_id"]): str(
+                row.get("display_label") or row["dimension_id"]
+            )
+            for row in targets
+        }
+        target_facet = st.selectbox(
+            "目标 facet",
+            [str(row["dimension_id"]) for row in targets],
+            format_func=lambda value: target_labels.get(value, value),
+        )
+        selected_target = next(
+            row for row in targets if str(row["dimension_id"]) == target_facet
+        )
+        target_domain_id = str(selected_target.get("domain_id"))
+        option_rows = [row for rows in optional_by_domain.values() for row in rows]
+        option_ids = [str(row["dimension_id"]) for row in option_rows]
+        option_labels = {
+            str(row["dimension_id"]): (
+                f"{row.get('domain_name_en') or row.get('domain_name')} > "
+                f"{row.get('facet_name_en') or row.get('facet_name')} "
+                f"[{row['dimension_id']}]"
+            )
+            for row in option_rows
+        }
+        same_options = [
+            str(row["dimension_id"])
+            for row in option_rows
+            if str(row.get("domain_id")) == target_domain_id
+        ]
+        cross_options = [
+            str(row["dimension_id"])
+            for row in option_rows
+            if str(row.get("domain_id")) != target_domain_id
+        ]
+        same_domain_facets = st.multiselect(
+            "同域非目标 facet groups",
+            same_options,
+            default=same_options[:1],
+            format_func=lambda value: option_labels.get(value, value),
+        )
+        cross_domain_facets = st.multiselect(
+            "跨域非目标 facet groups",
+            cross_options,
+            default=cross_options[:1],
+            format_func=lambda value: option_labels.get(value, value),
+        )
+        score_mean = float(st.number_input("共享正态分布均值", min_value=0.1, max_value=99.9, value=50.0))
+        score_sd = float(st.number_input("共享正态分布 SD", min_value=0.1, max_value=50.0, value=15.0))
         with st.expander("并发与复现设置"):
             seed = st.number_input(
                 "随机种子",
@@ -771,9 +1388,49 @@ def _render_sample_selection(payload: Mapping[str, Any]) -> None:
         )
     if submitted:
         sample_size = options[selected] or int(custom_size)
+        errors: list[str] = []
+        if not targets:
+            errors.append("题库缺少目标 facet")
+        if not same_domain_facets:
+            errors.append("至少选择一个同域非目标 facet group")
+        if not cross_domain_facets:
+            errors.append("至少选择一个跨域非目标 facet group")
+        if errors:
+            st.error("；".join(errors))
+            return
         _submit_decision(
             {
-                "sample_size": sample_size,
+                "sample_size_per_condition": sample_size,
+                "score_distribution": {"family": "normal", "mean": score_mean, "sd": score_sd},
+                "conditions": [
+                    {
+                        "condition_id": "target",
+                        "role": "target",
+                        "groups": [{
+                            **dict(catalog_by_id[target_facet]),
+                            "group_id": "target",
+                            "dimension_id": target_facet,
+                        }],
+                    },
+                    {
+                        "condition_id": "same_domain",
+                        "role": "same_domain_non_target",
+                        "groups": [{
+                            **dict(catalog_by_id[facet_id]),
+                            "group_id": f"same_domain_group_{index + 1}",
+                            "dimension_id": facet_id,
+                        } for index, facet_id in enumerate(same_domain_facets)],
+                    },
+                    {
+                        "condition_id": "cross_domain",
+                        "role": "cross_domain_non_target",
+                        "groups": [{
+                            **dict(catalog_by_id[facet_id]),
+                            "group_id": f"cross_domain_group_{index + 1}",
+                            "dimension_id": facet_id,
+                        } for index, facet_id in enumerate(cross_domain_facets)],
+                    },
+                ],
                 "seed": int(seed),
                 "max_concurrency": int(concurrency),
                 "max_retries": int(retries),
@@ -781,45 +1438,173 @@ def _render_sample_selection(payload: Mapping[str, Any]) -> None:
         )
 
 
-def _render_psychometric_repair_confirmation(payload: Mapping[str, Any]) -> None:
-    """Show all confirmed edits for one item before the single re-test."""
+def _render_post_virtual_response_decision(payload: Mapping[str, Any]) -> None:
+    st.write(payload.get("summary") or "")
+    round_result = payload.get("round_result") or {}
+    if isinstance(round_result, Mapping) and round_result:
+        _render_psychometric_round_result(round_result)
+    else:
+        st.warning("本轮缺少统一结果结构，请重新运行心理测量分析。")
+    iteration_history = payload.get("psychometric_iteration_history") or []
+    if iteration_history:
+        st.markdown("**本轮临时组卷（单题返修前基线）**")
+        _render_iteration_history(iteration_history)
+    st.caption("正式题资格一经锁定不撤销，监测警告不会触发返修。")
+    diagnostics = payload.get("condition_score_diagnostics") or {}
+    correlation_rows = []
+    for condition in diagnostics.get("conditions") or []:
+        if not isinstance(condition, Mapping):
+            continue
+        correlation_rows.append({"范围": str(condition.get("condition_id")), "均值": condition.get("actual_mean"), "SD": condition.get("actual_sample_sd")})
+    with st.expander("补充：匹配条件组分数分布（不参与过滤）"):
+        st.caption("固定三个顶层臂、每个 facet group 复用同一 z 序列；分布核查不具备 filtering authority。")
+        if correlation_rows:
+            st.dataframe(correlation_rows, hide_index=True, use_container_width=True)
+        else:
+            st.info("没有可报告的维度对。")
+    with st.form("post_virtual_response_decision"):
+        selected = st.radio("下一步", ["开始处理未通过题目", "暂停并保存"])
+        submitted = st.form_submit_button(
+            "提交决策", type="primary", use_container_width=True
+        )
+    if submitted:
+        _submit_decision(
+            {"decision": "start" if selected == "开始处理未通过题目" else "stop"}
+        )
 
-    st.markdown(f"**题目编号**：{payload.get('item_id', '?')}")
-    item = payload.get("item")
-    if isinstance(item, Mapping):
-        _render_item(item)
+
+def _render_psychometric_repair_confirmation(payload: Mapping[str, Any]) -> None:
+    """Render one complete diagnosis and its allowed user disposition."""
+
     diagnosis = payload.get("diagnosis") or {}
+    item = payload.get("item")
+    queue = payload.get("pending_item_queue") or []
+    st.markdown(
+        f"**题目 {payload.get('item_id', '?')} · 第 {payload.get('revision_round', '?')} 轮 · "
+        f"队列 1/{max(1, len(queue))}**"
+    )
+    if (
+        payload.get("queue_status") == "deferred_decision"
+        and payload.get("diagnosis_status") == "repair_rounds_exhausted"
+    ):
+        st.warning(
+            "已完成三轮返修仍未达标，自动进入 defer 确认队列。"
+            "可继续选择 SME 审核、人工修改、淘汰补题或暂停保存。"
+        )
+    observations = [
+        row
+        for row in payload.get("observations") or []
+        if isinstance(row, Mapping) and row.get("role") != "descriptive_only"
+    ]
+    if observations:
+        st.markdown("**四门槛与最大污染 facet**")
+        st.dataframe(
+            [
+                {
+                    "指标": row.get("metric"),
+                    "值": row.get("value"),
+                    "阈值": row.get("threshold"),
+                    "污染facet": row.get("facet_name") or row.get("dimension_id"),
+                    "条件rho": row.get("signed_rho"),
+                }
+                for row in observations
+            ],
+            hide_index=True,
+            use_container_width=True,
+        )
+    target_constraints = payload.get("target_construct_constraints") or []
+    if target_constraints:
+        st.markdown("**目标 facet 的构念约束**")
+        for constraint in target_constraints:
+            if isinstance(constraint, Mapping):
+                st.write(
+                    f"{constraint.get('constraint_id', '?')}："
+                    f"{constraint.get('statement', constraint.get('text', ''))}"
+                )
+    constraints = payload.get("non_target_construct_constraints") or []
+    if constraints:
+        st.markdown("**最大污染 facet 的定义与高低行为边界**")
+        for constraint in constraints:
+            if isinstance(constraint, Mapping):
+                st.write(
+                    f"{constraint.get('constraint_id', '?')}："
+                    f"{constraint.get('statement', '')}"
+                )
+    if isinstance(item, Mapping):
+        st.markdown("**题面与选项**")
+        _render_item(item)
+    agent_comparisons = payload.get("option_score_comparisons") or []
+    if isinstance(agent_comparisons, list) and agent_comparisons:
+        st.markdown("**VTS 按 option_id 对齐的均值定位证据**")
+        st.caption("只用于定位污染候选，不参与资格过滤。")
+        st.dataframe(
+            _agent_option_score_comparison_display_rows(agent_comparisons),
+            hide_index=True,
+            use_container_width=True,
+        )
     if isinstance(diagnosis, Mapping) and diagnosis.get("summary"):
+        st.markdown("**诊断摘要**")
         st.write(diagnosis["summary"])
     candidates = diagnosis.get("candidate_diagnoses") if isinstance(diagnosis, Mapping) else []
     if candidates:
-        with st.expander("查看诊断候选", expanded=True):
+        with st.expander("文本证据与诊断候选", expanded=True):
             st.json(candidates, expanded=False)
     tasks = diagnosis.get("repair_tasks") if isinstance(diagnosis, Mapping) else []
     if tasks:
-        st.markdown("**本题将逐条执行的修改任务**")
+        st.markdown("**原子修改任务**")
         st.json(tasks, expanded=False)
-    with st.form("psychometric_repair_confirmation"):
-        selected = st.radio(
-            "返修决策",
-            [
-                "确认全部任务，完成后统一重测",
-                "跳过本题修改并保留警告",
-                "停止本次运行",
-            ],
-        )
+
+    is_repair = isinstance(diagnosis, Mapping) and diagnosis.get("decision") == "repair"
+    form_key = f"psychometric_repair_confirmation_{payload.get('item_id')}_{payload.get('revision_round')}"
+    with st.form(form_key):
+        available = set(payload.get("available_decisions") or [])
+        if is_repair:
+            choices = {
+                label: decision
+                for label, decision in (
+                    ("确认并自动执行原子返修", "approve"),
+                    ("暂停并保存", "stop"),
+                )
+                if not available or decision in available
+            }
+        else:
+            choices = {
+                label: decision
+                for label, decision in (
+                    ("人工修改", "manual_edit"),
+                    ("保留待 SME 审核", "pending_sme"),
+                    ("淘汰补题", "eliminate_replenish"),
+                    ("暂停并保存", "stop"),
+                )
+                if not available or decision in available
+            }
+        selected = st.radio("处置方式", list(choices))
+        scenario = None
+        option_texts: dict[str, str] = {}
+        if not is_repair and isinstance(item, Mapping):
+            st.caption("选择人工修改时，仅情境与选项文本会被提交；其余字段保持锁定。")
+            scenario = st.text_area("情境", value=str(item.get("scenario") or ""))
+            for option in item.get("response_options") or []:
+                if isinstance(option, Mapping):
+                    option_id = str(option.get("option_id") or "")
+                    option_texts[option_id] = st.text_area(
+                        f"选项 {option_id}", value=str(option.get("text") or "")
+                    )
         submitted = st.form_submit_button(
-            "提交决策",
-            type="primary",
-            use_container_width=True,
+            "提交决策", type="primary", use_container_width=True
         )
     if submitted:
-        decisions = {
-            "确认全部任务，完成后统一重测": "approve",
-            "跳过本题修改并保留警告": "skip",
-            "停止本次运行": "stop",
-        }
-        _submit_decision({"decision": decisions[selected]})
+        decision = choices[selected]
+        response: dict[str, Any] = {"decision": decision}
+        if decision == "manual_edit":
+            response["manual_item"] = {
+                "scenario": scenario,
+                "response_options": [
+                    {"option_id": option_id, "text": text}
+                    for option_id, text in option_texts.items()
+                ],
+            }
+        _submit_decision(response)
 
 
 def _render_generic_approval(payload: Mapping[str, Any]) -> None:
@@ -867,6 +1652,148 @@ def _render_generic_approval(payload: Mapping[str, Any]) -> None:
         )
 
 
+def _render_plateau_gap_decision(payload: Mapping[str, Any]) -> None:
+    gap_cells = [
+        dict(row)
+        for row in payload.get("gap_cells") or []
+        if isinstance(row, Mapping)
+    ]
+    st.markdown(str(payload.get("summary") or ""))
+    any_sme_offered = False
+    unresolvable = False
+    for cell in gap_cells:
+        candidates = [
+            dict(row)
+            for row in cell.get("candidates") or []
+            if isinstance(row, Mapping)
+        ]
+        eligible = [row for row in candidates if row.get("eligible")]
+        sme = [row for row in candidates if row.get("force_allowed")]
+        any_sme_offered = any_sme_offered or bool(sme)
+        if not eligible and not sme:
+            unresolvable = True
+    if unresolvable:
+        st.error(
+            "存在没有可处置候选的缺口单元（候选均已淘汰）："
+            "请先人工处理，或暂停保存。"
+        )
+        if st.button(
+            "暂停保存",
+            type="secondary",
+            use_container_width=True,
+        ):
+            _submit_decision({"decision": "stop"})
+        return
+    if any_sme_offered:
+        st.warning(
+            "部分候选仍在待 SME。选择它们将按『开发版强制补位』收卷："
+            "报告会标注该题未经专家审、以开发版证据进入正式卷。"
+        )
+    with st.form("plateau_gap_decision"):
+        choices: list[dict] = []
+        for index, cell in enumerate(gap_cells):
+            cell_id = str(cell.get("blueprint_cell_id") or f"cell{index}")
+            candidates = [
+                dict(row)
+                for row in cell.get("candidates") or []
+                if isinstance(row, Mapping)
+            ]
+            eligible = [row for row in candidates if row.get("eligible")]
+            sme = [row for row in candidates if row.get("force_allowed")]
+            st.markdown(
+                f"**缺口单元 {cell_id}**"
+                f"（需保留 {cell.get('planned_retention_count')} 题）"
+            )
+            labels = {}
+            for row in eligible:
+                gates = "、".join(row.get("failed_gates") or []) or "无"
+                labels[
+                    f"{row.get('item_id')} v{row.get('version')}"
+                    f"（未过：{gates}）"
+                ] = (row, False)
+            for row in sme:
+                if row.get("item_id") in {
+                    r.get("item_id") for r, _ in labels.values()
+                }:
+                    continue
+                labels[
+                    f"{row.get('item_id')} v{row.get('version')}"
+                    f"（待SME · 强制补位）"
+                ] = (row, True)
+            if not labels:
+                st.warning("无可用候选")
+                continue
+            default_label = next(iter(labels))
+            chosen = st.selectbox(
+                f"{cell_id} 候选",
+                list(labels),
+                key=f"pg_cand_{index}",
+            )
+            row, is_sme = labels[chosen]
+            mode = st.radio(
+                f"{cell_id} 处理方式",
+                ["直接补位", "手动修改"],
+                key=f"pg_mode_{index}",
+                horizontal=True,
+            )
+            manual_item = None
+            if mode == "手动修改":
+                scenario = st.text_area(
+                    f"{cell_id} 新情境",
+                    value=str(row.get("scenario") or ""),
+                    key=f"pg_scenario_{index}",
+                )
+                option_texts = {}
+                for opt in row.get("response_options") or []:
+                    if not isinstance(opt, Mapping):
+                        continue
+                    option_id = str(opt.get("option_id") or "")
+                    option_texts[option_id] = st.text_area(
+                        f"选项 {option_id}",
+                        value=str(opt.get("text") or ""),
+                        key=f"pg_opt_{index}_{option_id}",
+                    )
+                manual_item = {
+                    "scenario": scenario,
+                    "response_options": [
+                        {
+                            "option_id": option_id,
+                            "text": text,
+                        }
+                        for option_id, text in option_texts.items()
+                    ],
+                }
+            choices.append(
+                {
+                    "cell_id": cell_id,
+                    "item_id": str(row["item_id"]),
+                    "mode": "pick" if mode == "直接补位" else "manual",
+                    "manual_item": manual_item,
+                    "sme_override": is_sme,
+                }
+            )
+        submitted = st.form_submit_button(
+            "确认处置并收卷",
+            type="primary",
+            use_container_width=True,
+        )
+    if submitted:
+        resolutions = []
+        for choice in choices:
+            resolutions.append(
+                {
+                    "cell_id": choice["cell_id"],
+                    "item_id": choice["item_id"],
+                    "mode": choice["mode"],
+                    "sme_override": choice["sme_override"],
+                    **({"manual_item": choice["manual_item"]}
+                      if choice["manual_item"] is not None
+                      else {}),
+                }
+            )
+        _submit_decision({"decision": "resolve", "resolutions": resolutions})
+
+
 def _render_interrupt() -> None:
     payload = st.session_state.sjt_interrupt
     if not isinstance(payload, Mapping):
@@ -880,8 +1807,12 @@ def _render_interrupt() -> None:
             _render_mode_selection(payload)
         elif interaction_type == "virtual_sample_selection":
             _render_sample_selection(payload)
+        elif interaction_type == "post_virtual_response_decision":
+            _render_post_virtual_response_decision(payload)
         elif interaction_type == "psychometric_repair_confirmation":
             _render_psychometric_repair_confirmation(payload)
+        elif interaction_type == "plateau_gap_decision":
+            _render_plateau_gap_decision(payload)
         else:
             _render_generic_approval(payload)
 

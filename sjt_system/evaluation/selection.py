@@ -17,8 +17,10 @@ from sjt_system.authoring.budget import developed_candidate_ids
 from sjt_system.evaluation.respondents import (
     MINIMUM_AUTOMATIC_SELECTION_SAMPLE_SIZE,
 )
+from sjt_system.evaluation.round_results import metric_scalar
 from sjt_system.state import PSJTState
 from sjt_system.runtime.trace import utc_timestamp
+from sjt_system.workflow.constants import PSYCHOMETRIC_REPAIR_DEFER_AFTER_ROUNDS
 
 
 _DISCRIMINATION_RANK = {
@@ -96,6 +98,27 @@ def _quality_sort_key(
     order_index: Mapping[str, int],
 ) -> tuple[Any, ...]:
     quality = statistics["quality_evaluation"]
+    citc = quality.get("facet_citc") or {}
+    specificity = quality.get("virtual_target_specificity") or {}
+    if citc or specificity:
+        same_domain = specificity.get("same_domain_non_target") or {}
+        cross_domain = specificity.get("cross_domain_non_target") or {}
+        target_rho = (specificity.get("target_spearman") or {}).get("rho")
+        return (
+            -float(citc.get("r"))
+            if isinstance(citc.get("r"), (int, float))
+            else float("inf"),
+            -float(target_rho)
+            if isinstance(target_rho, (int, float))
+            else float("inf"),
+            -float(same_domain.get("specificity_margin"))
+            if isinstance(same_domain.get("specificity_margin"), (int, float))
+            else float("inf"),
+            -float(cross_domain.get("specificity_margin"))
+            if isinstance(cross_domain.get("specificity_margin"), (int, float))
+            else float("inf"),
+            order_index[item_id],
+        )
     difficulty = statistics.get("difficulty")
     corrected = (
         statistics.get("facet_corrected_item_total_correlation")
@@ -750,9 +773,10 @@ def _deduplicate_items(items: Sequence[Mapping[str, Any]]) -> list[dict]:
 
 
 def _metric_text(value: Any, *, digits: int = 3) -> str:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    numeric = metric_scalar(value)
+    if numeric is None:
         return "证据不足"
-    return f"{float(value):.{digits}f}"
+    return f"{numeric:.{digits}f}"
 
 
 def _selection_reason(
@@ -760,6 +784,27 @@ def _selection_reason(
     statistics: Mapping[str, Any],
 ) -> str:
     quality = statistics.get("quality_evaluation") or {}
+    citc = quality.get("facet_citc") or {}
+    specificity = quality.get("virtual_target_specificity") or {}
+    if citc or specificity:
+        target = specificity.get("target_spearman") or {}
+        same_domain = specificity.get("same_domain_non_target") or {}
+        cross_domain = specificity.get("cross_domain_non_target") or {}
+        metrics = (
+            f"建议={recommendation}；"
+            f"分面内CITC={_metric_text(citc.get('r'))}；"
+            f"目标ρs={_metric_text(target.get('rho'))}；"
+            "同域VTS="
+            f"{_metric_text(same_domain.get('specificity_margin'))}；"
+            "跨域VTS="
+            f"{_metric_text(cross_domain.get('specificity_margin'))}"
+        )
+        flags = [
+            str(flag)
+            for flag in quality.get("diagnostic_flags") or []
+            if str(flag).strip()
+        ]
+        return "；".join([metrics, *flags])
     corrected = (
         statistics.get("facet_corrected_item_total_correlation")
         or statistics.get("corrected_item_total_correlation")
@@ -893,6 +938,30 @@ def _psychometric_repair_entry(
 ) -> dict[str, Any]:
     item_id = str(item["item_id"])
     quality = statistics.get("quality_evaluation") or {}
+    if (
+        "facet_citc" in quality
+        or "virtual_target_specificity" in quality
+    ):
+        # The queue only marks a symptom for diagnosis. It deliberately does
+        # not manufacture an editable cause from the virtual metrics.
+        return {
+            "item_id": item_id,
+            "blueprint_cell_id": item.get("blueprint_cell_id"),
+            "target_dimension_id": item.get("target_dimension_id"),
+            "action": "revise_item",
+            "revision_round": revision_round,
+            "baseline_metrics": {
+                "quality_evaluation": deepcopy(quality),
+            },
+            "review": {
+                "findings": [],
+                "repair_tasks": [],
+                "summary": (
+                    f"题目 {item_id} 未通过虚拟迭代四门槛筛查；等待基于题面与"
+                    "构念约束的可定位诊断，若无题面证据则 defer。"
+                ),
+            },
+        }
     option_ids = [
         str(option.get("option_id"))
         for option in item.get("response_options") or []
@@ -1037,6 +1106,41 @@ def _psychometric_repair_entry(
         },
         "review": review,
     }
+
+
+def _psychometric_defer_entry(
+    *,
+    item: Mapping[str, Any],
+    statistics: Mapping[str, Any],
+    completed_rounds: int,
+) -> dict[str, Any]:
+    """Create a blocking defer entry after the fixed repair policy threshold."""
+
+    entry = _psychometric_repair_entry(
+        item=item,
+        statistics=statistics,
+        revision_round=completed_rounds + 1,
+    )
+    entry.update(
+        {
+            "action": "defer",
+            "queue_status": "deferred_decision",
+            "completed_repair_rounds": completed_rounds,
+            "defer_after_rounds": PSYCHOMETRIC_REPAIR_DEFER_AFTER_ROUNDS,
+            "diagnosis_status": "repair_rounds_exhausted",
+            "atomic_repair_advice": {
+                "decision": "defer",
+                "summary": (
+                    f"已完成 {completed_rounds} 轮返修仍未达标，"
+                    "自动进入 defer 确认队列。"
+                ),
+                "observed_discrepancies": [],
+                "candidate_diagnoses": [],
+                "repair_tasks": [],
+            },
+        }
+    )
+    return entry
 
 
 def build_psychometric_repair_evidence(
@@ -1373,6 +1477,71 @@ def _repair_candidate_admission(
     current_recommendation = str(
         current_quality.get("recommendation") or "remove"
     )
+    baseline_citc_metric = baseline_quality.get("facet_citc") or {}
+    current_citc_metric = current_quality.get("facet_citc") or {}
+    baseline_specificity = baseline_quality.get(
+        "virtual_target_specificity"
+    ) or {}
+    current_specificity = current_quality.get(
+        "virtual_target_specificity"
+    ) or {}
+    if baseline_citc_metric or baseline_specificity:
+        baseline_same = baseline_specificity.get("same_domain_non_target") or {}
+        current_same = current_specificity.get("same_domain_non_target") or {}
+        baseline_cross = baseline_specificity.get("cross_domain_non_target") or {}
+        current_cross = current_specificity.get("cross_domain_non_target") or {}
+        baseline_values = {
+            "facet_citc": _metric_number(baseline_citc_metric.get("r")),
+            "target_rho": _metric_number(
+                (baseline_specificity.get("target_spearman") or {}).get("rho")
+            ),
+            "same_domain_vts": _metric_number(
+                baseline_same.get("specificity_margin")
+            ),
+            "cross_domain_vts": _metric_number(
+                baseline_cross.get("specificity_margin")
+            ),
+        }
+        current_values = {
+            "facet_citc": _metric_number(current_citc_metric.get("r")),
+            "target_rho": _metric_number(
+                (current_specificity.get("target_spearman") or {}).get("rho")
+            ),
+            "same_domain_vts": _metric_number(
+                current_same.get("specificity_margin")
+            ),
+            "cross_domain_vts": _metric_number(
+                current_cross.get("specificity_margin")
+            ),
+        }
+        rank_not_worse = recommendation_rank.get(
+            current_recommendation, -1
+        ) >= recommendation_rank.get(baseline_recommendation, -1)
+        estimable = all(value is not None for value in current_values.values())
+        not_worse = all(
+            baseline_values[key] is None
+            or current_values[key] is None
+            or current_values[key] >= baseline_values[key] - 0.03
+            for key in baseline_values
+        )
+        improved = (
+            recommendation_rank.get(current_recommendation, -1)
+            > recommendation_rank.get(baseline_recommendation, -1)
+            or any(
+                baseline_values[key] is not None
+                and current_values[key] is not None
+                and current_values[key] >= baseline_values[key] + 0.02
+                for key in baseline_values
+            )
+        )
+        evidence = {
+            "baseline_recommendation": baseline_recommendation,
+            "current_recommendation": current_recommendation,
+            "baseline_virtual_metrics": baseline_values,
+            "current_virtual_metrics": current_values,
+        }
+        return rank_not_worse and estimable and not_worse and improved, evidence
+
     baseline_citc = _metric_number(
         (
             baseline.get("facet_corrected_item_total_correlation")
@@ -1576,6 +1745,7 @@ def _evaluate_latest_repair_candidate(
                     "virtual_response_item_bank_id": None,
                     "virtual_response_item_bank_version": None,
                     "item_statistics": {},
+                    "psychometric_round_result": None,
                     "test_statistics": None,
                 }
             )
@@ -1585,78 +1755,6 @@ def _evaluate_latest_repair_candidate(
                 )
         return rollback, history
     return None, history
-
-
-def build_direct_psychometric_repair_queue(state: PSJTState) -> dict[str, Any]:
-    """Route every non-retained item directly to psychometric repair.
-
-    The autonomous workflow no longer uses blueprint-gap selection or an
-    incremental candidate pool.  Metrics still determine which items need
-    attention, while every non-retained item is sent to diagnosis.
-    """
-
-    items = [
-        deepcopy(dict(item))
-        for item in state.get("item_pool") or []
-        if isinstance(item, Mapping) and item.get("item_id")
-    ]
-    statistics = state.get("item_statistics") or {}
-    rounds = dict(state.get("psychometric_repair_rounds") or {})
-    max_rounds = int(state.get("max_psychometric_repair_rounds") or 0)
-    revise: list[dict[str, Any]] = []
-    retained = 0
-    for item in items:
-        item_id = str(item["item_id"])
-        stat = statistics.get(item_id) or {}
-        quality = stat.get("quality_evaluation") or {}
-        recommendation = quality.get("recommendation")
-        if recommendation == "retain":
-            retained += 1
-            continue
-        if int(rounds.get(item_id, 0)) >= max_rounds:
-            # The latest structurally valid version is admitted after the
-            # bounded repair budget; it is not dropped or sent to补题.
-            retained += 1
-            continue
-        revise.append(
-            _psychometric_repair_entry(
-                item=item,
-                statistics=stat,
-                revision_round=int(rounds.get(item_id, 0)) + 1,
-            )
-        )
-    return {
-        "state_update": {
-            "selected_items": items if not revise else [],
-            "reserve_items": [],
-            "items_to_revise": [
-                entry for entry in revise if entry.get("action") == "revise_item"
-            ],
-            "items_to_regenerate": [
-                entry
-                for entry in revise
-                if entry.get("action") == "regenerate_item"
-            ],
-            "items_deferred_for_revision": [],
-            "selection_results": {
-                "status": "repair_required" if revise else "ready_for_assembly",
-                "direct_repair": True,
-                "retained_count": retained,
-                "repair_count": len(revise),
-                "selected_count": len(items) if not revise else 0,
-                "reserve_count": 0,
-            },
-            "selection_reasons": {
-                str(entry["item_id"]): "未达到题项质量条件，直接进入心理测量返修"
-                for entry in revise
-            },
-            "item_pool": items,
-        },
-        "summary": (
-            f"心理测量返修诊断：保留 {retained} 题，"
-            f"直接返修 {len(revise)} 题。"
-        ),
-    }
 
 
 def run_item_selection(state: PSJTState) -> dict[str, Any]:
@@ -1731,10 +1829,8 @@ def run_item_selection(state: PSJTState) -> dict[str, Any]:
             ):
                 locked_retained_versions[item_id] = version
     repair_rounds = dict(state.get("psychometric_repair_rounds") or {})
-    max_repair_rounds = int(
-        state.get("max_psychometric_repair_rounds") or 0
-    )
     revision_candidates: list[dict[str, Any]] = []
+    defer_candidates: list[dict[str, Any]] = []
     removed_ids: list[str] = []
     if exploratory_evidence:
         retained_ids = list(item_order)
@@ -1759,19 +1855,18 @@ def run_item_selection(state: PSJTState) -> dict[str, Any]:
                 continue
             if recommendation == "remove":
                 recommendation = "revise"
-            if recommendation == "remove":
-                # Keep the original ID available for a repair attempt.
-                reasons[item_id] += (
-                    "；足量样本且硬失败证据成立，不进入正式题或备用题"
-                )
-                continue
             completed_rounds = int(repair_rounds.get(item_id, 0))
             next_round = completed_rounds + 1
-            if next_round > max_repair_rounds:
-                removed_ids.append(item_id)
+            if completed_rounds >= PSYCHOMETRIC_REPAIR_DEFER_AFTER_ROUNDS:
+                defer_candidates.append(
+                    _psychometric_defer_entry(
+                        item=items[item_id],
+                        statistics=item_statistics[item_id],
+                        completed_rounds=completed_rounds,
+                    )
+                )
                 reasons[item_id] += (
-                    f"；已达到心理测量返修上限 {max_repair_rounds} 轮，"
-                    "淘汰当前候选并按蓝图补题"
+                    "；已完成三轮心理测量返修仍未达标，自动进入 defer 确认队列"
                 )
                 continue
             entry = _psychometric_repair_entry(
@@ -1825,7 +1920,7 @@ def run_item_selection(state: PSJTState) -> dict[str, Any]:
                 else None
             ),
         )
-    revision_entries: list[dict[str, Any]] = []
+    revision_entries: list[dict[str, Any]] = [*defer_candidates]
     deferred_revision_entries: list[dict[str, Any]] = []
     if not exploratory_evidence:
         missing_by_cell = {
@@ -1846,9 +1941,15 @@ def run_item_selection(state: PSJTState) -> dict[str, Any]:
 
         for entry in revision_entries:
             reasons[entry["item_id"]] += (
-                f"；该蓝图单元存在保留题缺口，进入第 "
-                f"{entry['revision_round']} 轮心理测量定向返修，"
-                f"动作={entry['action']}"
+                (
+                    "；已完成三轮返修仍未达标，自动进入 defer 确认队列"
+                    if entry.get("action") == "defer"
+                    else (
+                        f"；该蓝图单元存在保留题缺口，进入第 "
+                        f"{entry['revision_round']} 轮心理测量定向返修，"
+                        f"动作={entry['action']}"
+                    )
+                )
             )
         for entry in deferred_revision_entries:
             reasons[entry["item_id"]] += (
@@ -1872,6 +1973,8 @@ def run_item_selection(state: PSJTState) -> dict[str, Any]:
             if coverage["passed"]
             else "fixed_blueprint_gap"
         )
+    elif any(entry.get("action") == "defer" for entry in revision_entries):
+        status = "repair_confirmation_required"
     elif coverage["passed"]:
         status = "ready_for_assembly"
     elif revision_entries:
@@ -1914,7 +2017,7 @@ def run_item_selection(state: PSJTState) -> dict[str, Any]:
     revise_entries = [
         entry
         for entry in revision_entries
-        if entry["action"] == "revise_item"
+        if entry["action"] in {"defer", "revise_item"}
     ]
     regenerate_entries = [
         entry
@@ -1989,6 +2092,7 @@ def run_item_selection(state: PSJTState) -> dict[str, Any]:
 
     final_selection_ready = status == "ready_for_assembly"
     update = {
+        "psychometric_repair_defer_after_rounds": PSYCHOMETRIC_REPAIR_DEFER_AFTER_ROUNDS,
         "selected_items": (
             [deepcopy(items[item_id]) for item_id in selected_ids]
             if final_selection_ready
@@ -2018,6 +2122,9 @@ def run_item_selection(state: PSJTState) -> dict[str, Any]:
             "reserve_count": len(reserve_ids) if final_selection_ready else 0,
             "removed_count": len(removed),
             "revision_count": len(revision_entries),
+            "defer_count": sum(
+                1 for entry in revision_entries if entry.get("action") == "defer"
+            ),
             "deferred_revision_count": len(deferred_revision_entries),
             "evidence_level": (
                 "exploratory" if exploratory_evidence else "developmental"
@@ -2089,7 +2196,8 @@ def run_item_selection(state: PSJTState) -> dict[str, Any]:
             f"题目筛选完成：正式候选 "
             f"{len(selected_ids) if final_selection_ready else 0} 题，"
             f"备用 {len(reserve_ids) if final_selection_ready else 0} 题，"
-            f"返修 {len(revision_entries)} 题，"
+            f"返修 {sum(1 for entry in revision_entries if entry.get('action') != 'defer')} 题，"
+            f"自动 defer {sum(1 for entry in revision_entries if entry.get('action') == 'defer')} 题，"
             f"暂缓返修 {len(deferred_revision_entries)} 题，"
             f"淘汰 {len(removed_ids)} 题；"
             f"状态 {status}。"

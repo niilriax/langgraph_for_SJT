@@ -39,6 +39,8 @@ REVIEW DIMENSIONS
 - Use semantic judgment, not keyword counting. Also flag scenarios that name
   the target trait, disclose the intended emotional response, or reveal the
   high-scoring direction.
+- Separately verify that the target facet cue is directly observable and that
+  adjacent options form a continuous low-to-high behavioral gradient.
 - Use locus=skeleton only when the current item faithfully implements the
   skeleton but the activation cue, situation seed, or core tension is
   fundamentally incompatible with the target facet. Otherwise assign the
@@ -82,6 +84,8 @@ REVIEW DIMENSIONS
 - Identify alternative explanations introduced by intelligence, knowledge,
   experience, resources, authority, compliance, morality, amount of effort,
   another personality facet, or outcome advantage.
+- Explicitly check whether assertiveness, order, ability, resources, moral
+  correctness, or outcome advantage has become the actual decision basis.
 - Determine whether the four options faithfully realize the supplied
   behavioral anchors as an interpretable four-level continuum on one facet.
   Do not accept a gradient created only by degree adverbs such as "slightly,"

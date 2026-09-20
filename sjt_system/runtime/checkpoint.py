@@ -20,9 +20,10 @@ from sjt_system.authoring.construct_registry import (
 )
 from sjt_system.config import DEFAULT_OUTPUT_LANGUAGE
 from sjt_system.runtime.trace import utc_timestamp
+from sjt_system.workflow.constants import PSYCHOMETRIC_REPAIR_DEFER_AFTER_ROUNDS
 
 
-CHECKPOINT_SCHEMA_VERSION = 14
+CHECKPOINT_SCHEMA_VERSION = 20
 CHECKPOINT_REPLACE_ATTEMPTS = 5
 CHECKPOINT_REPLACE_BACKOFF_SECONDS = 0.05
 _SUPPORTED_CHECKPOINT_SCHEMA_VERSIONS = {
@@ -39,12 +40,19 @@ _SUPPORTED_CHECKPOINT_SCHEMA_VERSIONS = {
     11,
     12,
     13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
     CHECKPOINT_SCHEMA_VERSION,
 }
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CHECKPOINT_ROOT = PROJECT_ROOT / "outputs" / "run_checkpoints"
 TERMINAL_STATUSES = {"completed", "stopped"}
 _REMOVED_STATE_FIELDS = {
+    "psychometric_defer_batch_eliminate",
     "current_expert_review_results",
     "current_review_results",
     "current_review_decision",
@@ -837,6 +845,8 @@ def _migrate_v11_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
             "virtual_response_item_bank_id": None,
             "virtual_response_item_bank_version": None,
             "item_statistics": {},
+            "psychometric_round_result": None,
+            "psychometric_iteration_history": [],
             "test_statistics": None,
             "factor_results": None,
             "irt_results": None,
@@ -874,7 +884,7 @@ def _migrate_v11_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         state["current_phase"] = "construct_blueprint"
     return {
         **deepcopy(dict(payload)),
-        "schema_version": CHECKPOINT_SCHEMA_VERSION,
+        "schema_version": 14,
         "state": _strip_removed_state_fields(state),
     }
 
@@ -925,10 +935,14 @@ def _migrate_v12_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
             }
         )
     state.setdefault("item_final_dispositions", {})
+    state.setdefault("psychometric_monitoring_warnings", [])
+    state.setdefault("item_lineage", {})
+    state.setdefault("virtual_sample_migration_events", [])
+    state.setdefault("virtual_analysis_reconfiguration_reason", None)
     state.setdefault("psychometric_repair_confirmation", None)
     return {
         **deepcopy(dict(payload)),
-        "schema_version": CHECKPOINT_SCHEMA_VERSION,
+        "schema_version": 14,
         "state": _strip_removed_state_fields(state),
     }
 
@@ -938,6 +952,582 @@ def _migrate_v13_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
 
     state = deepcopy(dict(payload["state"]))
     state.setdefault("psychometric_repair_confirmation", None)
+    return {
+        **deepcopy(dict(payload)),
+        "schema_version": 14,
+        "state": _strip_removed_state_fields(state),
+    }
+
+
+def _virtual_sample_protocol_is_current(state: Mapping[str, Any]) -> bool:
+    """Return whether resumable virtual evidence uses the score protocol."""
+
+    from sjt_system.evaluation.respondents import matched_condition_sample_is_current
+    from sjt_system.evaluation.simulation import VIRTUAL_RESPONSE_PROMPT_VERSION
+
+    config = state.get("virtual_sample_config")
+    respondents = state.get("virtual_respondents")
+    if not matched_condition_sample_is_current(config, respondents):
+        return False
+    response_ref = state.get("virtual_response_data_ref")
+    if response_ref is None:
+        return True
+    if not isinstance(response_ref, str) or not Path(response_ref).is_file():
+        return False
+    try:
+        response_manifest = json.loads(
+            Path(response_ref).read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError, TypeError):
+        return False
+    from sjt_system.evaluation.respondents import MATCHED_CONDITION_SCHEMA_VERSION
+    if response_manifest.get("schema_version") != MATCHED_CONDITION_SCHEMA_VERSION:
+        return False
+    if config.get("migrated_from_equal_score_tiers") is True:
+        return bool(
+            response_manifest.get("persona_modes") == ["score_profile"]
+            and response_manifest.get("sample_size") == len(respondents)
+        )
+    return bool(
+        response_manifest.get("prompt_version") == VIRTUAL_RESPONSE_PROMPT_VERSION
+        and response_manifest.get("score_prompt_version")
+        == config.get("prompt_version")
+        and response_manifest.get("generator_version")
+        == config.get("generator_version")
+    )
+
+
+def _migrate_equal_legacy_score_sample(
+    state: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Legacy tier artifacts are retained but require explicit reconfiguration."""
+
+    # The matched-condition protocol deliberately does not silently reinterpret
+    # old tier respondents; frozen items and lineage remain in the checkpoint.
+    return None
+
+    from sjt_system.evaluation.respondents import (
+        SCORE_PROFILE_GENERATOR_VERSION,
+        SCORE_PROFILE_PROMPT_VERSION,
+    )
+
+    config = state.get("virtual_sample_config")
+    respondents = state.get("virtual_respondents")
+    if (
+        not isinstance(config, Mapping)
+        or config.get("schema_version") != 3
+        or not isinstance(respondents, list)
+        or not respondents
+    ):
+        return None
+    specs = config.get("score_specs")
+    tiers = config.get("score_tiers")
+    if not isinstance(specs, list) or not specs or not isinstance(tiers, list):
+        return None
+    facet_specs = [
+        deepcopy(dict(row))
+        for row in specs
+        if isinstance(row, Mapping) and row.get("level") == "facet"
+    ]
+    dimension_ids = [
+        str(row.get("dimension_id") or "")
+        for row in facet_specs
+    ]
+    if (
+        not facet_specs
+        or len(dimension_ids) != len(facet_specs)
+        or not all(dimension_ids)
+        or len(set(dimension_ids)) != len(dimension_ids)
+    ):
+        return None
+    migrated_tiers: list[dict[str, Any]] = []
+    for raw_tier in tiers:
+        scores = raw_tier.get("score_means") if isinstance(raw_tier, Mapping) else None
+        if not isinstance(scores, Mapping) or not set(dimension_ids).issubset(
+            set(map(str, scores))
+        ):
+            return None
+        values = [scores[dimension_id] for dimension_id in dimension_ids]
+        if (
+            not values
+            or any(isinstance(value, bool) or not isinstance(value, (int, float)) for value in values)
+            or len({round(float(value), 12) for value in values}) != 1
+        ):
+            return None
+        migrated_tiers.append(
+            {
+                "tier_id": str(raw_tier.get("tier_id") or ""),
+                "facet_score": float(values[0]),
+            }
+        )
+    if not migrated_tiers or any(not row["tier_id"] for row in migrated_tiers):
+        return None
+    target_ids = {
+        str(item.get("target_dimension_id"))
+        for item in (state.get("frozen_item_bank") or state.get("item_pool") or [])
+        if isinstance(item, Mapping) and item.get("target_dimension_id")
+    }
+    non_target_ids = [value for value in dimension_ids if value not in target_ids]
+    if not target_ids or not non_target_ids:
+        return None
+    diagnostics = deepcopy(config.get("generation_diagnostics") or {})
+    diagnostics["input_correlation_filtering_authority"] = False
+    diagnostics["note"] = "输入维度相关仅作诊断，不参与运行拒绝或题目过滤。"
+    migrated_config = {
+        **deepcopy(dict(config)),
+        "schema_version": 4,
+        "score_specs": facet_specs,
+        "score_tiers": migrated_tiers,
+        "non_target_facet_ids": non_target_ids,
+        "prompt_version": SCORE_PROFILE_PROMPT_VERSION,
+        "generator_version": SCORE_PROFILE_GENERATOR_VERSION,
+        "generation_diagnostics": diagnostics,
+        "migrated_from_equal_score_tiers": True,
+        "migration_source_schema_version": 3,
+    }
+    migrated = deepcopy(dict(state))
+    migrated["virtual_sample_config"] = migrated_config
+    migrated["virtual_respondents"] = [
+        {
+            **deepcopy(dict(row)),
+            "score_values": {
+                dimension_id: min(
+                    100.0,
+                    max(0.0, float(row["score_values"][dimension_id])),
+                )
+                for dimension_id in dimension_ids
+            },
+        }
+        for row in respondents
+        if isinstance(row, Mapping)
+        and isinstance(row.get("score_values"), Mapping)
+        and set(dimension_ids).issubset(row["score_values"])
+    ]
+    if len(migrated["virtual_respondents"]) != len(respondents):
+        return None
+    migrated["virtual_sample_reconfiguration_reason"] = None
+    migrated["virtual_sample_migration_events"] = [
+        *deepcopy(state.get("virtual_sample_migration_events") or []),
+        {
+            "event": "equal_score_tiers_migrated",
+            "recorded_at": utc_timestamp(),
+            "source_schema_version": 3,
+            "target_schema_version": 4,
+            "raw_responses_preserved": bool(state.get("virtual_response_data_ref")),
+        },
+    ]
+    return migrated
+
+
+def _clear_legacy_analysis_state(state: Mapping[str, Any]) -> dict[str, Any]:
+    """Invalidate old formula results and qualifications while preserving responses."""
+
+    migrated = deepcopy(dict(state))
+    migrated.update(
+        {
+            "item_statistics": {},
+            "psychometric_round_result": None,
+            "test_statistics": None,
+            "factor_results": None,
+            "irt_results": None,
+            "dif_results": None,
+            "selected_items": [],
+            "reserve_items": [],
+            "items_to_revise": [],
+            "items_to_regenerate": [],
+            "items_deferred_for_revision": [],
+            "selection_reasons": {},
+            "selection_results": None,
+            "psychometric_selection_history": [],
+            "locked_retained_item_versions": {},
+            "psychometric_monitoring_warnings": [],
+            "best_assembly_candidate": None,
+            "active_psychometric_repair": None,
+            "psychometric_repair_confirmation": None,
+            "psychometric_repair_rounds": {},
+            "psychometric_repair_history": [],
+            "item_final_dispositions": {},
+            "assembled_test": None,
+            "test_review_result": None,
+            "final_test": None,
+            "item_database_ref": None,
+            "technical_report": None,
+            "virtual_respondent_report": None,
+            "completion_checks": {},
+            "unmet_completion_conditions": [],
+            "virtual_analysis_reconfiguration_reason": (
+                "旧心理测量公式和旧锁定资格已失效；保留兼容原始作答并按条件VTS重新分析。"
+            ),
+        }
+    )
+    return migrated
+
+
+def _migrate_matched_form_retest_protocol(
+    state: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Upgrade matched v6 samples while preserving item-development history."""
+
+    from sjt_system.evaluation.respondents import (
+        DEFAULT_TARGET_FORM_ADMINISTRATION_COUNT,
+        MATCHED_CONDITION_GENERATOR_VERSION,
+        MATCHED_CONDITION_PROMPT_VERSION,
+        MATCHED_CONDITION_SCHEMA_VERSION,
+        matched_condition_sample_is_current,
+    )
+
+    config = state.get("virtual_sample_config")
+    respondents = state.get("virtual_respondents")
+    if (
+        not isinstance(config, Mapping)
+        or config.get("schema_version") != 6
+        or config.get("sampling_design") != "matched_facet_conditions"
+        or not isinstance(respondents, list)
+        or not respondents
+    ):
+        return None
+    upgraded_config = {
+        **deepcopy(dict(config)),
+        "schema_version": MATCHED_CONDITION_SCHEMA_VERSION,
+        "generator_version": MATCHED_CONDITION_GENERATOR_VERSION,
+        "prompt_version": MATCHED_CONDITION_PROMPT_VERSION,
+        "response_count_per_respondent_item": 1,
+        "target_form_administration_count": (
+            DEFAULT_TARGET_FORM_ADMINISTRATION_COUNT
+        ),
+        "generation_diagnostics": {
+            **deepcopy(dict(config.get("generation_diagnostics") or {})),
+            "generator_version": MATCHED_CONDITION_GENERATOR_VERSION,
+            "target_form_administration_count": (
+                DEFAULT_TARGET_FORM_ADMINISTRATION_COUNT
+            ),
+        },
+    }
+    if not matched_condition_sample_is_current(upgraded_config, respondents):
+        return None
+    migrated = deepcopy(dict(state))
+    migrated.update(
+        {
+            "virtual_sample_config": upgraded_config,
+            "virtual_response_data_ref": None,
+            "previous_virtual_response_data_ref": None,
+            "virtual_response_summary": None,
+            "virtual_response_item_bank_id": None,
+            "virtual_response_item_bank_version": None,
+            "item_statistics": {},
+            "test_statistics": None,
+            "psychometric_round_result": None,
+            "psychometric_analysis_round": 0,
+            "psychometric_iteration_history": [],
+            "psychometric_plateau_status": None,
+            "factor_results": None,
+            "irt_results": None,
+            "dif_results": None,
+            "selected_items": [],
+            "reserve_items": [],
+            "items_to_revise": [],
+            "items_to_regenerate": [],
+            "items_deferred_for_revision": [],
+            "selection_reasons": {},
+            "selection_results": None,
+            "best_assembly_candidate": None,
+            "active_psychometric_repair": None,
+            "psychometric_repair_confirmation": None,
+            "assembled_test": None,
+            "test_review_result": None,
+            "final_test": None,
+            "item_database_ref": None,
+            "technical_report": None,
+            "virtual_respondent_report": None,
+            "completion_checks": {},
+            "unmet_completion_conditions": [],
+            "virtual_sample_reconfiguration_reason": None,
+            "virtual_analysis_reconfiguration_reason": (
+                "虚拟整卷指标已升级为目标恢复R²、构念选择性及其几何平均质量；"
+                "重测ICC改为稳定性门槛；"
+                "保留题目、正式题锁定及返修历史，重新执行虚拟施测。"
+            ),
+            "virtual_sample_migration_events": [
+                *deepcopy(state.get("virtual_sample_migration_events") or []),
+                {
+                    "event": "matched_form_retest_protocol_upgrade",
+                    "recorded_at": utc_timestamp(),
+                    "source_schema_version": 6,
+                    "target_schema_version": MATCHED_CONDITION_SCHEMA_VERSION,
+                    "item_repair_history_preserved": True,
+                    "locked_qualifications_preserved": True,
+                    "old_iteration_curve_invalidated": True,
+                },
+            ],
+        }
+    )
+    return migrated
+
+
+def _prepare_diagnostic_output_reanalysis(
+    state: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Refresh v8 diagnostic artifacts without revoking unchanged qualifications."""
+
+    migrated = deepcopy(dict(state))
+    prior_round = max(
+        int(migrated.get("psychometric_analysis_round") or 0),
+        len(migrated.get("psychometric_selection_history") or []),
+        1,
+    )
+    migrated.update(
+        {
+            "psychometric_analysis_round": prior_round,
+            "psychometric_round_result": None,
+            "item_statistics": {},
+            "test_statistics": None,
+            "factor_results": None,
+            "irt_results": None,
+            "dif_results": None,
+            "selected_items": [],
+            "reserve_items": [],
+            "items_to_revise": [],
+            "items_to_regenerate": [],
+            "items_deferred_for_revision": [],
+            "selection_reasons": {},
+            "selection_results": None,
+            "psychometric_monitoring_warnings": [],
+            "best_assembly_candidate": None,
+            "active_psychometric_repair": None,
+            "psychometric_repair_confirmation": None,
+            "assembled_test": None,
+            "test_review_result": None,
+            "final_test": None,
+            "item_database_ref": None,
+            "technical_report": None,
+            "virtual_respondent_report": None,
+            "completion_checks": {},
+            "unmet_completion_conditions": [],
+            "virtual_analysis_reconfiguration_reason": (
+                "评估展示与VTS选项频率证据已升级；保留原始作答、题目文本、"
+                "正式题锁定资格及返修历史，并使用原始作答重新分析。"
+            ),
+            "virtual_sample_migration_events": [
+                *deepcopy(migrated.get("virtual_sample_migration_events") or []),
+                {
+                    "event": "diagnostic_output_upgrade_pending",
+                    "recorded_at": utc_timestamp(),
+                    "source_evaluation_version": "sjt-evaluation-v8",
+                    "target_evaluation_version": "sjt-evaluation-v9",
+                    "raw_responses_preserved": bool(
+                        migrated.get("virtual_response_data_ref")
+                    ),
+                    "locked_qualifications_preserved": bool(
+                        migrated.get("locked_retained_item_versions")
+                    ),
+                },
+            ],
+        }
+    )
+    return migrated
+
+
+def _invalidate_legacy_virtual_screening(
+    state: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Force old persona/checkpoint evidence back through sample setup."""
+
+    migrated = deepcopy(dict(state))
+    form_retest_migration = _migrate_matched_form_retest_protocol(migrated)
+    if form_retest_migration is not None:
+        migrated = form_retest_migration
+    legacy_migration = _migrate_equal_legacy_score_sample(migrated)
+    if legacy_migration is not None:
+        migrated = legacy_migration
+    has_virtual_state = bool(
+        migrated.get("virtual_sample_config")
+        or migrated.get("virtual_respondents")
+        or migrated.get("virtual_response_data_ref")
+        or migrated.get("item_statistics")
+        or migrated.get("test_statistics")
+    )
+    if not has_virtual_state:
+        migrated.setdefault("virtual_sample_reconfiguration_reason", None)
+        return migrated
+    if _virtual_sample_protocol_is_current(migrated):
+        from sjt_system.evaluation.psychometrics import (
+            MEASUREMENT_EVALUATION_VERSION,
+            PSYCHOMETRIC_FORMULA_VERSION,
+        )
+
+        statistics = migrated.get("test_statistics")
+        diagnostic_upgrade_pending = any(
+            isinstance(event, Mapping)
+            and event.get("event") == "diagnostic_output_upgrade_pending"
+            for event in migrated.get("virtual_sample_migration_events") or []
+        ) and not statistics
+        if (
+            isinstance(statistics, Mapping)
+            and statistics.get("formula_version") == PSYCHOMETRIC_FORMULA_VERSION
+            and statistics.get("evaluation_version") == "sjt-evaluation-v8"
+            and MEASUREMENT_EVALUATION_VERSION == "sjt-evaluation-v9"
+        ):
+            return _prepare_diagnostic_output_reanalysis(migrated)
+        analysis_is_current = (
+            not statistics
+            or (
+                isinstance(statistics, Mapping)
+                and statistics.get("formula_version") == PSYCHOMETRIC_FORMULA_VERSION
+                and statistics.get("evaluation_version") == MEASUREMENT_EVALUATION_VERSION
+            )
+        )
+        has_legacy_qualification = bool(
+            migrated.get("locked_retained_item_versions")
+            or migrated.get("item_final_dispositions")
+        ) and not statistics
+        migrated.setdefault("virtual_sample_reconfiguration_reason", None)
+        if analysis_is_current and (
+            not has_legacy_qualification or diagnostic_upgrade_pending
+        ):
+            migrated.setdefault("virtual_analysis_reconfiguration_reason", None)
+            return migrated
+        return _clear_legacy_analysis_state(migrated)
+
+    frozen = migrated.get("frozen_item_bank")
+    migrated.update(
+        {
+            "virtual_sample_config": None,
+            "virtual_respondents": [],
+            "virtual_response_data_ref": None,
+            "previous_virtual_response_data_ref": None,
+            "virtual_response_summary": None,
+            "virtual_response_item_bank_id": None,
+            "virtual_response_item_bank_version": None,
+            "virtual_sample_reconfiguration_reason": (
+                "此检查点使用旧 tier/重复作答协议；必须重新选择目标、同域和跨域 facet，"
+                "并配置共享正态分布的均值与SD。旧文件保留但不会静默复用。"
+            ),
+            "item_statistics": {},
+            "psychometric_round_result": None,
+            "test_statistics": None,
+            "factor_results": None,
+            "irt_results": None,
+            "dif_results": None,
+            "selected_items": [],
+            "reserve_items": [],
+            "items_to_revise": [],
+            "items_to_regenerate": [],
+            "items_deferred_for_revision": [],
+            "removed_items": [],
+            "selection_reasons": {},
+            "selection_results": None,
+            "psychometric_selection_history": [],
+            "locked_retained_item_versions": {},
+            "best_assembly_candidate": None,
+            "active_psychometric_repair": None,
+            "psychometric_repair_confirmation": None,
+            "psychometric_repair_rounds": {},
+            "psychometric_repair_history": [],
+            "item_final_dispositions": {},
+            "assembled_test": None,
+            "test_review_result": None,
+            "final_test": None,
+            "item_database_ref": None,
+            "technical_report": None,
+            "virtual_respondent_report": None,
+            "completion_checks": {},
+            "unmet_completion_conditions": [],
+            "rescore_pending_revalidation": False,
+            "route": None,
+            "pending_action": None,
+            "pending_state_update": None,
+            "pending_summary": None,
+            "pending_state_changes": None,
+        }
+    )
+    if isinstance(frozen, list) and frozen:
+        migrated["item_pool"] = deepcopy(frozen)
+    return migrated
+
+
+def _migrate_v14_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Invalidate virtual evidence created before the score-only protocol."""
+
+    return {
+        **deepcopy(dict(payload)),
+        "schema_version": 15,
+        "state": _strip_removed_state_fields(
+            _invalidate_legacy_virtual_screening(payload["state"])
+        ),
+    }
+
+
+def _migrate_v15_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Adopt conditional VTS, migrating only compatible equal-score tiers."""
+
+    return {
+        **deepcopy(dict(payload)),
+        "schema_version": 16,
+        "state": _strip_removed_state_fields(
+            _invalidate_legacy_virtual_screening(payload["state"])
+        ),
+    }
+
+
+def _migrate_v16_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Add round diagnostics and preserve v8 locked qualifications for reanalysis."""
+
+    state = deepcopy(dict(payload["state"]))
+    state.setdefault("psychometric_analysis_round", 0)
+    state.setdefault("psychometric_round_result", None)
+    state.setdefault("psychometric_iteration_history", [])
+    return {
+        **deepcopy(dict(payload)),
+        "schema_version": 17,
+        "state": _strip_removed_state_fields(
+            _invalidate_legacy_virtual_screening(state)
+        ),
+    }
+
+
+def _migrate_v17_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Retire the former batch defer-elimination disposition mode."""
+
+    state = deepcopy(dict(payload["state"]))
+    state.pop("psychometric_defer_batch_eliminate", None)
+    return {
+        **deepcopy(dict(payload)),
+        "schema_version": 18,
+        "state": _strip_removed_state_fields(state),
+    }
+
+
+def _migrate_v18_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Add the explicit three-round-to-defer policy field.
+
+    ``max_psychometric_repair_rounds`` is retained as a legacy state key so
+    older callers/checkpoints can still be inspected, but it no longer
+    controls admission, removal, or replacement decisions.
+    """
+
+    state = deepcopy(dict(payload["state"]))
+    state["psychometric_repair_defer_after_rounds"] = (
+        PSYCHOMETRIC_REPAIR_DEFER_AFTER_ROUNDS
+    )
+    state.setdefault(
+        "max_psychometric_repair_rounds",
+        PSYCHOMETRIC_REPAIR_DEFER_AFTER_ROUNDS,
+    )
+    return {
+        **deepcopy(dict(payload)),
+        "schema_version": 19,
+        "state": _strip_removed_state_fields(state),
+    }
+
+
+def _migrate_v19_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Add persistent whole-test iteration curve history."""
+
+    state = deepcopy(dict(payload["state"]))
+    state.setdefault("psychometric_iteration_history", [])
+    state.setdefault("psychometric_plateau_status", None)
+    state.setdefault("psychometric_plateau_patience", 2)
+    state.setdefault("psychometric_plateau_min_delta", 0.01)
     return {
         **deepcopy(dict(payload)),
         "schema_version": CHECKPOINT_SCHEMA_VERSION,
@@ -1039,8 +1629,24 @@ def load_run_checkpoint(path: Path) -> dict[str, Any]:
         payload = _migrate_v12_payload(payload)
     if payload["schema_version"] == 13:
         payload = _migrate_v13_payload(payload)
+    if payload["schema_version"] == 14:
+        payload = _migrate_v14_payload(payload)
+    if payload["schema_version"] == 15:
+        payload = _migrate_v15_payload(payload)
+    if payload["schema_version"] == 16:
+        payload = _migrate_v16_payload(payload)
+    if payload["schema_version"] == 17:
+        payload = _migrate_v17_payload(payload)
+    if payload["schema_version"] == 18:
+        payload = _migrate_v18_payload(payload)
+    if payload["schema_version"] == 19:
+        payload = _migrate_v19_payload(payload)
     canonical_payload = deepcopy(dict(payload))
-    canonical_payload["state"] = _strip_removed_state_fields(payload["state"])
+    canonical_state = deepcopy(dict(payload["state"]))
+    canonical_state.setdefault("psychometric_plateau_status", None)
+    canonical_state.setdefault("psychometric_plateau_patience", 2)
+    canonical_state.setdefault("psychometric_plateau_min_delta", 0.01)
+    canonical_payload["state"] = _strip_removed_state_fields(canonical_state)
     return canonical_payload
 
 
@@ -1082,16 +1688,22 @@ def prepare_resumed_state(
 ) -> dict[str, Any]:
     """Reset transient control fields while preserving committed work."""
 
-    resumed = deepcopy(dict(state))
+    resumed = _invalidate_legacy_virtual_screening(state)
+    resumed.pop("psychometric_defer_batch_eliminate", None)
     run_id = resumed.get("run_id")
     if not isinstance(run_id, str) or not run_id:
         raise ValueError("恢复状态缺少有效 run_id")
     resumed["status"] = "running"
-    # The former product default was two psychometric repair rounds. Upgrade
-    # resumable runs that still carry that default to the current three-round
-    # development contract.
-    if resumed.get("max_psychometric_repair_rounds") == 2:
-        resumed["max_psychometric_repair_rounds"] = 3
+    resumed.setdefault(
+        "psychometric_repair_defer_after_rounds",
+        PSYCHOMETRIC_REPAIR_DEFER_AFTER_ROUNDS,
+    )
+    # Keep the legacy field readable for old UI/checkpoint consumers, but do
+    # not use it as a repair admission/removal budget.
+    resumed.setdefault(
+        "max_psychometric_repair_rounds",
+        PSYCHOMETRIC_REPAIR_DEFER_AFTER_ROUNDS,
+    )
     for field in _RESUME_RESET_FIELDS:
         resumed[field] = None
     if isinstance(resumed.get("active_psychometric_repair"), Mapping):
