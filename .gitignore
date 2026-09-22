@@ -67,6 +67,9 @@ experiments/system_comparison/*
 !experiments/system_comparison/*.py
 !experiments/system_comparison/*.json
 !experiments/system_comparison/README.md
+!experiments/system_comparison/virtual_prompt_specs/
+experiments/system_comparison/virtual_prompt_specs/*
+!experiments/system_comparison/virtual_prompt_specs/*.json
 !experiments/system_comparison/five_facet_configs/
 experiments/system_comparison/five_facet_configs/*
 !experiments/system_comparison/five_facet_configs/*.json
@@ -81,6 +84,8 @@ tests/*
 !tests/test_system_comparison.py
 !tests/test_combination_search.py
 !tests/test_post_baseline_iteration_lab.py
+!tests/test_first_experiment_current_metrics.py
+!tests/test_virtual_prompt_registry.py
 docs/*.xlsx
 docs/*.xls
 experiments/**/*.xlsx
@@ -116,3 +121,9 @@ wiki/
 build/
 dist/
 *.egg-info/
+
+# Static questionnaire input required by the fresh Mussel×IPIP runner.
+# Keep other local documents ignored.
+!docs/
+docs/*
+!docs/mussel_zh.json

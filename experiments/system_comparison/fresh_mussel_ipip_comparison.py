@@ -33,7 +33,8 @@ from sjt_system.evaluation.reference_questionnaires import (
 )
 from sjt_system.evaluation.respondents import (
     build_score_dimension_catalog,
-    generate_score_respondent_refs,
+    generate_matched_condition_respondent_refs,
+    normalize_matched_conditions,
 )
 from sjt_system.evaluation.simulation import (
     NeoFFIBatchOutput,
@@ -73,15 +74,27 @@ from .mussel_ipip_reference import (
     score_ipip_records,
 )
 from .storage import write_csv, write_json
+from .virtual_prompt_registry import (
+    DEFAULT_PROMPT_ROOT,
+    format_extra_parameters,
+    get_prompt_spec,
+    load_prompt_specs,
+    select_prompt_ids_interactively,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MUSSEL = PROJECT_ROOT / "docs" / "mussel_zh.json"
 DEFAULT_IPIP = PROJECT_ROOT / "knowledge_base" / "items" / "ipip_neo_items.json"
-CONDITIONS = ("embodied_probability", "score_profile")
+DEFAULT_PROMPT_IDS = ("embodied_probability_v1", "score_profile_v1")
 PROMPT_VERSION = "fresh-mussel-ipip-two-method-v1"
-SCORE_PROFILE_SEED = 20260916
+# Same default seed as the main CLI.  It is a fixed protocol parameter, not
+# an extra interactive setting in the Mussel×IPIP launcher.
+SCORE_PROFILE_SEED = 7
 TARGET_SCORE_DIMENSIONS = tuple(DIMENSION_TO_IPIP)
+DEFAULT_TARGET_FACET = "extraversion_gregariousness"
+DEFAULT_SAME_DOMAIN_FACET = "extraversion_warmth"
+DEFAULT_CROSS_DOMAIN_FACET = "neuroticism_anxiety"
 
 
 @dataclass(frozen=True)
@@ -97,6 +110,12 @@ class FreshComparisonConfig:
     timeout_seconds: float | None = None
     sampling_seed: int = 20260916
     score_seed: int = SCORE_PROFILE_SEED
+    score_mean: float = 50.0
+    score_sd: float = 15.0
+    target_facet: str = DEFAULT_TARGET_FACET
+    same_domain_facet: str = DEFAULT_SAME_DOMAIN_FACET
+    cross_domain_facet: str = DEFAULT_CROSS_DOMAIN_FACET
+    prompt_ids: str | None = None
     output: Path | None = None
 
     def validate(self) -> None:
@@ -110,6 +129,39 @@ class FreshComparisonConfig:
             raise ValueError("timeout_seconds必须为正数")
         if not self.model_id.strip():
             raise ValueError("model_id不能为空")
+        if not math.isfinite(float(self.score_mean)) or not 0.0 < float(self.score_mean) < 100.0:
+            raise ValueError("score_mean必须大于0且小于100")
+        if not math.isfinite(float(self.score_sd)) or float(self.score_sd) <= 0:
+            raise ValueError("score_sd必须为正数")
+        _matched_conditions(self)
+
+    def resolved_prompt_ids(self) -> tuple[str, ...]:
+        if self.prompt_ids is None:
+            specs = {
+                prompt_id: spec
+                for prompt_id, spec in load_prompt_specs(DEFAULT_PROMPT_ROOT).items()
+                if spec.persona_input != "five_mussel_facets"
+            }
+            return select_prompt_ids_interactively(
+                specs,
+                default_ids=DEFAULT_PROMPT_IDS,
+            )
+        prompt_ids = tuple(
+            prompt_id.strip()
+            for prompt_id in str(self.prompt_ids).split(",")
+            if prompt_id.strip()
+        )
+        if not prompt_ids:
+            raise ValueError("prompt_ids不能为空")
+        if len(set(prompt_ids)) != len(prompt_ids):
+            raise ValueError("prompt_ids不能重复")
+        for prompt_id in prompt_ids:
+            if get_prompt_spec(prompt_id).persona_input == "five_mussel_facets":
+                raise ValueError(
+                    "fresh Mussel×IPIP 已停用五个 facet 共同变化路径；"
+                    "请使用 score_profile_v1 或其他单facet/具身方法"
+                )
+        return prompt_ids
 
 
 def _write_jsonl(path: Path, records: Sequence[Mapping[str, Any]]) -> None:
@@ -135,25 +187,58 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def _score_specs() -> list[dict[str, Any]]:
+def _facet_catalog() -> dict[str, dict[str, Any]]:
     catalog = {
         str(row["dimension_id"]): dict(row)
         for row in build_score_dimension_catalog(construct_selection_catalog())
         if row.get("level") == "facet"
     }
-    missing = [dimension for dimension in TARGET_SCORE_DIMENSIONS if dimension not in catalog]
-    if missing:
-        raise ValueError("构念注册表缺少Mussel目标facet：" + "、".join(missing))
-    specs: list[dict[str, Any]] = []
-    for dimension in TARGET_SCORE_DIMENSIONS:
-        spec = catalog[dimension]
-        spec["mean_score"] = 50.0
-        specs.append(spec)
-    return specs
+    return catalog
+
+
+def _matched_conditions(config: FreshComparisonConfig) -> list[dict[str, Any]]:
+    """Use the same three-arm score design as the main CLI."""
+
+    catalog = list(_facet_catalog().values())
+    return normalize_matched_conditions(
+        [
+            {
+                "condition_id": "target",
+                "role": "target",
+                "dimension_id": config.target_facet,
+            },
+            {
+                "condition_id": "same_domain",
+                "role": "same_domain_non_target",
+                "dimension_id": config.same_domain_facet,
+            },
+            {
+                "condition_id": "cross_domain",
+                "role": "cross_domain_non_target",
+                "dimension_id": config.cross_domain_facet,
+            },
+        ],
+        dimension_catalog=catalog,
+        target_dimension_id=config.target_facet,
+    )
+
+
+def _score_spec(dimension_id: str, *, mean_score: float) -> dict[str, Any]:
+    spec = _facet_catalog().get(str(dimension_id))
+    if spec is None:
+        raise ValueError(f"构念注册表缺少facet：{dimension_id}")
+    spec["mean_score"] = float(mean_score)
+    return spec
+
+
+def _uses_score_input(prompt_id: str) -> bool:
+    return get_prompt_spec(prompt_id).persona_input == "score_values"
 
 
 def _prepare_participants(
     config: FreshComparisonConfig,
+    *,
+    use_matched_score_arms: bool,
 ) -> tuple[list[str], dict[str, dict[str, Any]], dict[str, str], list[dict[str, Any]], dict[str, Any]]:
     pool, source_profiles = load_legacy_pool(PROJECT_ROOT)
     summaries, summary_path, summary_manifest = load_comparison_summaries(
@@ -164,55 +249,155 @@ def _prepare_participants(
         raise ValueError(
             f"要求{config.respondents}名被试，但画像和总结只能完整对齐{len(available)}名"
         )
-    subject_ids = available[: config.respondents]
-    score_specs = _score_specs()
-    score_refs, generation_diagnostics = generate_score_respondent_refs(
-        len(subject_ids), score_specs, seed=config.score_seed
-    )
+    if use_matched_score_arms:
+        conditions = _matched_conditions(config)
+        score_refs, generation_diagnostics = generate_matched_condition_respondent_refs(
+            config.respondents,
+            conditions,
+            seed=config.score_seed,
+            mean_score=config.score_mean,
+            standard_deviation=config.score_sd,
+        )
+        source_by_matched = {
+            f"matched-{index:04d}": rid
+            for index, rid in enumerate(available[: config.respondents], start=1)
+        }
+        subject_ids = [str(ref["respondent_id"]) for ref in score_refs]
+        score_specs_by_condition = {
+            str(row["condition_id"]): [
+                _score_spec(str(row["dimension_id"]), mean_score=config.score_mean)
+            ]
+            for row in generation_diagnostics.get("conditions", [])
+        }
+    else:
+        subject_ids = available[: config.respondents]
+        score_refs = [
+            {
+                "respondent_id": rid,
+                "score_values": {},
+                "condition_id": None,
+                "matched_subject_id": None,
+            }
+            for rid in subject_ids
+        ]
+        generation_diagnostics = {
+            "generator_version": None,
+            "sampling_design": "source_persona_pool",
+            "sample_size": len(subject_ids),
+        }
+        source_by_matched = {}
+        score_specs_by_condition = {}
     score_profiles: dict[str, dict[str, Any]] = {}
     participants: list[dict[str, Any]] = []
-    for rid, ref in zip(subject_ids, score_refs):
+    for ref in score_refs:
+        rid = str(ref["respondent_id"])
         profile = dict(ref)
-        profile["respondent_id"] = rid
+        source_respondent_id = (
+            source_by_matched.get(str(ref.get("matched_subject_id")))
+            if use_matched_score_arms
+            else rid
+        )
+        profile["source_respondent_id"] = source_respondent_id
+        if use_matched_score_arms:
+            profile["score_specs"] = score_specs_by_condition[str(ref["condition_id"])]
         score_profiles[rid] = profile
+        if source_respondent_id not in summaries:
+            raise ValueError(f"缺少被试画像总结：{source_respondent_id}")
+        if use_matched_score_arms:
+            score_values = dict(profile.get("score_values") or {})
+        else:
+            score_values = {}
         participants.append({
             "respondent_id": rid,
-            "score_values": dict(profile["score_values"]),
+            "condition_id": profile.get("condition_id"),
+            "arm_id": profile.get("arm_id"),
+            "group_id": profile.get("group_id"),
+            "matched_subject_id": profile.get("matched_subject_id"),
+            "active_dimension_id": profile.get("active_dimension_id"),
+            "source_respondent_id": source_respondent_id,
+            "score_values": score_values,
             "summary_available": True,
         })
+    summary_lookup = {
+        str(profile["respondent_id"]): summaries[str(profile["source_respondent_id"])]
+        for profile in score_profiles.values()
+    }
+    metric_subject_ids = (
+        [str(ref["respondent_id"]) for ref in score_refs if ref.get("condition_id") == "target"]
+        if use_matched_score_arms
+        else list(subject_ids)
+    )
     metadata = {
         "source_pool_id": pool.get("pool_id"),
         "source_profile_count": len(source_profiles),
         "summary_path": str(summary_path),
         "summary_manifest": summary_manifest,
-        "score_specs": score_specs,
+        "score_specs": [
+            _score_spec(config.target_facet, mean_score=config.score_mean)
+        ] if use_matched_score_arms else [],
+        "score_specs_by_condition": score_specs_by_condition,
         "score_generation_diagnostics": generation_diagnostics,
+        "matched_conditions": _matched_conditions(config) if use_matched_score_arms else [],
+        "matched_score_arms": bool(use_matched_score_arms),
+        "metric_subject_ids": metric_subject_ids,
     }
-    return subject_ids, score_profiles, summaries, participants, metadata
+    return subject_ids, score_profiles, summary_lookup, participants, metadata
+
+
+def _score_lines(
+    profile: Mapping[str, Any],
+    score_specs: Sequence[Mapping[str, Any]],
+) -> str:
+    values = profile.get("score_values")
+    if not isinstance(values, Mapping):
+        raise ValueError("自定义facet提示词缺少score_values")
+    lines: list[str] = []
+    for spec in score_specs:
+        dimension_id = str(spec.get("dimension_id"))
+        if dimension_id not in values:
+            continue
+        label = (
+            f"{spec.get('domain_name_en')} > {spec.get('facet_name_en')}"
+            f"（{spec.get('facet_name')}）"
+        )
+        lines.append(f"{dimension_id} | {label} | {float(values[dimension_id]):.1f}")
+    return "\n".join(lines)
 
 
 def _persona_prompts(
-    condition: str,
+    prompt_id: str,
     subject_ids: Sequence[str],
     score_profiles: Mapping[str, Mapping[str, Any]],
     summaries: Mapping[str, str],
-    score_specs: Sequence[Mapping[str, Any]],
+    score_specs_by_condition: Mapping[str, Sequence[Mapping[str, Any]]],
     *,
     for_ipip: bool,
 ) -> dict[str, str]:
     prompts: dict[str, str] = {}
+    spec = get_prompt_spec(prompt_id)
     for rid in subject_ids:
-        if condition == "score_profile":
+        profile = score_profiles[rid]
+        active_specs = score_specs_by_condition.get(
+            str(profile.get("condition_id")),
+            profile.get("score_specs") or [],
+        )
+        if prompt_id == "score_profile_v1":
             prompts[rid] = build_persona_prompt(
-                score_profiles[rid], score_specs=score_specs
+                profile, score_specs=active_specs
             )
-        elif for_ipip:
+        elif prompt_id == "embodied_probability_v1" and for_ipip:
             prompts[rid] = build_legacy_persona_prompt(
                 {}, summaries[rid], persona_mode="summary_only"
             )
-        else:
+        elif prompt_id == "embodied_probability_v1":
             prompts[rid] = build_legacy_persona_prompt(
                 {}, summaries[rid], persona_mode="summary_embodied_probability"
+            )
+        else:
+            prompts[rid] = spec.render(
+                persona_summary=summaries[rid],
+                score_lines=_score_lines(profile, active_specs),
+                extra_parameters=format_extra_parameters(spec, rid),
             )
     return prompts
 
@@ -223,6 +408,8 @@ async def _run_sjt_condition(
     subject_ids: Sequence[str],
     items: Sequence[Mapping[str, Any]],
     prompts: Mapping[str, str],
+    participant_metadata: Mapping[str, Mapping[str, Any]],
+    sjt_response_mode: str,
     runnable: Any,
     model_id: str,
     config: FreshComparisonConfig,
@@ -259,7 +446,7 @@ async def _run_sjt_condition(
     async def one(rid: str, item: Mapping[str, Any]) -> None:
         nonlocal completed
         item_id = str(item["item_id"])
-        if condition == "embodied_probability":
+        if sjt_response_mode == "choice_probability":
             payload = await _invoke_with_retry(
                 runnable,
                 build_embodied_probability_sjt_messages(prompts[rid], item),
@@ -268,7 +455,7 @@ async def _run_sjt_condition(
                 max_retries=config.max_retries,
                 retry_delay_seconds=1.0,
                 request_timeout_seconds=timeout,
-                job_label=f"fresh Mussel embodied {rid}/{item_id}",
+                job_label=f"fresh Mussel probability {rid}/{item_id}",
             )
             selected, draw, sampling_key = _sample_probability_choice(
                 payload["normalized"],
@@ -292,7 +479,7 @@ async def _run_sjt_condition(
                 max_retries=config.max_retries,
                 retry_delay_seconds=1.0,
                 request_timeout_seconds=timeout,
-                job_label=f"fresh Mussel score-profile {rid}/{item_id}",
+                job_label=f"fresh Mussel selection {rid}/{item_id}",
             )
             extra = {"choice_generation": "structured_single_selection"}
         record = {
@@ -304,6 +491,12 @@ async def _run_sjt_condition(
             "score": int(item["scoring_key"][selected]),
             "model_id": model_id,
             "prompt_version": PROMPT_VERSION,
+            "prompt_id": condition,
+            "condition_id": participant_metadata.get(rid, {}).get("condition_id"),
+            "arm_id": participant_metadata.get(rid, {}).get("arm_id"),
+            "group_id": participant_metadata.get(rid, {}).get("group_id"),
+            "matched_subject_id": participant_metadata.get(rid, {}).get("matched_subject_id"),
+            "active_dimension_id": participant_metadata.get(rid, {}).get("active_dimension_id"),
             **extra,
         }
         async with lock:
@@ -354,6 +547,7 @@ async def _run_ipip_condition(
     subject_ids: Sequence[str],
     scales: Sequence[Mapping[str, Any]],
     prompts: Mapping[str, str],
+    participant_metadata: Mapping[str, Mapping[str, Any]],
     runnable: Any,
     model_id: str,
     config: FreshComparisonConfig,
@@ -417,6 +611,12 @@ async def _run_ipip_condition(
                 "score": raw if polarity == "positive" else 6 - raw,
                 "model_id": model_id,
                 "prompt_version": PROMPT_VERSION,
+                "prompt_id": condition,
+                "condition_id": participant_metadata.get(rid, {}).get("condition_id"),
+                "arm_id": participant_metadata.get(rid, {}).get("arm_id"),
+                "group_id": participant_metadata.get(rid, {}).get("group_id"),
+                "matched_subject_id": participant_metadata.get(rid, {}).get("matched_subject_id"),
+                "active_dimension_id": participant_metadata.get(rid, {}).get("active_dimension_id"),
             })
         async with lock:
             with path.open("a", encoding="utf-8") as handle:
@@ -470,8 +670,13 @@ def _sjt_metrics(
     subject_ids: Sequence[str],
     output_dir: Path,
 ) -> tuple[pd.DataFrame, dict[str, float | None], list[dict[str, Any]]]:
+    metric_ids = {str(value) for value in subject_ids}
+    metric_records = [
+        record for record in records
+        if str(record.get("respondent_id")) in metric_ids
+    ]
     long_frame, facet_scores = score_mussel_records(
-        records, expected_respondent_ids=subject_ids, items=items
+        metric_records, expected_respondent_ids=subject_ids, items=items
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     long_frame.to_csv(output_dir / "scored_responses.csv", index=False, encoding="utf-8-sig")
@@ -520,7 +725,12 @@ def _ipip_metrics(
     scales: Sequence[Mapping[str, Any]],
     output_dir: Path,
 ) -> tuple[pd.DataFrame, dict[str, float | None], list[dict[str, Any]]]:
-    scores, reliability = score_ipip_records(records, subject_ids, scales)
+    metric_ids = {str(value) for value in subject_ids}
+    metric_records = [
+        record for record in records
+        if str(record.get("respondent_id")) in metric_ids
+    ]
+    scores, reliability = score_ipip_records(metric_records, subject_ids, scales)
     output_dir.mkdir(parents=True, exist_ok=True)
     scores.reset_index().to_csv(output_dir / "facet_scores.csv", index=False, encoding="utf-8-sig")
     write_csv(output_dir / "reliability.csv", reliability)
@@ -585,7 +795,16 @@ def _telemetry_summary(root: Path, run_id: str) -> dict[str, Any]:
     }
 
 
-def _render_report(root: Path, rows: Sequence[Mapping[str, Any]], telemetry: Mapping[str, Any], respondent_count: int) -> Path:
+def _render_report(
+    root: Path,
+    rows: Sequence[Mapping[str, Any]],
+    telemetry: Mapping[str, Any],
+    respondent_count: int,
+    conditions: Sequence[str],
+    *,
+    matched_score_arms: bool = False,
+    metric_respondent_count: int | None = None,
+) -> Path:
     def f(value: Any) -> str:
         if value is None:
             return "不可估计"
@@ -607,11 +826,18 @@ def _render_report(root: Path, rows: Sequence[Mapping[str, Any]], telemetry: Map
         ]) + "</tr>"
         for row in rows
     )
-    html = f"""<!doctype html><html lang='zh-CN'><meta charset='utf-8'><title>全量Mussel×IPIP双方法比较</title>
+    condition_text = "、".join(escape(str(condition)) for condition in conditions)
+    design_text = (
+        "分数型方法采用主 CLI 的三臂匹配设计；标准信效度表使用 target 臂，"
+        f"target 臂有效样本={metric_respondent_count}，同域和跨域臂保留作控制。"
+        if matched_score_arms
+        else "本次没有启用匹配分数三臂设计。"
+    )
+    html = f"""<!doctype html><html lang='zh-CN'><meta charset='utf-8'><title>全量Mussel×IPIP虚拟被试提示词比较</title>
 <style>body{{font:15px/1.6 sans-serif;max-width:1300px;margin:30px auto;padding:0 20px}}table{{border-collapse:collapse;width:100%;margin:12px 0 28px}}th,td{{border:1px solid #ccc;padding:6px;text-align:left}}th{{background:#f1f4f8}}.note{{background:#fff8df;padding:12px}}</style>
-<h1>全量Mussel×IPIP双方法比较</h1>
-<p>全新模型调用；被试={respondent_count}；Mussel=110题；IPIP=5个facet、每facet 10题；条件=具身概率、显式分数。</p>
-<div class='note'>具身条件的IPIP作答使用独立的summary-only会话，不读取SJT作答；分数条件只接收显式facet分数。该实验是虚拟被试内部比较，不能直接证明真人效度。</div>
+<h1>全量Mussel×IPIP虚拟被试提示词比较</h1>
+<p>全新模型调用；作答记录被试={respondent_count}；Mussel=110题；IPIP=5个facet、每facet 10题；条件={condition_text}。</p>
+<div class='note'>{design_text}<br>每个提示词条件使用同一套题目；IPIP作答不读取Mussel作答；该实验是虚拟被试内部比较，不能直接证明真人效度。</div>
 <h2>信效度结果</h2><table><thead><tr><th>条件</th><th>Mussel facet</th><th>IPIP facet</th><th>Mussel α</th><th>IPIP α</th><th>汇聚ρ</th><th>最大非目标|ρ|</th><th>区分差值</th></tr></thead><tbody>{html_rows}</tbody></table>
 <h2>运行信息</h2><p>模型调用={telemetry.get('calls')}；错误调用={telemetry.get('error_calls')}；总Token={telemetry.get('total_tokens')}。</p>
 <p>汇聚效度为Mussel目标facet总分与对应IPIP facet总分的Spearman相关；区分差值=目标相关−其他IPIP facet最大绝对相关。</p></html>"""
@@ -623,13 +849,23 @@ def _render_report(root: Path, rows: Sequence[Mapping[str, Any]], telemetry: Map
 
 async def run_fresh_comparison(config: FreshComparisonConfig) -> tuple[Path, dict[str, Any]]:
     config.validate()
+    prompt_ids = config.resolved_prompt_ids()
+    prompt_specs = {prompt_id: get_prompt_spec(prompt_id) for prompt_id in prompt_ids}
     experiment = config.experiment.resolve()
     items, mussel_metadata = load_mussel_items(config.mussel_path.resolve())
     if len(items) != 110:
         raise ValueError(f"Mussel必须为110题，实际为{len(items)}")
     scales, ipip_metadata = _load_selected_scales(config.ipip_path.resolve())
-    subject_ids, score_profiles, summaries, participants, source_metadata = _prepare_participants(config)
-    score_specs = source_metadata["score_specs"]
+    use_matched_score_arms = any(_uses_score_input(prompt_id) for prompt_id in prompt_ids)
+    subject_ids, score_profiles, summaries, participants, source_metadata = _prepare_participants(
+        config,
+        use_matched_score_arms=use_matched_score_arms,
+    )
+    score_specs_by_condition = source_metadata["score_specs_by_condition"]
+    participant_metadata = {
+        str(row["respondent_id"]): row
+        for row in participants
+    }
     output = config.output.resolve() if config.output else experiment / "fresh_mussel_ipip_comparison" / f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}"
     output.mkdir(parents=True, exist_ok=True)
     run_id = f"fresh-mussel-ipip-{output.name}"
@@ -640,12 +876,16 @@ async def run_fresh_comparison(config: FreshComparisonConfig) -> tuple[Path, dic
         "run_id": run_id,
         "experiment": str(experiment),
         "respondent_count": len(subject_ids),
+        "respondent_count_per_matched_arm": config.respondents if use_matched_score_arms else None,
         "respondent_ids": subject_ids,
-        "conditions": list(CONDITIONS),
+        "conditions": list(prompt_ids),
         "mussel_item_count": len(items),
         "ipip_facets": list(FACET_CODES),
         "model_id": config.model_id,
         "prompt_version": PROMPT_VERSION,
+        "prompt_ids": list(prompt_ids),
+        "matched_score_arms": use_matched_score_arms,
+        "matched_conditions": source_metadata.get("matched_conditions", []),
         "fresh_response_policy": "do_not_read_prior_mussel_or_ipip_response_files",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -666,12 +906,13 @@ async def run_fresh_comparison(config: FreshComparisonConfig) -> tuple[Path, dic
     shared_semaphore = asyncio.Semaphore(config.max_concurrency)
 
     async def run_condition(condition: str) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]]]:
+        spec = prompt_specs[condition]
         prompts = _persona_prompts(
             condition,
             subject_ids,
             score_profiles,
             summaries,
-            score_specs,
+            score_specs_by_condition,
             for_ipip=False,
         )
         condition_sjt_records = await _run_sjt_condition(
@@ -679,8 +920,10 @@ async def run_fresh_comparison(config: FreshComparisonConfig) -> tuple[Path, dic
             subject_ids=subject_ids,
             items=items,
             prompts=prompts,
+            participant_metadata=participant_metadata,
+            sjt_response_mode=spec.sjt_response_mode,
             runnable=probability_runnable
-            if condition == "embodied_probability"
+            if spec.sjt_response_mode == "choice_probability"
             else selection_runnable,
             model_id=model_id,
             config=config,
@@ -693,7 +936,7 @@ async def run_fresh_comparison(config: FreshComparisonConfig) -> tuple[Path, dic
             subject_ids,
             score_profiles,
             summaries,
-            score_specs,
+            score_specs_by_condition,
             for_ipip=True,
         )
         condition_ipip_records = await _run_ipip_condition(
@@ -701,6 +944,7 @@ async def run_fresh_comparison(config: FreshComparisonConfig) -> tuple[Path, dic
             subject_ids=subject_ids,
             scales=scales,
             prompts=ipip_prompts,
+            participant_metadata=participant_metadata,
             runnable=ipip_runnable,
             model_id=model_id,
             config=config,
@@ -712,13 +956,13 @@ async def run_fresh_comparison(config: FreshComparisonConfig) -> tuple[Path, dic
     try:
         with output_scope(output / "runtime", telemetry=output / "telemetry"), run_context(run_id):
             results = await asyncio.gather(
-                *(run_condition(condition) for condition in CONDITIONS),
+                *(run_condition(condition) for condition in prompt_ids),
                 return_exceptions=True,
             )
             errors = [result for result in results if isinstance(result, Exception)]
             if errors:
                 raise RuntimeError(
-                    f"并发双条件实验有{len(errors)}个条件失败；首个错误：{errors[0]}"
+                    f"并发提示词实验有{len(errors)}个条件失败；首个错误：{errors[0]}"
                 )
             for result in results:
                 condition, condition_sjt_records, condition_ipip_records = result
@@ -729,42 +973,76 @@ async def run_fresh_comparison(config: FreshComparisonConfig) -> tuple[Path, dic
         raise
 
     validity: list[dict[str, Any]] = []
-    for condition in CONDITIONS:
+    metric_subject_ids = [str(value) for value in source_metadata["metric_subject_ids"]]
+    for condition in prompt_ids:
         sjt_scores, sjt_alphas, _ = _sjt_metrics(
-            condition, sjt_records[condition], items, subject_ids, output / condition / "mussel"
+            condition,
+            sjt_records[condition],
+            items,
+            metric_subject_ids,
+            output / condition / "mussel",
         )
         ipip_scores, ipip_alphas, _ = _ipip_metrics(
-            condition, ipip_records[condition], subject_ids, scales, output / condition / "ipip"
+            condition,
+            ipip_records[condition],
+            metric_subject_ids,
+            scales,
+            output / condition / "ipip",
         )
-        validity.extend(_validity_rows(condition, sjt_scores, sjt_alphas, ipip_scores, ipip_alphas, subject_ids))
+        validity.extend(
+            _validity_rows(
+                condition,
+                sjt_scores,
+                sjt_alphas,
+                ipip_scores,
+                ipip_alphas,
+                metric_subject_ids,
+            )
+        )
     write_csv(output / "summary" / "validity.csv", validity)
     comparison_rows: list[dict[str, Any]] = []
     by_key = {(str(row["condition"]), str(row["target_dimension_id"])): row for row in validity}
-    for dimension in TARGET_SCORE_DIMENSIONS:
-        embodied = by_key[("embodied_probability", dimension)]
-        score = by_key[("score_profile", dimension)]
-        comparison_rows.append({
-            "target_dimension_id": dimension,
-            "target_ipip_facet": embodied["target_ipip_facet"],
-            "delta_sjt_alpha_score_minus_embodied": score["sjt_alpha"] - embodied["sjt_alpha"],
-            "delta_ipip_alpha_score_minus_embodied": score["ipip_alpha"] - embodied["ipip_alpha"],
-            "delta_convergent_rho_score_minus_embodied": score["convergent_spearman"] - embodied["convergent_spearman"],
-            "delta_discriminant_gap_score_minus_embodied": score["discriminant_gap"] - embodied["discriminant_gap"],
-        })
+    reference_condition = prompt_ids[0]
+    for comparison_condition in prompt_ids[1:]:
+        for dimension in TARGET_SCORE_DIMENSIONS:
+            reference = by_key[(reference_condition, dimension)]
+            comparison = by_key[(comparison_condition, dimension)]
+            comparison_rows.append({
+                "reference_condition": reference_condition,
+                "comparison_condition": comparison_condition,
+                "target_dimension_id": dimension,
+                "target_ipip_facet": reference["target_ipip_facet"],
+                "delta_sjt_alpha_comparison_minus_reference": comparison["sjt_alpha"] - reference["sjt_alpha"],
+                "delta_ipip_alpha_comparison_minus_reference": comparison["ipip_alpha"] - reference["ipip_alpha"],
+                "delta_convergent_rho_comparison_minus_reference": comparison["convergent_spearman"] - reference["convergent_spearman"],
+                "delta_discriminant_gap_comparison_minus_reference": comparison["discriminant_gap"] - reference["discriminant_gap"],
+            })
     write_csv(output / "summary" / "method_comparison.csv", comparison_rows)
     telemetry = _telemetry_summary(output, run_id)
     summary = {
         "status": "complete",
         "respondent_count": len(subject_ids),
-        "conditions": list(CONDITIONS),
-        "expected_model_calls": len(subject_ids) * len(items) * 2 + len(subject_ids) * len(scales) * 2,
+        "metric_respondent_count": len(metric_subject_ids),
+        "respondent_count_per_matched_arm": config.respondents if use_matched_score_arms else None,
+        "conditions": list(prompt_ids),
+        "expected_model_calls": len(subject_ids) * (len(items) + len(scales)) * len(prompt_ids),
+        "matched_score_arms": use_matched_score_arms,
+        "matched_conditions": source_metadata.get("matched_conditions", []),
         "validity": validity,
         "comparisons": comparison_rows,
         "telemetry": telemetry,
         "interpretation_boundary": "Virtual-respondent internal comparison only; no human-validity conclusion.",
     }
     write_json(output / "summary" / "summary.json", _json_value(summary))
-    report = _render_report(output, validity, telemetry, len(subject_ids))
+    report = _render_report(
+        output,
+        validity,
+        telemetry,
+        len(subject_ids),
+        prompt_ids,
+        matched_score_arms=use_matched_score_arms,
+        metric_respondent_count=len(metric_subject_ids),
+    )
     write_json(manifest_path, {**manifest, "status": "complete", "model_id": model_id, "report": str(report), "completed_at": datetime.now(timezone.utc).isoformat()})
     return output, {**summary, "report": str(report)}
 
