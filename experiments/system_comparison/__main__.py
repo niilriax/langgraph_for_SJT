@@ -7,6 +7,12 @@ from pathlib import Path
 from .config import ExperimentConfig
 from .storage import ExperimentStore
 from .reporting import write_report
+from .virtual_prompt_registry import (
+    DEFAULT_PROMPT_ROOT,
+    format_prompt_list,
+    get_prompt_spec,
+    load_prompt_specs,
+)
 
 
 def main(argv=None):
@@ -31,6 +37,10 @@ def main(argv=None):
     combine.add_argument("--batch-size", type=int, default=512)
     combine.add_argument("--max-combinations", type=int, default=1_000_000)
     combine.add_argument("--top-k", type=int, default=20)
+    prompts = sub.add_parser("virtual-prompts", help="查看和校验可选虚拟被试提示词")
+    prompts.add_argument("action", choices=("list", "show", "validate"))
+    prompts.add_argument("--prompt-id", default=None)
+    prompts.add_argument("--root", type=Path, default=DEFAULT_PROMPT_ROOT)
     legacy = sub.add_parser("legacy-abc", help="用旧项目同一批虚拟被试复测A/B/C并计算CITC、alpha和NEO效度")
     legacy.add_argument("--experiment", type=Path, required=True, help="已冻结A/B/C问卷所在的独立实验目录")
     legacy.add_argument("--legacy-project", type=Path, default=Path(r"E:\DR_projects\SJT\Code\langgraph_for_SJT"))
@@ -278,6 +288,32 @@ def main(argv=None):
     fresh_mussel_ipip.add_argument("--output", type=Path, default=None)
     args = parser.parse_args(argv)
     try:
+        if args.command == "virtual-prompts":
+            specs = load_prompt_specs(args.root)
+            if args.action == "list":
+                print(format_prompt_list(specs))
+            elif args.action == "show":
+                if not args.prompt_id:
+                    raise ValueError("show必须提供 --prompt-id")
+                spec = get_prompt_spec(args.prompt_id, args.root)
+                print(json.dumps({
+                    "prompt_id": spec.prompt_id,
+                    "label": spec.label,
+                    "description": spec.description,
+                    "persona_information": spec.persona_information,
+                    "response_behavior": spec.response_behavior,
+                    "extra_parameters": list(spec.extra_parameters),
+                    "parameter_values_file": spec.parameter_values_file,
+                    "persona_input": spec.persona_input,
+                    "sjt_response_mode": spec.sjt_response_mode,
+                    "ipip_response_mode": spec.ipip_response_mode,
+                    "version": spec.version,
+                    "source": spec.source,
+                    "template": spec.template,
+                }, ensure_ascii=False, indent=2))
+            else:
+                print(f"提示词校验通过：{len(specs)} 个；目录={Path(args.root).resolve()}")
+            return 0
         if args.command == "combine":
             from .combination_search import SearchConfig, run_combination_search
 
