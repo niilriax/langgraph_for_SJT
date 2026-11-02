@@ -2181,7 +2181,7 @@ def _run_matched_condition_analysis(
         neo_reference = reference_questionnaires.get("neo_ffi")
         if isinstance(neo_reference, Mapping) and isinstance(neo_reference.get("path"), str) and Path(neo_reference["path"]).is_file():
             output_files["neo_ffi_responses"] = str(Path(neo_reference["path"]).resolve())
-    analysis_manifest = {"schema_version": MATCHED_CONDITION_SCHEMA_VERSION, "status": "completed", "formula_version": PSYCHOMETRIC_FORMULA_VERSION, "evaluation_version": MEASUREMENT_EVALUATION_VERSION, "psychometric_analysis_round": analysis_round, "run_id": state["run_id"], "item_bank_id": state["item_bank_id"], "item_bank_version": state["item_bank_version"], "item_bank_fingerprint": state.get("item_bank_fingerprint"), "sample_size": expected_respondents, "sample_size_per_condition": expected_per_condition, "condition_count": 3, "group_count": len(condition_ids), "condition_ids": list(condition_ids), "arm_ids": list(MATCHED_CONDITION_IDS), "sampling_design": "matched_facet_conditions", "response_batch_design": "one_batch_per_matched_subject", "conditions": deepcopy(conditions), "persona_mode": PERSONA_MODE_SCORE_PROFILE, "prompt_version": response_manifest.get("prompt_version"), "score_prompt_version": response_manifest.get("score_prompt_version"), "generator_version": response_manifest.get("generator_version"), "virtual_sample_config": deepcopy(response_manifest.get("virtual_sample_config") or {}), "item_count": len(item_order), "qualified_item_count": qualified_count, "qualification_rate": qualified_count / len(item_order), "item_metric_freeze_policy": ITEM_METRIC_FREEZE_POLICY_VERSION, "frozen_item_ids": list(frozen_snapshots), "measured_item_ids": list(measured_item_ids), "item_metric_measurement_skipped_count": len(frozen_snapshots), "criteria": {"iteration_gates": {"facet_citc_minimum": CITC_REVISION_THRESHOLD, "condition_method": "single_complete_profile", "filtering_authority": True}, "conditional_profile_diagnostics": {"target_rho_threshold": None, "same_domain_vts_threshold": None, "cross_domain_vts_threshold": None, "filtering_authority": False}, "target_option_gradient": {"filtering_authority": False, "repair_trigger": True}}, "formulas": {"facet_citc": "Pearson(item score, same-facet other-item score sum)", "rho_target": "Spearman(item score, target facet score_values)", "rho_same_domain": "Spearman(item score, each same-domain non-target facet score_values)", "rho_cross_domain": "Spearman(item score, each cross-domain non-target facet score_values)", "same_domain_vts": "rho_target - MAX(signed rho of same-domain non-target facets)", "cross_domain_vts": "rho_target - MAX(signed rho of cross-domain non-target facets)", "target_form_retest": "same target persona and item set under a second balanced option order; used only by whole-form stability"}, "input_files": {"response_manifest": {"path": str(manifest_path.resolve()), "sha256": _file_sha256(manifest_path)}, "sjt_responses": {"path": str(sjt_path.resolve()), "sha256": _file_sha256(sjt_path)}, "target_form_retest_responses": {"path": str(target_retest_path.resolve()), "sha256": _file_sha256(target_retest_path)}, "score_profiles": {"path": str(Path(response_manifest["score_profiles_path"]).resolve()), "sha256": _file_sha256(Path(response_manifest["score_profiles_path"]))}, "option_orders": {"path": str(Path(option_order_path).resolve()), "sha256": _file_sha256(Path(option_order_path))}}, "output_files": output_files, "completed_at": utc_timestamp()}
+    analysis_manifest = {"schema_version": MATCHED_CONDITION_SCHEMA_VERSION, "status": "completed", "formula_version": PSYCHOMETRIC_FORMULA_VERSION, "evaluation_version": MEASUREMENT_EVALUATION_VERSION, "psychometric_analysis_round": analysis_round, "run_id": state["run_id"], "item_bank_id": state["item_bank_id"], "item_bank_version": state["item_bank_version"], "item_bank_fingerprint": state.get("item_bank_fingerprint"), "sample_size": expected_respondents, "sample_size_per_condition": expected_per_condition, "condition_count": 3, "group_count": len(condition_ids), "condition_ids": list(condition_ids), "arm_ids": list(MATCHED_CONDITION_IDS), "sampling_design": "matched_facet_conditions", "response_batch_design": "one_batch_per_matched_subject", "conditions": deepcopy(conditions), "persona_mode": PERSONA_MODE_SCORE_PROFILE, "prompt_version": response_manifest.get("prompt_version"), "score_prompt_version": response_manifest.get("score_prompt_version"), "generator_version": response_manifest.get("generator_version"), "virtual_sample_config": deepcopy(response_manifest.get("virtual_sample_config") or {}), "item_count": len(item_order), "qualified_item_count": qualified_count, "qualification_rate": qualified_count / len(item_order), "item_metric_freeze_policy": ITEM_METRIC_FREEZE_POLICY_VERSION, "frozen_item_ids": list(frozen_snapshots), "measured_item_ids": list(measured_item_ids), "item_metric_measurement_skipped_count": len(frozen_snapshots), "criteria": {"iteration_gates": {"facet_citc_minimum": CITC_REVISION_THRESHOLD, "condition_method": "single_complete_profile", "filtering_authority": True}, "conditional_profile_diagnostics": {"target_rho_threshold": None, "same_domain_vts_threshold": None, "cross_domain_vts_threshold": None, "filtering_authority": False}, "target_option_gradient": {"filtering_authority": False, "repair_trigger": True}}, "formulas": {"facet_citc": "Pearson(item score, same-facet other-item score sum)", "rho_target": "Spearman(item score, target facet score_values)", "rho_same_domain": "Spearman(item score, each same-domain non-target facet score_values)", "rho_cross_domain": "Spearman(item score, each cross-domain non-target facet score_values)", "same_domain_vts": "rho_target - MAX(signed rho of same-domain non-target facets)", "cross_domain_vts": "rho_target - MAX(signed rho of cross-domain non-target facets)", "target_form_retest": "same target persona, item set, item order and option order as the main administration; used only by whole-form stability"}, "input_files": {"response_manifest": {"path": str(manifest_path.resolve()), "sha256": _file_sha256(manifest_path)}, "sjt_responses": {"path": str(sjt_path.resolve()), "sha256": _file_sha256(sjt_path)}, "target_form_retest_responses": {"path": str(target_retest_path.resolve()), "sha256": _file_sha256(target_retest_path)}, "score_profiles": {"path": str(Path(response_manifest["score_profiles_path"]).resolve()), "sha256": _file_sha256(Path(response_manifest["score_profiles_path"]))}, "option_orders": {"path": str(Path(option_order_path).resolve()), "sha256": _file_sha256(Path(option_order_path))}}, "output_files": output_files, "completed_at": utc_timestamp()}
     analysis_manifest["criteria"]["iteration_gates"].update(
         {
             "item_target_hedges_g_minimum": ITEM_TARGET_HEDGES_G_THRESHOLD,
@@ -2207,38 +2207,6 @@ def _run_matched_condition_analysis(
     from sjt_system.evaluation.round_results import build_psychometric_round_result
     state_update["psychometric_round_result"] = build_psychometric_round_result({**state, **state_update})
     return {"state_update": state_update, "summary": f"已完成完整 facet 被试矩阵分析：{expected_per_condition}名被试各一次性回答全部{len(item_order)}道题；本轮实测题目级指标{len(measured_item_ids)}题、冻结过关指标{len(frozen_snapshots)}题。保留{qualified_count}题，待返修{recommendation_counts['revise']}题；临时组卷仍纳入当前候选并重算整卷指标。"}
-
-
-def _option_frequency_group(
-    item_responses: pd.DataFrame,
-    *,
-    item: Mapping[str, Any],
-) -> dict[str, Any]:
-    scoring_key = item.get("scoring_key") or {}
-    option_metadata = {
-        str(row.get("option_id")): row
-        for row in item.get("response_options") or []
-        if isinstance(row, Mapping) and row.get("option_id") is not None
-    }
-    counts = item_responses["selected_option_id"].astype(str).value_counts()
-    group_n = int(len(item_responses))
-    options: list[dict[str, Any]] = []
-    for raw_option_id, raw_score in scoring_key.items():
-        option_id = str(raw_option_id)
-        count = int(counts.get(option_id, 0))
-        metadata = option_metadata.get(option_id) or {}
-        options.append(
-            {
-                "option_id": option_id,
-                "behavioral_level": metadata.get("behavioral_level"),
-                "score": float(raw_score),
-                "selection_count": count,
-                "selection_rate": (
-                    float(count / group_n) if group_n > 0 else None
-                ),
-            }
-        )
-    return {"group_n": group_n, "options": options}
 
 
 def _scale_statistics(
@@ -2310,18 +2278,6 @@ def _benjamini_hochberg(
         running_minimum = min(running_minimum, candidate)
         adjusted[index] = float(running_minimum)
     return adjusted
-
-
-def _reliability_grade(value: float | None) -> str:
-    if value is None:
-        return "insufficient_evidence"
-    if value >= 0.80:
-        return "strong"
-    if value >= 0.70:
-        return "acceptable"
-    if value >= 0.60:
-        return "weak"
-    return "inadequate"
 
 
 def _enrich_item_quality(
@@ -2622,53 +2578,3 @@ def run_psychometric_analysis(
         f"请使用 schema_version={MATCHED_CONDITION_SCHEMA_VERSION} 的完整 facet profile、每人一次批次协议重新作答"
     )
 
-def run_saved_psychometric_analysis(
-    manifest_path: str | Path,
-    *,
-    scoring_snapshot_path: str | Path | None = None,
-) -> dict[str, Any]:
-    """Analyze a completed saved run without requiring an in-memory checkpoint."""
-
-    resolved_manifest = Path(manifest_path).resolve()
-    manifest = _read_json(resolved_manifest)
-    resolved_snapshot = Path(
-        scoring_snapshot_path
-        or manifest.get("scoring_snapshot_path")
-        or resolved_manifest.parent / "scoring_snapshot.json"
-    ).resolve()
-    if not resolved_snapshot.is_file():
-        raise ValueError(
-            "保存的虚拟作答缺少 scoring_snapshot.json，"
-            "无法在脱离工作流 State 后恢复计分键"
-        )
-    snapshot = _read_json(resolved_snapshot)
-    for field in (
-        "run_id",
-        "item_bank_id",
-        "item_bank_version",
-        "item_bank_fingerprint",
-    ):
-        if snapshot.get(field) != manifest.get(field):
-            raise ValueError(
-                f"scoring snapshot 的 {field} 与作答 manifest 不一致"
-            )
-    items = snapshot.get("items")
-    if not isinstance(items, list) or not items:
-        raise ValueError("scoring snapshot 没有冻结题目")
-
-    state = create_initial_state("分析已保存的虚拟作答")
-    state.update(
-        {
-            "run_id": manifest["run_id"],
-            "item_bank_id": manifest["item_bank_id"],
-            "item_bank_version": manifest["item_bank_version"],
-            "item_bank_fingerprint": manifest["item_bank_fingerprint"],
-            "frozen_item_bank": items,
-            "virtual_response_data_ref": str(resolved_manifest),
-            "virtual_response_item_bank_id": manifest["item_bank_id"],
-            "virtual_response_item_bank_version": manifest[
-                "item_bank_version"
-            ],
-        }
-    )
-    return run_psychometric_analysis(state)

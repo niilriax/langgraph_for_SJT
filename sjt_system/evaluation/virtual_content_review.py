@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from collections.abc import Mapping
 from copy import deepcopy
 from pathlib import Path
@@ -16,6 +17,7 @@ from sjt_system.evaluation.repair_recovery import MAX_CALLS, journaled_call
 from sjt_system.evaluation.scenario_detection import (
     ProbeUnavailable, RepairArchive, validate_candidate, validate_differences,
 )
+from sjt_system.authoring.diversity import option_avoidance_hint
 from sjt_system.prompt.virtual_content_review_prompt import PROMPTS
 from sjt_system.runtime.trace import utc_timestamp
 
@@ -31,6 +33,13 @@ ITERATION_GATES = (
     "discriminant_delta_min_pass",
 )
 FINDING_CRITERIA = {*CRITERIA, "trait_activation", "construct_purity", "option_gradient", "scoring_alignment"}
+# 返修文本长度护栏：中文按字、拉丁文本按词计数，标点与空白不计。题目已超上限时
+# 只禁止继续变长，不强制本轮缩短。
+SCENARIO_MAX_UNITS = 90
+OPTION_MAX_UNITS = 35
+SCENARIO_GROWTH_UNITS = 15
+OPTION_GROWTH_UNITS = 12
+_LENGTH_UNIT = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]|[A-Za-z0-9]+")
 FIELDS = {"scenario", "response_options", "response_instruction", "skeleton"}
 PROFILES = (
     ("literal", "limited", "reflective"), ("global", "familiar", "quick"),
@@ -405,6 +414,74 @@ def apply_authorized_patch(item, raw, tasks):
     return candidate
 
 
+def text_length_units(text):
+    return len(_LENGTH_UNIT.findall(str(text or "")))
+
+
+def _length_limit(original, cap, growth):
+    base = text_length_units(original)
+    return max(base, min(cap, base + growth))
+
+
+def patch_length_limits(item, tasks):
+    limits = {}
+    if any(task["field"] == "scenario" for task in tasks):
+        limits["scenario"] = _length_limit(item.get("scenario"), SCENARIO_MAX_UNITS, SCENARIO_GROWTH_UNITS)
+    authorized = {identifier for task in tasks for identifier in task["option_ids"]}
+    options = {row["option_id"]: _length_limit(row.get("text"), OPTION_MAX_UNITS, OPTION_GROWTH_UNITS)
+               for row in item.get("response_options") or [] if row["option_id"] in authorized}
+    if options:
+        limits["response_options"] = options
+    return limits
+
+
+def validate_patch_length(item, candidate, tasks):
+    """Reject a fresh edit whose rewritten text grows past its bounded limit."""
+    limits = patch_length_limits(item, tasks)
+    problems = []
+    if "scenario" in limits and text_length_units(candidate["scenario"]) > limits["scenario"]:
+        problems.append(f"scenario {text_length_units(candidate['scenario'])}>{limits['scenario']}")
+    for row in candidate["response_options"]:
+        limit = (limits.get("response_options") or {}).get(row["option_id"])
+        if limit is not None and text_length_units(row["text"]) > limit:
+            problems.append(f"option {row['option_id']} {text_length_units(row['text'])}>{limit}")
+    if problems:
+        raise ValueError("返修文本超出长度上限（中文按字、英文按词计，标点不计）："
+                         + "；".join(problems)
+                         + "。请删减修饰与补充说明，用简短、自然的日常表达重写，不要新增情节或条件。")
+    return candidate
+
+
+def validate_patch_style(item, candidate, tasks):
+    """Reject a fresh scenario edit that adds telegraphic style problems the
+    original scenario did not already have."""
+    from sjt_system.authoring.diversity import option_style_problems, scenario_style_problems
+    def problems(row):
+        return (scenario_style_problems(row.get("scenario"))
+                + option_style_problems([option.get("text") for option in row.get("response_options") or []]))
+    if candidate.get("scenario") == item.get("scenario") and \
+            candidate.get("response_options") == item.get("response_options"):
+        return candidate
+    before = {problem.split("（")[0] for problem in problems(item)}
+    added = [problem for problem in problems(candidate) if problem.split("（")[0] not in before]
+    if added:
+        raise ValueError("返修后的情境写法不自然：" + "；".join(added)
+                         + "。请把改动的句子整句重写成自然的完整句子。")
+    return candidate
+
+
+def validate_patch_labels(item, candidate, tasks):
+    """Reject a fresh edit whose rewritten options name the measured trait."""
+    from sjt_system.authoring.diversity import option_label_problems
+    authorized = [identifier for task in tasks for identifier in task["option_ids"]]
+    problems = option_label_problems({**candidate, "target_dimension_id": item.get("target_dimension_id")},
+                                     authorized) if authorized else []
+    if problems:
+        raise ValueError("返修选项不得使用构念标签词：" + "；".join(problems)
+                         + "。请只描述可观察的具体行为。")
+    return candidate
+
+
 class ContentReviewArchive(RepairArchive):
     def __init__(self, path, item, *, source):
         self.path = Path(path)
@@ -672,8 +749,12 @@ async def run_virtual_content_repair(*, state, item, evidence, path, invoke,
             tasks = diagnosis["repair_tasks"]
             candidate = await call("edit", "content_edit",
                                    {"item": deepcopy(dict(item)), "materials": materials,
-                                    "repair_tasks": tasks, "evidence_registry": registry},
-                                   lambda raw: apply_authorized_patch(item, raw, tasks))
+                                    "repair_tasks": tasks, "evidence_registry": registry,
+                                    "length_limits": patch_length_limits(item, tasks),
+                                    "option_diversity_hint": option_avoidance_hint(
+                                        state.get("item_pool") or [item], item.get("target_dimension_id"))},
+                                   lambda raw: validate_patch_labels(item, validate_patch_style(item, validate_patch_length(
+                                       item, apply_authorized_patch(item, raw, tasks), tasks), tasks), tasks))
             data.update(candidate=candidate, status="ready", stage="staged")
         archive.save()
     except Exception as exc:

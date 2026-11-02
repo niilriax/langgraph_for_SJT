@@ -55,10 +55,6 @@ _start_lock = threading.Lock()
 _process_session: str | None = None
 
 
-def current_run_id() -> str | None:
-    return _RUN_CONTEXT.get()
-
-
 @contextmanager
 def job_context(
     job_label: str,
@@ -260,46 +256,6 @@ def _safe_number(value: Any) -> float:
     return float(value)
 
 
-def aggregate_model_calls(
-    records: list[dict[str, Any]],
-) -> dict[str, Any]:
-    """Aggregate ledger records by job label, run, and overall status."""
-    total = len(records)
-    errors = [r for r in records if r.get("status") == "error"]
-    by_label: dict[str, dict[str, Any]] = {}
-    by_run: dict[str, dict[str, Any]] = {}
-    for record in records:
-        label = str(record.get("job_label") or "(unknown)")
-        run_id = str(record.get("run_id") or "(no-run)")
-        for bucket in (by_label.setdefault(label, {}), by_run.setdefault(run_id, {})):
-            bucket["calls"] = bucket.get("calls", 0) + 1
-            bucket["errors"] = bucket.get("errors", 0) + int(record.get("status") == "error")
-            bucket["prompt_tokens"] = bucket.get("prompt_tokens", 0.0) + _safe_number(
-                record.get("prompt_tokens")
-            )
-            bucket["completion_tokens"] = bucket.get("completion_tokens", 0.0) + _safe_number(
-                record.get("completion_tokens")
-            )
-            bucket["total_tokens"] = bucket.get("total_tokens", 0.0) + _safe_number(
-                record.get("total_tokens")
-            )
-            bucket["duration_ms"] = bucket.get("duration_ms", 0.0) + _safe_number(
-                record.get("duration_ms")
-            )
-    return {
-        "total_calls": total,
-        "error_calls": len(errors),
-        "total_prompt_tokens": sum(_safe_number(r.get("prompt_tokens")) for r in records),
-        "total_completion_tokens": sum(
-            _safe_number(r.get("completion_tokens")) for r in records
-        ),
-        "total_tokens": sum(_safe_number(r.get("total_tokens")) for r in records),
-        "total_duration_ms": sum(_safe_number(r.get("duration_ms")) for r in records),
-        "by_job_label": by_label,
-        "by_run": by_run,
-    }
-
-
 @dataclass
 class ModelCallSummary:
     """One aggregated row for the CSV report."""
@@ -314,29 +270,6 @@ class ModelCallSummary:
 
     def to_row(self) -> dict[str, Any]:
         return asdict(self)
-
-
-def flatten_aggregation(
-    aggregation: dict[str, Any],
-    *,
-    group_key: str,
-) -> list[ModelCallSummary]:
-    """Flatten a ``by_*`` bucket into summary rows, sorted by token spend."""
-    rows = []
-    for key, bucket in aggregation.items():
-        rows.append(
-            ModelCallSummary(
-                key=str(key),
-                calls=int(bucket.get("calls", 0)),
-                errors=int(bucket.get("errors", 0)),
-                prompt_tokens=int(bucket.get("prompt_tokens", 0)),
-                completion_tokens=int(bucket.get("completion_tokens", 0)),
-                total_tokens=int(bucket.get("total_tokens", 0)),
-                duration_ms=int(bucket.get("duration_ms", 0)),
-            )
-        )
-    rows.sort(key=lambda row: row.total_tokens, reverse=True)
-    return rows
 
 
 def aggregate_iteration_calls(

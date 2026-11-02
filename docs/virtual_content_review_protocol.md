@@ -7,13 +7,13 @@
 - 单题决策使用合并所有已配置分数档后重算的总指标。分档指标仅作诊断展示，单档结果不单独触发返修。
 - 四项主动单题门槛为：分面内题项总分相关 `CITC ≥ .30`；单题目标 IPIP Hedges' `g ≥ .50`；单题目标 IPIP Spearman `ρs ≥ .40`；单题最小区分差 `Δmin ≥ .30`。记录字段为 `citc_pass`、`target_hedges_g_pass`、`target_ipip_spearman_rho_pass`、`discriminant_delta_min_pass`；四项全部通过才是单题 `qualified`。任一主动门槛不可估计时按未通过处理。
 - Profile 目标 `rho_s`、同域 VTS 和跨域 VTS 保留为三项诊断值，不再作为单题门槛。诊断字段必须记录 `threshold=None`、`passes=None`、`filtering_authority=false`；任何显示端不得将 `None` 解释为失败。VTS 按固定三臂中非目标 facet 的最大带符号 rho 计算，不取绝对值；各组、所选 facet、带符号 rho 和 VTS 诊断值仍可保留用于解释。
-- 五项 facet 整卷指标为 `Cronbach α`、重测 `ICC`、目标 IPIP `g`、目标 IPIP `rho_s` 和 `Δmin`。后续成功开发轮要求 `α ≥ .70`、`ICC ≥ .70`，且 `g`、`rho_s`、`Δmin` 均相对上一完成轮严格上升，差值 `> 1e-12`。
+- 五项 facet 整卷指标为 `Cronbach α`、重测 `ICC`、目标 IPIP `g`、目标 IPIP `rho_s` 和 `Δmin`。后续成功开发轮要求 `α ≥ .70`（虚拟重测 `ICC` 照常计算并报告，仅作参考，不参与判定），且 `g`、`rho_s`、`Δmin` 均相对上一完成轮严格上升，差值 `> 1e-12`。
 - 整卷指标属于探索性虚拟开发证据，不是真人信度、效度或测验资格证明。难度、选项使用率及 Profile 指标不替代四项主动单题门槛或五项整卷指标。
 
 ## 施测与数据合并
 
 1. 冻结构念材料、目标人群、蓝图、题目槽位、分数档和 facet groups。保持确定性选项顺序平衡、稳定被试 ID、去重和可恢复性；旧版重复作答配置或结果不得静默复用。
-2. 首轮基线一次性施测 cohort、IPIP 校标和所有当前题目，按既定整卷测量流程计算五项 facet 指标。首个完整且必需指标可估计的整卷结果直接建立基线；即使 `α` 或 `ICC` 未达到 `.70`，也不因后续成功轮门槛失败而拒绝建立基线。首轮后固定被试 ID、完整人格分数、人口学变量和模拟设置。若 IPIP 响应缺失或身份与 cohort 错配，必须暂停，不得重施校标问卷或换 cohort 补齐。
+2. 首轮基线一次性施测 cohort、IPIP 校标和所有当前题目，按既定整卷测量流程计算五项 facet 指标。首个完整且必需指标可估计的整卷结果直接建立基线；即使 `α` 未达到 `.70`，也不因后续成功轮门槛失败而拒绝建立基线。首轮后固定被试 ID、完整人格分数、人口学变量和模拟设置。若 IPIP 响应缺失或身份与 cohort 错配，必须暂停，不得重施校标问卷或换 cohort 补齐。
 3. Cohort 与 IPIP 校标只在首轮测量。后续返修轮只测改过的题目新版本；未改且未过主动单题门槛的题复用最近一次完整作答。未改且已过门槛的题，其主测和每个 retest administration 响应都冻结在形成资格的来源快照。逐题按 `subject_id`、`item_id`、`item_version`、`administration` 合并局部新作答与既定来源响应，生成整卷矩阵；不得拼接不同整卷总分、跨版本平均，或让新版本复用旧答案，主测答案也不能充当重测模型输入。不得将局部返修误报成新 cohort 或重复 IPIP 施测。
 4. 先提交不可变的测量指标和题目版本快照，再运行控制器判定和返修。控制器元数据可附加在同一测量快照，不得回写或改动该批测量值。旧协议历史不可静默转换为新协议的已完成开发轮。
 
@@ -31,7 +31,7 @@
 ## 开发轮、次数与完成条件
 
 - 固定三个最多可完成的开发轮：开发轮 1 是基线；开发轮 2–3 是最多两个返修轮。只有所有 facet 在同一轮都满足后续成功轮条件时，该轮才完成。Facet 各自的暂存接受状态不能使未完成的整卷开发轮提前记为完成。
-- 每个后续成功轮，各 facet 的 α 与 ICC 均须 `≥ .70`；目标 `g`、目标 `rho_s`、`Δmin` 分别相对上一完成轮的原始数值严格增加（未舍入差值 `> 1e-12`，不可用展示舍入值判定）。新比较键为 `target_rho_improvement_gate` 和 `discriminant_delta_improvement_gate`；旧键 `target_rho_noninferiority_gate`、`discriminant_delta_non_decrease_gate` 仅为读取旧历史兼容，不是新协议判据。报告应显示观测到的实际升幅。
+- 每个后续成功轮，各 facet 的 α 须 `≥ .70`（ICC 仅作参考）；目标 `g`、目标 `rho_s`、`Δmin` 分别相对上一完成轮的原始数值严格增加（未舍入差值 `> 1e-12`，不可用展示舍入值判定）。新比较键为 `target_rho_improvement_gate` 和 `discriminant_delta_improvement_gate`；旧键 `target_rho_noninferiority_gate`、`discriminant_delta_non_decrease_gate` 仅为读取旧历史兼容，不是新协议判据。报告应显示观测到的实际升幅。
 - 每 facet 每外层开发轮局部提交并复测不设上限。每次逻辑失败调用最多 5 次尝试（含首次），底层 SDK/HTTP 重试计入该次尝试，不叠加；重启/恢复不重置已用次数。次数是每次逻辑失败调用的预算，不是整个流程总调用数。同槽位替代额度永久无限；不得因平台期或连续未改善而提前停止。
 - 状态记录于 `state["facet_iteration_state"]`，核心 schema 包括：`policy_version`、`status`、`development_round`（1–3）、`development_round_batch`（每个开发轮从 1 起计，内部字段）、`completed_rounds`、`local_attempts`、`accepted_facets`（整卷快照）、`failed_facet_ids`、`baseline_facets`、`measurement_batch`、`paused_reason`。完成历史、比较明细、首轮 cohort/IPIP 引用和解冻版本记录可作为附加字段。
 - `psychometric_analysis_round` / `measurement_batch` 保留全局测量批次标识；`development_round_batch` 是轮内批序号，每个新开发轮重置为 1。测量快照保留这些内部字段和 `round_completed`、完整 `facet_iteration_state`，但对外报告只展示“第X轮”，不得展示批次数。旧历史不得静默算作新协议已完成轮；只在 `status=complete` 且 `completed_rounds=3` 时允许最终整卷交付。

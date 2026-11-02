@@ -10,11 +10,12 @@ from hashlib import sha256
 import json
 from io import StringIO
 import os
+from functools import lru_cache
 from pathlib import Path
 import random
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, create_model
 
 from sjt_system.agent.client import (
     get_model,
@@ -68,9 +69,9 @@ from sjt_system.runtime.trace import utc_timestamp
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_NEO_FFI_PATH = PROJECT_ROOT / "docs" / "Neo-FFI.json"
 DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "virtual_responses"
-VIRTUAL_RESPONSE_PROMPT_VERSION = "defined-facet-demographics-fixed-score-sjt-v4"
+VIRTUAL_RESPONSE_PROMPT_VERSION = "defined-facet-demographics-fixed-score-sjt-v6-fixed-keys-same-order-retest"
 PERSONA_SUMMARY_PROMPT_VERSION = "liu-item-response-summary-v2"
-IPIP_NEO_REFERENCE_PROMPT_VERSION = "defined-facet-demographics-ipip-selected-batch-v6"
+IPIP_NEO_REFERENCE_PROMPT_VERSION = "defined-facet-demographics-ipip-selected-batch-v7-fixed-keys"
 
 
 class SJTSelectionOutput(BaseModel):
@@ -86,19 +87,7 @@ class SJTBatchSelection(BaseModel):
     selected_option_id: str
 
 
-class SJTBatchSelectionOutput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    responses: list[SJTBatchSelection]
-
-
 class NeoFFIBatchOutput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    ratings: list[int]
-
-
-class IPIPNEOBatchOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     ratings: list[int]
@@ -108,6 +97,94 @@ class PersonaSummaryOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     summary: str
+
+
+# Virtual-respondent answers use fixed short keys whose values are restricted
+# to the displayed option letters (or 1-5 ratings). With strict json_schema the
+# endpoint enforces every key and value while sampling, so high-temperature
+# responses cannot drop items, miscopy long item IDs, or emit free text.
+VIRTUAL_RESPONDENT_OUTPUT_METHOD_ENV = "VIRTUAL_RESPONDENT_STRUCTURED_OUTPUT_METHOD"
+DEFAULT_VIRTUAL_RESPONDENT_OUTPUT_METHOD = "json_schema"
+IPIP_RATING_VALUES = (1, 2, 3, 4, 5)
+
+
+def sjt_batch_keys(count: int) -> list[str]:
+    return [f"Q{index:02d}" for index in range(1, count + 1)]
+
+
+def ipip_rating_keys(count: int) -> list[str]:
+    return [f"I{index:02d}" for index in range(1, count + 1)]
+
+
+def _display_letters(option_count: int) -> tuple[str, ...]:
+    return tuple(chr(ord("A") + index) for index in range(option_count))
+
+
+@lru_cache(maxsize=512)
+def sjt_selection_output_type(letters: tuple[str, ...]) -> type[BaseModel]:
+    return create_model(
+        "SJTConstrainedSelectionOutput",
+        __config__=ConfigDict(extra="forbid"),
+        selected_option_id=(Literal[letters], ...),
+    )
+
+
+@lru_cache(maxsize=512)
+def sjt_batch_output_type(letter_sets: tuple[tuple[str, ...], ...]) -> type[BaseModel]:
+    return create_model(
+        "SJTFixedKeyBatchOutput",
+        __config__=ConfigDict(extra="forbid"),
+        **{key: (Literal[letters], ...) for key, letters in zip(sjt_batch_keys(len(letter_sets)), letter_sets)},
+    )
+
+
+@lru_cache(maxsize=64)
+def ipip_batch_output_type(count: int) -> type[BaseModel]:
+    return create_model(
+        "IPIPFixedKeyBatchOutput",
+        __config__=ConfigDict(extra="forbid"),
+        **{key: (Literal[IPIP_RATING_VALUES], ...) for key in ipip_rating_keys(count)},
+    )
+
+
+def resolve_virtual_respondent_output_method() -> str:
+    method = (os.getenv(VIRTUAL_RESPONDENT_OUTPUT_METHOD_ENV) or DEFAULT_VIRTUAL_RESPONDENT_OUTPUT_METHOD).strip().lower()
+    if method not in {"json_schema", "json_mode", "function_calling", "plain_json"}:
+        raise ValueError(f"{VIRTUAL_RESPONDENT_OUTPUT_METHOD_ENV} 无效：{method!r}")
+    return method
+
+
+class ConstrainedRespondentOutput:
+    """Build per-request runnables whose schema fixes every key and value."""
+
+    def __init__(self, base_model: Any, method: str) -> None:
+        self.base_model = base_model
+        self.method = method
+
+    def _runnable(self, output_type: type[BaseModel]) -> Any:
+        return with_compatible_structured_output(
+            self.base_model,
+            output_type,
+            method=self.method,
+            strict=True if self.method == "json_schema" else None,
+        )[0]
+
+    def for_sjt_rows(self, item_rows: Sequence[tuple[Mapping[str, Any], str, Sequence[str]]]) -> Any:
+        return self._runnable(sjt_batch_output_type(
+            tuple(_display_letters(len(ordered_ids)) for _item, _persona, ordered_ids in item_rows)))
+
+    def for_sjt_letters(self, letters: Sequence[str]) -> Any:
+        return self._runnable(sjt_selection_output_type(tuple(letters)))
+
+    def for_ipip_count(self, count: int) -> Any:
+        return self._runnable(ipip_batch_output_type(count))
+
+
+def _respondent_runnable(model: Any, factory: str, *args: Any) -> Any:
+    """Resolve a constrained runnable; test doubles without factories pass through."""
+
+    builder = getattr(model, factory, None)
+    return builder(*args) if callable(builder) else model
 
 
 def load_neo_ffi(
@@ -222,16 +299,6 @@ def load_ipip_neo_facet_scales(
         )
         for facet_id in normalized_ids
     ]
-
-
-def load_ipip_neo_target_scale(
-    target_dimension_id: str,
-    path: str | Path = DEFAULT_IPIP_NEO_PATH,
-) -> dict[str, Any]:
-    """Backward-compatible loader for one IPIP-NEO facet."""
-
-    scales = load_ipip_neo_facet_scales([target_dimension_id], path)
-    return scales[0]
 
 
 def resolve_ipip_neo_reference_facet_ids(
@@ -423,7 +490,8 @@ def build_sjt_batch_messages(
     if any(persona_prompt != common_persona_prompt for _, persona_prompt, _ in item_prompts):
         raise ValueError("同一被试的批量题目必须共享固定的人口学资料、构念定义和分数")
     blocks: list[str] = []
-    for index, (item, persona_prompt, ordered_ids) in enumerate(item_prompts, 1):
+    keys = sjt_batch_keys(len(item_prompts))
+    for key, (item, persona_prompt, ordered_ids) in zip(keys, item_prompts):
         options = item.get("response_options") or []
         options_by_id = {
             str(option.get("option_id")): option
@@ -436,7 +504,7 @@ def build_sjt_batch_messages(
             for display_id, original_id in zip(display_ids, ordered_ids)
         ]
         blocks.append(
-            f"题目 {index}（item_id={item.get('item_id')}）：\n"
+            f"{key}：\n"
             f"情境：\n{item.get('scenario', '')}\n\n"
             f"作答要求：\n{item.get('response_instruction', '')}\n\n"
             "选项：\n" + "\n".join(option_lines)
@@ -445,10 +513,9 @@ def build_sjt_batch_messages(
         common_persona_prompt
         + "\n\n请始终依据以上同一个人的固定资料和人格分数，分别判断其最可能采取的行为。"
         "每道题独立作答，不选择理论上最好或最受赞许的行为。"
-        "严格按照题目出现顺序返回全部结果，不能遗漏或增加结果。"
-        "必须原样返回每道题给出的 item_id，不得改写、合并或重复 item_id。"
-        "selected_option_id 必须是该题显示的 A、B、C…字母。只返回JSON对象："
-        '{"responses":[{"item_id":"题目ID","selected_option_id":"A"}]}'
+        f"只返回一个JSON对象：键为题号 {keys[0]}…{keys[-1]}，每题一个，不能遗漏或增加；"
+        "值为该题显示的选项字母（A、B、C…）。例如："
+        f'{{"{keys[0]}":"A"}}'
     )
     return [("system", system_message), ("human", "\n\n".join(blocks))]
 
@@ -485,6 +552,14 @@ def _validate_sjt_batch_response(
         for item, _persona_prompt, ordered_ids in item_rows
     }
     expected_ids = {item_id for item_id in expected_by_id if item_id}
+    if "responses" not in result:
+        # Fixed-key form: Qnn keys follow the request's item order.
+        keys = sjt_batch_keys(len(item_rows))
+        result = {"responses": [
+            {"item_id": str(item.get("item_id") or ""), "selected_option_id": result[key]}
+            for key, (item, _persona_prompt, _ordered_ids) in zip(keys, item_rows)
+            if key in result
+        ]}
     rows = result.get("responses")
     if not isinstance(rows, list):
         raise SJTBatchValidationError(
@@ -575,9 +650,10 @@ def build_ipip_neo_messages(
     else:
         grouped_items.append(list(items_or_scales))
     items = [item for group in grouped_items for item in group]
+    keys = ipip_rating_keys(len(items))
     description_lines = [
-        f"描述 {index}：{item['text']}"
-        for index, item in enumerate(items, 1)
+        f"{key}：{item['text']}"
+        for key, item in zip(keys, items)
     ]
     count = len(description_lines)
     system_message = (
@@ -585,9 +661,9 @@ def build_ipip_neo_messages(
         + "\n\n请判断你扮演的这个人对下面每项描述的同意程度："
         "1=非常不同意，2=比较不同意，3=不确定，4=比较同意，"
         "5=非常同意。不要猜测量表名称、人格维度、计分方向或研究者期待；"
-        f"每题独立判断；本次一次完成全部{count}题，并按题目顺序返回{count}个整数。"
-        "只返回一个JSON对象，不要解释，格式为："
-        '{"ratings":[1,2,3,4,5,1,2,3,4,5]}。'
+        f"每题独立判断；本次一次完成全部{count}题。"
+        f"只返回一个JSON对象，不要解释：键为描述编号 {keys[0]}…{keys[-1]}，每项一个，"
+        f'值为1到5的整数。例如：{{"{keys[0]}":3}}'
     )
     return [
         ("system", system_message),
@@ -1165,33 +1241,6 @@ def _jsonl_record_count(path: Path) -> int:
         return 0
     with path.open("r", encoding="utf-8") as handle:
         return sum(1 for line in handle if line.strip())
-
-
-def _matched_output_has_complete_sjt_retest(
-    output_dir: Path,
-    manifest: Mapping[str, Any],
-) -> bool:
-    """Treat already-complete SJT/retest files as resumable evidence.
-
-    This guard is deliberately independent of the historical simulation
-    signature.  The response protocol changed after these two files had
-    completed, so a signature-only guard must not force another SJT run.
-    """
-
-    expected_sjt = int(manifest.get("expected_sjt_records") or 0)
-    expected_retest = int(
-        manifest.get("expected_target_form_retest_records") or 0
-    )
-    if expected_sjt <= 0 or expected_retest <= 0:
-        return False
-    return (
-        _jsonl_record_count(output_dir / "sjt_responses.jsonl")
-        >= expected_sjt
-        and _jsonl_record_count(
-            output_dir / "target_form_retest_responses.jsonl"
-        )
-        >= expected_retest
-    )
 
 
 def _item_content_signature(item: Mapping[str, Any]) -> str:
@@ -2337,20 +2386,19 @@ class VirtualResponseRunner:
                 SJTSelectionOutput,
             )
         )
-        self.sjt_batch_model, batch_method = with_compatible_structured_output(
+        # Respondent answers (SJT batch, local item retest, IPIP reference) use
+        # per-request fixed-key schemas; see ConstrainedRespondentOutput.
+        self.respondent_output_method = resolve_virtual_respondent_output_method()
+        constrained = ConstrainedRespondentOutput(self.base_model, self.respondent_output_method)
+        self.sjt_batch_model = constrained
+        self.sjt_item_model = constrained
+        self.ipip_neo_model = constrained
+        # Historical experiment add-ons still administer NEO-FFI explicitly
+        # with the ratings-list contract; keep that runnable unchanged.
+        self.neo_ffi_model, reference_method = with_compatible_structured_output(
             self.base_model,
-            SJTBatchSelectionOutput,
+            NeoFFIBatchOutput,
         )
-        self.ipip_neo_model, reference_method = (
-            with_compatible_structured_output(
-                self.base_model,
-                IPIPNEOBatchOutput,
-            )
-        )
-        # Historical experiment add-ons still administer NEO-FFI explicitly.
-        # The output contract is the same ratings-only schema, so keep the old
-        # attribute as a compatibility alias without using it in the main flow.
-        self.neo_ffi_model = self.ipip_neo_model
         self.persona_summary_model, summary_method = (
             with_compatible_structured_output(
                 self.base_model,
@@ -2360,7 +2408,6 @@ class VirtualResponseRunner:
         if (
             reference_method != self.structured_output_method
             or summary_method != self.structured_output_method
-            or batch_method != self.structured_output_method
         ):
             raise ValueError("同一模型的结构化输出方式不一致")
         self.max_concurrency = 0
@@ -2996,7 +3043,7 @@ class VirtualResponseRunner:
             "interpretation_limitations": [
                 "These are exploratory virtual screening results, not formal human psychometric evidence.",
                 "Each matched virtual respondent carries a complete multi-facet profile; each facet is generated independently and all three arms share one mean/SD setting.",
-                "The target-form retest measures model/prompt response stability under a second balanced option order; it is not human test-retest reliability.",
+                "The target-form retest re-administers the identical form (same item and option order as the main administration) and measures model/prompt response stability; it is not human test-retest reliability.",
                 "The authoring-selected IPIP-NEO facet scales are answered in one batch by the same target respondents; this is development-stage convergent/discriminant evidence, not human criterion data.",
                 "The criterion questionnaire is administered only in the first virtual measurement round; later rounds reuse the frozen first-round records without new IPIP model calls.",
             ],
@@ -3082,7 +3129,7 @@ class VirtualResponseRunner:
                 persona_mode=persona_mode,
             )
             selected_displays = await _invoke_with_retry(
-                self.sjt_batch_model,
+                _respondent_runnable(self.sjt_batch_model, "for_sjt_rows", item_rows),
                 build_sjt_batch_messages(item_rows),
                 semaphore=self.semaphore,
                 validator=lambda result: _validate_sjt_batch_response(
@@ -3162,6 +3209,7 @@ class VirtualResponseRunner:
                 return
             matched_subject_id = str(respondent_ref["matched_subject_id"])
             respondent_id = str(respondent_ref["respondent_id"])
+            condition_id = str(respondent_ref["condition_id"])
             missing_items = [
                 item for item in sjt_items
                 if (respondent_id, persona_mode, item.get("item_id"), _item_version_value(item), "target", matched_subject_id, administration_id) not in target_retest_keys
@@ -3172,10 +3220,14 @@ class VirtualResponseRunner:
             option_maps: dict[str, tuple[list[str], dict[str, str]]] = {}
             for item in missing_items:
                 option_ids = [str(option["option_id"]) for option in item["response_options"]]
+                # Retest presents the identical form: the same option order
+                # and item order as this respondent's main administration, so
+                # stability reflects response consistency, not reshuffling.
+                main_option_seed = f"{seed}:{condition_id}:{matched_subject_id}:batch"
                 ordered_ids = balanced_option_order(
                     option_ids,
                     respondent_index=index_by_matched[matched_subject_id],
-                    seed=seed + 100_003 * administration_id,
+                    seed=int.from_bytes(sha256(main_option_seed.encode("utf-8")).digest()[:4], "big"),
                     item_id=str(item.get("item_id")),
                 )
                 display_ids = [chr(ord("A") + index) for index in range(len(ordered_ids))]
@@ -3185,7 +3237,7 @@ class VirtualResponseRunner:
                     persona_prompts[respondent_id],
                     ordered_ids,
                 ))
-            random.Random(f"{seed}:{respondent_id}:target-retest:{administration_id}").shuffle(item_rows)
+            random.Random(f"{seed}:{respondent_id}:{condition_id}:item-order").shuffle(item_rows)
             expected_item_ids = {str(item.get("item_id")) for item in missing_items}
             score_values = dict(respondent_ref.get("score_values") or {})
 
@@ -3202,7 +3254,7 @@ class VirtualResponseRunner:
                     administration_id=administration_id,
                 )
                 return await _invoke_with_retry(
-                    self.sjt_batch_model,
+                    _respondent_runnable(self.sjt_batch_model, "for_sjt_rows", rows),
                     build_sjt_batch_messages(rows),
                     semaphore=self.semaphore,
                     validator=lambda result: _validate_sjt_batch_response(
@@ -3396,6 +3448,10 @@ class VirtualResponseRunner:
             expected_count: int,
         ) -> list[int]:
             ratings = result.get("ratings")
+            if ratings is None and "ratings" not in result:
+                # Fixed-key form: Inn keys follow the request's item order.
+                keys = ipip_rating_keys(expected_count)
+                ratings = [result[key] for key in keys if key in result]
             if not isinstance(ratings, list) or len(ratings) != expected_count:
                 raise ValueError(
                     f"IPIP-NEO批次必须返回{expected_count}个评分"
@@ -3450,7 +3506,7 @@ class VirtualResponseRunner:
                 persona_mode=persona_mode,
             )
             ratings = await _invoke_with_retry(
-                self.ipip_neo_model,
+                _respondent_runnable(self.ipip_neo_model, "for_ipip_count", len(scale_items)),
                 build_ipip_neo_messages(
                     persona_prompts[respondent_id],
                     ipip_scales or [],
@@ -3898,7 +3954,8 @@ class VirtualResponseRunner:
             display_ids = [chr(ord("A") + index) for index in range(len(ordered_ids))]
             display_to_original = dict(zip(display_ids, ordered_ids))
             raw_display = await _invoke_with_retry(
-                self.sjt_model,
+                _respondent_runnable(
+                    getattr(self, "sjt_item_model", self.sjt_model), "for_sjt_letters", display_ids),
                 build_sjt_messages(
                     persona_prompts[str(respondent_ref["respondent_id"])],
                     item,

@@ -348,7 +348,7 @@ def _facet_iteration_state_markdown(
         f"- 本测量是否完成开发轮：{_markdown_cell(round_result.get('round_completed'))}",
         f"- 暂停原因：{_markdown_cell(iteration.get('paused_reason'), '无')}",
         "- 门槛规则：单题四项主动门槛分别为 CITC≥.30、IPIP目标 Hedges' g≥.50、目标 IPIP rho_s≥.40、Δmin≥.30；Profile目标rho/同域VTS/跨域VTS仅诊断，threshold=None、passes=None。整卷五项指标为α、ICC、目标g、目标rho和Δmin。",
-        "- 首轮基线允许α或ICC低于.70；随后最多两轮成功返修须各 facet α/ICC≥.70，且 g、rho、Δmin 均相对上一完成轮严格上升（原始差值>1e-12）。每 facet 每开发轮局部提交并复测次数不设上限；每次逻辑失败调用最多5次尝试（含首次），底层重试计入且重启不重置。",
+        "- 首轮基线允许α低于.70；随后最多两轮成功返修须各 facet α≥.70（虚拟重测ICC仅作参考，不参与判定），且 g、rho、Δmin 均相对上一完成轮严格上升（原始差值>1e-12）。每 facet 每开发轮局部提交并复测次数不设上限；每次逻辑失败调用最多5次尝试（含首次），底层重试计入且重启不重置。",
         f"- 首轮 cohort 作答引用：{_markdown_cell(iteration.get('cohort_source_ref'), '未记录')}",
         f"- 首轮 IPIP 校标引用：{_markdown_cell(iteration.get('first_round_reference_ref'), '未记录')}",
         "- 首轮固定被试ID、完整人格分数、人口学变量与模拟设置；IPIP校标或身份匹配缺失时暂停且不得重施。后续只测改过的题目新版本；未改且未过单题门槛的题复用最近完整作答，已过门槛的题复用形成资格来源的主测及各retest作答。按 subject_id/item_id/item_version/administration 逐题合并，不拼接整卷总分、不跨版本平均、不复用旧版答案，主测答案不作重测输入。",
@@ -703,7 +703,7 @@ def _iteration_history_markdown(
         "",
         "严格展示最多三个开发轮：第1轮为基线，随后最多完成两轮返修。内部记录每个开发轮从第1批重新计数；批次号仅保留在运行账本，不在对外报告中展示。",
         "",
-        "| 开发轮 | 本轮完成 | 临时题数 | 候选题数 | Cronbach α | 目标IPIP Hedges’ g | 目标IPIP rho | Δmin | α/ICC≥.70 | 控制器状态 | 累计Token | 累计模型耗时(ms) |",
+        "| 开发轮 | 本轮完成 | 临时题数 | 候选题数 | Cronbach α | 目标IPIP Hedges’ g | 目标IPIP rho | Δmin | α≥.70 | 控制器状态 | 累计Token | 累计模型耗时(ms) |",
         "|---:|:---:|---:|---:|---:|---:|---:|---:|:---:|---|---:|---:|",
     ]
     cumulative_tokens = 0
@@ -824,7 +824,7 @@ def _iteration_history_markdown(
     lines.extend(
         [
             "",
-            "> 首轮完整测量直接建立基线，即使α/ICC<.70；后续成功轮要求每个facet α/ICC≥.70，且目标g、目标rho、Δmin相对上一完成轮分别严格上升（每项差值>1e-12）。",
+            "> 首轮完整测量直接建立基线，即使α<.70；后续成功轮要求每个facet α≥.70（ICC仅作参考），且目标g、目标rho、Δmin相对上一完成轮分别严格上升（每项差值>1e-12）。",
             "> 每 facet 每开发轮局部提交并复测次数不设上限；每次逻辑失败调用最多5次尝试（含首次），底层重试计入、恢复不重置；不使用平台期或连续未改善早停。",
             "> 这些是虚拟作答系统内部的开发期传导指标，不能替代真人样本的正式信效度验证。",
             "",

@@ -2,104 +2,141 @@
   "facet": "openness_to_ideas",
   "facet_id": "openness_ideas",
   "neo_code": "O5",
-  "definition": "出于兴趣本身主动追求智力活动，并开放地考虑新的甚至非常规的观念。核心是 intellectual curiosity + active pursuit of intellectual interests + receptivity to new/unconventional ideas，不等同于高智力、成就追求或政治自由主义。",
-  "high_pole": "主动投入认知资源，愿意探索不熟悉的或抽象的观念",
-  "low_pole": "对非必需的智力探索缺乏兴趣，满足于已有理解，回避抽象讨论",
+  "definition": "对智力活动、抽象内容、新知识及不同观念表现出好奇和接触意愿的倾向，可体现为兴趣表达、信息探索、尝试理解、参与或选择相关活动。区别于认知能力、成就追求或政治价值立场；兴趣、实际参与和执行完成是不同信息，不能相互替代。",
+  "high_pole": "较愿意接触和思考新知识、抽象内容或不同论据，表现出智力兴趣、探索或理解意愿；表达兴趣但因时间安排不参加，不必等于低开放。",
+  "low_pole": "较少对相关认知内容表现兴趣，或较偏好熟悉、具体或较少认知投入的内容；不参加、能力困难或未能完成计划不能单独证明缺乏兴趣。",
   "curation_notes": {
-    "curated_from": "LLM Stage 2 V3 output (11 families) + human re-analysis",
-    "curated_to": "6 families (5 stable + 1 provisional)",
-    "key_issue": "LLM collapsed distinct psychological mechanisms into one giant 'non-instrumental intellectual engagement' family in V1/V2, then over-split to 11 families in V3. Human curation restores the middle ground: items that share diagnostic logic are merged, items with different psychological objects are separated.",
-    "dual_assignment_note": "Many items activate multiple evidence mechanisms simultaneously. For example, item 04 (science theory in novel) involves BOTH non-instrumental engagement (the theory is irrelevant to the plot) AND deep processing (trying to understand a complex theory). Dual assignment preserves this information."
+    "curated_from": "LLM Stage 2 V3 output and subsequent curation, revised against 22 Chinese source items in docs/mussel_zh.json",
+    "curated_to": "6 organizing families (5 stable + 1 provisional); 21 source items assigned, item19 retained provisionally without family assignment",
+    "review_basis": "本轮核对项目中文题干与选项，未核对德文原文或作者原始评分键。旧记录中的human re-analysis不在本文件中充当真人专家核定证明。",
+    "grouping_principle": "六族是原题证据的组织方式，不宣称为六种已验证且相互独立的心理机制。兴趣、参与、理解深度、挑战及机会选择可以交叉，但次要归属也须有具体依据。",
+    "source_fact_convention": "没有报酬、无需考试、不影响小说情节和没有时间压力是不同的逐题事实，不能互相推出所有认知活动都无用途、无奖励或无成本。",
+    "status_convention": "stable/provisional表示当前组织用途和待核程度，construct_purity为待验证的内容风险判断。题目状态不等于作者效度或正式计分结论，也不由题数机械决定。",
+    "runtime_scope": "当前加载器按族status而非逐题status筛选。03虽因中文题干异常而标provisional，仍列入stable族的来源；此标记不会自动阻止运行时引用。19未归族，未进入任一支持清单。06主归暂定族但有stable次要归属，同样不能把题目状态当作自动运行门禁。",
+    "dual_assignment_note": "支持清单统一列出主归属与次归属。双重归属保留交叉信息，不代表同一题产生两份独立证据或每个选项都体现两族。",
+    "mapping_revisions": [
+      "09保留新功能探索，移除没有明确难度依据的OEF05次要归属。",
+      "21保留对认知内容的兴趣与选择，移除把坚持原阅读计划当作主动创造机会的OEF06次要归属。",
+      "22保留内容机会选择，移除把杂志类别直接当作非工具性投入的OEF01次要归属。",
+      "19保留为provisional但暂不归族：题目比较对朋友拒绝智力游戏的反应，兴趣与人际应对混合，需要原文和计分支持。"
+    ],
+    "source_review_flags": {
+      "openness_to_ideas_03": "中文题干将候诊室与温和夏夜、享受宁静并置，语境异常。保留现有原题以便追溯，不自行修补；行为选项暂保留且来源标记待核。",
+      "openness_to_ideas_05": "D为用已有知识尝试理解词义，仍可能体现主动加工；不能仅因不进一步查询就认定回避求知，具体方向待核。",
+      "openness_to_ideas_18": "A新颖且复杂、B新颖且简单、C熟悉且简单、D熟悉且复杂；两个变化维度都须保留，不能据此自行建立简单难易计分。",
+      "openness_to_ideas_21": "D表达扩展知识的愿望但执行困难，需区分认知兴趣与自律或执行表现。",
+      "openness_to_ideas_22": "科学文化、新闻商业、时尚娱乐、体育自然计算机同时改变主题领域，不能仅凭类别名称设定纯粹O5分数。"
+    },
+    "cross_file_review_status": "本轮Stage 3b、Stage 4b已按修订后的Stage 2审查并同步。19在三层均保持待核且不参与默认来源；18、22的情境事实保留但3b方向模板待核。上游逐题、行为和线索文件未改写，德文原文及作者评分键仍待核。"
   },
   "evidence_library": [
     {
       "family_id": "OEF01",
-      "family_name": "非工具性智力投入",
-      "definition": "面对非强制、无外部奖励且无直接实用价值的认知活动时，出于内在兴趣主动投入认知资源，而非回避或仅在有外部要求时才参与。",
-      "high_trait_evidence": "即使没有任务要求、奖励或直接用途，仍主动选择投入认知活动。",
-      "low_trait_evidence": "对无直接用途的认知活动缺乏兴趣，仅在有外部必要性时才参与。",
+      "family_name": "可选智力活动的兴趣与投入",
+      "definition": "面对并非当前必须完成的智力活动或内容，表现出兴趣、尝试参与或持续关注，或因缺乏兴趣而忽略、停止接触或转向其他活动；不预设这些活动都没有奖励、实用价值或未来用途。",
+      "high_trait_evidence": "可表达对思考、探索或智力内容的兴趣，也可尝试、选择或持续接触；兴趣表达与实际参与分别保留。",
+      "low_trait_evidence": "可表现为对相关内容缺乏兴趣、不愿投入或选择其他活动；以时间优先为由不参加，不单独等同于缺乏兴趣。",
       "supporting_item_ids": [
         "openness_to_ideas_01",
         "openness_to_ideas_02",
         "openness_to_ideas_03",
         "openness_to_ideas_04",
+        "openness_to_ideas_06",
+        "openness_to_ideas_07",
         "openness_to_ideas_11",
         "openness_to_ideas_12",
-        "openness_to_ideas_20"
+        "openness_to_ideas_14",
+        "openness_to_ideas_15",
+        "openness_to_ideas_17",
+        "openness_to_ideas_20",
+        "openness_to_ideas_21"
       ],
-      "support_count": 7,
+      "support_count": 13,
       "status": "stable",
-      "construct_purity": "high",
+      "construct_purity": "medium",
       "competing_facets": [
-        "C4: 成就追求"
+        "C4: 成就追求",
+        "C5: 自律",
+        "E2: 乐群"
       ],
-      "boundary_condition": "仅适用于无外部奖励、无强制要求的认知活动。不适用于：有考试/绩效压力的学习、职业必需的技能培训。高开放不能写成'不分场合地学习'——必须是'在自由时间主动选择认知活动'。低开放不能写成'懒惰或不爱学习'——必须是'不认为无直接用途的认知活动值得投入时间'。",
+      "boundary_condition": "非必做不等于无用途。02明确无报酬，04内容与小说情节无关，11无时间压力，20无考试；这些条件分别记录。01-B表达兴趣但不参加，21-D有求知意愿却执行困难，不可只按参与或坚持判断方向。娱乐内容的放松价值、主题兴趣、能力和时间安排需考虑。",
       "alternative_explanations": [
-        "对具体主题的领域兴趣",
-        "时间充裕程度"
+        "具体主题或领域兴趣",
+        "时间安排、疲劳和放松需要",
+        "认知能力、成就动机与活动形式偏好",
+        "21中的自律与计划执行；17等讨论活动中的社交偏好"
       ],
       "typical_high_manifestations": [
-        "主动接受智力挑战并尝试解决",
-        "选择观看哲学/科学类节目",
-        "旁听非必修讲座",
-        "因感兴趣而投入不紧急的认知任务"
+        "简短构思并考虑参加，或表达喜欢新想法但因其他优先事项不参加（01-A/B）",
+        "尝试解决智力题，或接触可选的理论、哲学内容（02-A/B、04-A/B、11-A/B、12-A/B）",
+        "选择教育节目、旁听讲座或带来的阅读内容（07-A/B、20-A/B、21-A/B）；不将其全部视为纯兴趣证明"
       ],
       "typical_low_manifestations": [
-        "因无外部要求而放弃",
-        "认为不值得投入时间",
-        "对抽象内容缺乏兴趣",
-        "仅关注有直接用途的内容"
+        "表达缺乏动力或对主题不感兴趣（01-C/D、11-C/D）",
+        "略过理论解释，或仅在无其他选择时观看节目（04-D、12-C/D）",
+        "以放松或其他活动为优先，或表示不能执行求知计划（07-C、21-C/D）；这些行为含替代解释，不自动等于低兴趣"
       ],
       "common_trait_activating_cues": [
-        "认知活动非强制、无外部奖励",
-        "存在更轻松或更实用的替代选择",
-        "自由支配的时间"
-      ]
+        "可接触智力活动、理论内容或相关讨论",
+        "部分题目有较轻松或其他优先事项可选，但不是全部题目的共同控制条件",
+        "仅部分原题明确无报酬、无需考试或无时间压力；具体范围按题号核对"
+      ],
+      "coverage_note": "本版清单与主次归属映射一致；同题不同表现可支持不同族，不表示各选项均支持所有关联族。典型表现中的待核方向不作为作者正式计分结论。"
     },
     {
       "family_id": "OEF02",
-      "family_name": "知识缺口主动探索",
-      "definition": "当已有理解足以完成当前任务，但仍存在可以进一步了解的未知内容时，是否自发寻求更多信息来填补这个非必要的知识缺口。",
-      "high_trait_evidence": "即使当前理解已经够用，仍主动寻求更完整、更精确的信息。",
-      "low_trait_evidence": "满足于已有理解，不再为可忽略的未知内容耗费精力。",
+      "family_name": "未知信息的询问与探索",
+      "definition": "遇到尚不了解的信息、概念、功能或背景时，选择询问、查找、试用或继续关注，或不再深入；只有部分题目明确已有理解足以应付当前情境，不将非必要知识缺口作为所有来源的共同前提。",
+      "high_trait_evidence": "通过查询、询问、试用、进一步了解背景或关注讨论接触未知信息；各行为不要求同时出现。",
+      "low_trait_evidence": "可表现为不再探究、只做必要操作、缺乏兴趣或不使用新功能；用已有知识推测未知内容不直接等同于回避探索。",
       "supporting_item_ids": [
         "openness_to_ideas_05",
+        "openness_to_ideas_08",
+        "openness_to_ideas_09",
+        "openness_to_ideas_10",
         "openness_to_ideas_14",
         "openness_to_ideas_15"
       ],
-      "support_count": 3,
+      "support_count": 6,
       "status": "stable",
-      "construct_purity": "high",
+      "construct_purity": "medium",
       "competing_facets": [
-        "N4: 自我意识 (社交情境中询问他人可能涉及)"
+        "N4: 自我意识",
+        "O4: 行动开放性",
+        "C4: 成就追求"
       ],
-      "boundary_condition": "仅适用于非必要的知识缺口——已有理解足够完成任务，未知内容的解决与否不影响当前目标。不适用于：考试中必须查明的知识点、工作中必须核实的信息。高开放不能等同于'完美主义'。低开放不能等同于'懒惰'——在信息已足够时停止搜索是合理的认知经济。",
+      "boundary_condition": "05明确大致理解句子；14未说明对科学发现的理解已经足够，15没有待完成任务。09探索新功能可能有实际用途，不能强定为非工具性活动。05-D仍可能是主动加工，方向待核。询问信息也可能反映任务需要、能力或社交便利。",
       "alternative_explanations": [
-        "社交焦虑 (当场询问可能尴尬)",
-        "对具体话题的兴趣强度"
+        "领域知识与对主题的实际兴趣",
+        "任务需要、实用价值或对软件变化的适应",
+        "询问时的社交顾虑、时间与信息渠道",
+        "09的新颖行为也可能涉及行动开放性，而非已证明的高认知难度偏好"
       ],
       "typical_high_manifestations": [
-        "稍后主动查询陌生词汇",
-        "请对方详细解释",
-        "主动了解日常现象的科学背景"
+        "查询陌生词义或向对方提问（05-A/B）",
+        "要求时间自行了解新发现或请朋友进一步解释（14-A/B）",
+        "了解规定背景或关注相关讨论（15-A/B）",
+        "查阅新功能资料或尝试自学（09-A/B）"
       ],
       "typical_low_manifestations": [
-        "不再为可忽略的未知内容费心",
-        "用已有知识推测但不验证",
-        "关注实际事物而非额外的知识细节"
+        "不再关注陌生词义（05-C）；05-D依据已有知识理解另列方向待核",
+        "表示对新发现缺乏兴趣或不愿继续相关交流（14-C/D）",
+        "只进行必要操作而不进一步了解，或表达对安排的烦恼（15-C/D）",
+        "很少使用新功能或尝试继续使用旧版本（09-C/D）；实际需要与变化偏好需区分"
       ],
       "common_trait_activating_cues": [
-        "当前理解已足够但存在可进一步了解的内容",
-        "非强制、无时间压力",
-        "信息缺口在社交或日常情境中出现"
-      ]
+        "出现尚未了解的信息、背景或新功能",
+        "可以进一步询问、查询、尝试或关注，但原题没有全部说明无时间压力",
+        "05为理解已大致够用的陌生词；14为朋友请求意见；15为日常规定；09为熟悉软件的新功能"
+      ],
+      "coverage_note": "本版清单与主次归属映射一致；同题不同表现可支持不同族，不表示各选项均支持所有关联族。典型表现中的待核方向不作为作者正式计分结论。"
     },
     {
       "family_id": "OEF03",
-      "family_name": "深层理解与知识整合",
-      "definition": "不满足于知道现象或结论，而进一步追求理解机制、细节以及与已有知识的关系，体现认知加工的深度而非广度。",
-      "high_trait_evidence": "主动深入理解复杂内容的每一个细节，并尝试与已有知识建立联系。",
-      "low_trait_evidence": "满足于表面理解或结论，不主动深入探索背后的机制和联系。",
+      "family_name": "理解细节、成因与知识联系",
+      "definition": "接触新信息或现象时，愿意深入了解内容细节、解释原因或联系已有知识；这些是不同的表现，不要求每次都同时理解所有细节并完成整合。",
+      "high_trait_evidence": "可表现为尝试详细理解理论、了解现象成因、整合已有知识，或明确表达对解释原因的兴趣。",
+      "low_trait_evidence": "可表现为只接触表面内容、不继续处理理论新发现、仅观看现象或不关注；理由和程度按选项分别保留。",
       "supporting_item_ids": [
         "openness_to_ideas_04",
         "openness_to_ideas_08",
@@ -112,70 +149,71 @@
         "C4: 成就追求",
         "C1: 胜任感"
       ],
-      "boundary_condition": "仅适用于非强制、无外部考核的理解深度差异。不适用于：考试复习、专业研究必需的精读。高开放不能等同于'追求完美成绩'。低开放不能等同于'不认真'——在信息已满足当前需求时停止深入是正常的。",
+      "boundary_condition": "04为小说中的理论，08为精通领域的新发现，10为月食成因。不能统一假定已有同等知识基础或有一个已经完成的任务。10-B仅表达成因兴趣、没有明确实际探究；详细理解与已有知识整合分别来自不同选项。能力、知识背景及时间需求需考虑。",
       "alternative_explanations": [
-        "认知能力差异",
-        "对该领域的专业背景",
-        "完美主义倾向 (C4)"
+        "认知能力、领域知识与理解条件",
+        "具体主题兴趣",
+        "时间需求与成就或精确性动机；不把完美主义直接等同于C4"
       ],
       "typical_high_manifestations": [
-        "尝试理解抽象理论的每个细节",
-        "将新发现与已有知识整合",
-        "不仅观看现象还理解背后原理"
+        "尝试详细理解理论内容（04-B）",
+        "了解新发现的细节，或将其与已有知识联系（08-A/B）",
+        "观看现象并了解原因，或不观看但表达对成因的兴趣（10-A/B）；兴趣与行动分开"
       ],
       "typical_low_manifestations": [
-        "满足于了解现象本身",
-        "关注实际事物而非抽象理论",
-        "已有知识足够，不必进一步了解"
+        "阅读理论但不尝试理解，或直接跳过（04-C/D）",
+        "优先实际事物或认为现有知识已经足够，不继续了解（08-C/D）",
+        "仅观看现象，或对现象不感兴趣（10-C/D）"
       ],
       "common_trait_activating_cues": [
-        "接触到自己已有基础但包含深层复杂性的新信息",
-        "非强制、无外部考核",
-        "理解深度差异不影响当前任务完成"
-      ]
+        "信息或现象允许进一步了解细节、成因或知识联系",
+        "只有08明确涉及已有精通知识领域；04、10不据此补写同等基础",
+        "不同选项在兴趣表达、实际探索及理解程度上存在差异"
+      ],
+      "coverage_note": "本版清单与主次归属映射一致；同题不同表现可支持不同族，不表示各选项均支持所有关联族。典型表现中的待核方向不作为作者正式计分结论。"
     },
     {
       "family_id": "OEF04",
-      "family_name": "新观点认知接纳",
-      "definition": "面对与已有观点不同、甚至可能挑战既有信念的新论据或非传统观点时，是否愿意认真处理而非回避或拒绝。",
-      "high_trait_evidence": "即使已有明确立场，仍愿意开放地接触和权衡新的、非常规的论据。",
-      "low_trait_evidence": "对挑战已有观点的信息缺乏兴趣，回避或快速拒绝不同意见。",
+      "family_name": "新论据的接触与权衡",
+      "definition": "面对新的、非传统或彼此不同的论据时，选择接触、开放考虑或权衡，或因已有意见、缺乏兴趣等理由不再关注；不预设新论据必然挑战被试自身信念。",
+      "high_trait_evidence": "愿意观看并权衡不同论据以形成意见，或对新论据保持开放心态；不要求原本已有明确立场。",
+      "low_trait_evidence": "可能因已有明确意见而不再关注，也可能仅因对主题或节目缺乏兴趣而退出；两种理由不同。",
       "supporting_item_ids": [
         "openness_to_ideas_06"
       ],
       "support_count": 1,
       "status": "provisional",
-      "construct_purity": "high",
+      "construct_purity": "medium",
       "competing_facets": [
-        "A4: 顺从 (愿意附和他人观点)",
         "O6: 价值开放性"
       ],
-      "boundary_condition": "仅适用于非强制性的观点接触。不适用于：工作必需的方案评估、法律要求的证据审查。高开放不能等同于'没有自己的立场'或'轻信任何观点'——必须是'愿意认真考虑但保留判断权'。低开放不能等同于'固执'——在已有充分信息时坚持已有观点是合理的。仅1题支持，标记为 provisional。",
+      "boundary_condition": "仅06作为主要支持题。节目嘉宾意见相反不等于论据与被试本人信念冲突；06-A还包含权衡后形成意见。原题未认证论据合理或荒谬。06-D退出节目不必表示回避观点挑战。考虑论据不等于附和他人，因此不单凭该行为推定A4污染。",
       "alternative_explanations": [
-        "对特定议题的先验兴趣",
-        "认知闭合需求",
-        "对信息来源的信任度"
+        "对能源与气候议题的兴趣和既往知识",
+        "既有立场与继续了解信息的意愿",
+        "对节目形式或信息来源的偏好"
       ],
       "typical_high_manifestations": [
-        "观看包含对立观点的节目并权衡双方论据",
-        "对新论据保持开放心态"
+        "观看并权衡不同论据，再形成意见（06-A）",
+        "对新论据保持开放心态（06-B）"
       ],
       "typical_low_manifestations": [
-        "因已有明确意见而关闭信息通道",
-        "切换频道回避不同观点"
+        "因已有明确意见而较少关注（06-C）",
+        "因对主题和节目不感兴趣而关闭或换台（06-D）"
       ],
       "common_trait_activating_cues": [
-        "存在与已有观点冲突的新论据",
-        "非强制接触",
-        "有合理依据而非极端荒谬的观点"
-      ]
+        "节目中出现新颖或非传统论据，并有不同意见",
+        "可以继续观看或停止接触",
+        "不预设被试已有立场或愿意改变立场，也不认证论据质量"
+      ],
+      "coverage_note": "本版清单与主次归属映射一致；同题不同表现可支持不同族，不表示各选项均支持所有关联族。典型表现中的待核方向不作为作者正式计分结论。"
     },
     {
       "family_id": "OEF05",
-      "family_name": "认知挑战偏好",
-      "definition": "在同等功能或娱乐价值的选项中，倾向于选择认知要求更高、更复杂或更需思考的活动，而非更简单、更熟悉的选择。",
-      "high_trait_evidence": "在多种同等可行的选项中偏好认知挑战更大的那个。",
-      "low_trait_evidence": "偏好认知负担较轻、更熟悉的选项。",
+      "family_name": "认知挑战的兴趣与选择",
+      "definition": "面对认知挑战时表现出参与兴趣、尝试或较少投入；部分题目比较复杂与简单、熟悉与新颖的活动，但并非全部都在其他价值等同的条件下仅改变难度。",
+      "high_trait_evidence": "可表现为接受智力挑战、尝试解决或希望继续挑战；复杂度和新颖性选择需分别记录，不能据此自行确定全部选项得分。",
+      "low_trait_evidence": "可表现为缺乏兴趣、觉得太复杂而停止，或偏好其他活动；自觉能力不足与兴趣较低不是相同解释。",
       "supporting_item_ids": [
         "openness_to_ideas_02",
         "openness_to_ideas_03",
@@ -186,69 +224,76 @@
       "construct_purity": "medium",
       "competing_facets": [
         "C4: 成就追求",
-        "C1: 胜任感"
+        "C1: 胜任感",
+        "O4: 行动开放性"
       ],
-      "boundary_condition": "仅适用于同等功能价值下的认知难度偏好差异。不适用于：能力不足以完成高难度任务、高难度选项有额外奖励或认可。高开放不能等同于'总是选最难的'——必须是'在其他条件相当时偏好更有思考价值的选项'。",
+      "boundary_condition": "02、03主要比较是否参与当前挑战，不是选择两个同等功能且难度不同的任务；18同时改变新颖性和复杂度。没有依据说所有选项同等娱乐价值或被试能力相同。选择新但简单、熟悉但复杂等组合的正式计分待核。09未明确高难度，移除其本族次要归属。",
       "alternative_explanations": [
-        "认知能力 (高能力者可能觉得高难度任务不构成挑战)",
-        "成就动机 (选难的可能是为了证明自己)"
+        "认知能力、自我效能与特定任务经验",
+        "对数字谜题或游戏的领域兴趣",
+        "新颖偏好与复杂度偏好",
+        "时间优先事项及通过挑战证明能力的成就动机"
       ],
       "typical_high_manifestations": [
-        "选择未知且需要高度心理投入的新游戏",
-        "开始解决可选谜题并希望还有更多",
-        "投入精力解决无报酬的智力挑战"
+        "高兴接受智力题并尝试解决，或投入精力解决任务（02-A/B）",
+        "尝试解决谜题，或希望有更多谜题（03-A/B）；中文题干语境待核"
       ],
       "typical_low_manifestations": [
-        "选择已知且易于理解的游戏",
-        "认为谜题太复杂而放弃",
-        "因为有更重要的事而拒绝"
+        "以另有优先事项、任务太复杂或不感兴趣等不同理由不继续挑战（02-C/D、03-C/D）；不将所有理由统一为低兴趣"
       ],
       "common_trait_activating_cues": [
-        "多个同等功能价值的选项",
-        "选项在认知难度上有显著差异",
-        "无外部奖励或惩罚关联"
-      ]
+        "可参与一项认知挑战，或从若干不同活动中选择",
+        "02明确无报酬，03出现可选谜题；不能推广为所有来源均无奖励",
+        "18匿名选择的游戏在熟悉程度和复杂度上同时存在差异"
+      ],
+      "coverage_note": "本版清单与主次归属映射一致；同题不同表现可支持不同族，不表示各选项均支持所有关联族。典型表现中的待核方向不作为作者正式计分结论。 18保留为双维度选择来源，四组合仅记录于待核说明，不在本版高低行为清单中擅自分配方向。"
     },
     {
       "family_id": "OEF06",
-      "family_name": "智力兴趣的主动寻求与扩展",
-      "definition": "不仅在面对已有智力机会时做出选择，而且主动寻求、创造或扩展智力探索的机会，体现自发的 intellectual initiative。",
-      "high_trait_evidence": "主动寻找知识探索或文化体验机会，寻求更广泛的认知体验。",
-      "low_trait_evidence": "满足于已有的认知活动范围，不主动创造或扩展智力探索机会。",
+      "family_name": "智力兴趣相关机会的选择与利用",
+      "definition": "面对现有邀请、信息、参观机会或内容选项，选择接受、利用或进一步安排相关探索，或不参与、限制接触；接受机会本身可以体现兴趣，不要求主动创造机会。",
+      "high_trait_evidence": "愿意接受或利用接触知识、讨论或相关内容的机会，部分行为包含进一步查询、安排或扩展讨论。",
+      "low_trait_evidence": "可表现为对内容或活动形式缺乏兴趣、限制接触范围或不参加；偏好熟人讨论、不喜欢俱乐部及实际没有时间不能统一解释为低智力兴趣。",
       "supporting_item_ids": [
         "openness_to_ideas_13",
         "openness_to_ideas_16",
         "openness_to_ideas_17",
-        "openness_to_ideas_20"
+        "openness_to_ideas_20",
+        "openness_to_ideas_22"
       ],
-      "support_count": 4,
+      "support_count": 5,
       "status": "stable",
       "construct_purity": "medium",
       "competing_facets": [
-        "E2: 乐群 (部分活动涉及社交)",
+        "E2: 乐群",
+        "O2: 审美开放性",
         "C4: 成就追求"
       ],
-      "boundary_condition": "仅适用于主动扩展（而非被动接受）智力活动机会。不适用于：因社交压力参与、因职业要求参与。高开放不能等同于'过度安排生活'。低开放不能等同于'缺乏社交'——拒绝辩论俱乐部可能因为不喜欢社交而非缺乏智力兴趣。",
+      "boundary_condition": "13、17为邀请，16为收到券，20为熟人告知，22为现成订阅选择，不要求主动创造机会。博物馆和文化内容未必都只体现O5。17-B仍喜欢与朋友讨论，区别于不喜欢讨论。22同时改变主题类别，不能仅按名称赋予纯O5方向。21坚持计划不再归为主动机会创造。",
       "alternative_explanations": [
-        "社交动机 (博物馆、辩论俱乐部涉及社交)",
-        "成就追求 (讲座可能有助于职业发展)",
-        "对特定主题的领域兴趣"
+        "活动形式与社交偏好",
+        "审美、文化、专业或具体主题兴趣",
+        "时间安排、出行便利和免费机会的吸引力",
+        "对熟悉主题与新领域的知识背景及兴趣"
       ],
       "typical_high_manifestations": [
-        "主动接受博物馆/讲座/辩论邀请",
-        "选择科学/文化类杂志",
-        "在度假中坚持阅读计划"
+        "接受博物馆邀请并期待新知识，或提议增加交流讨论（13-A/B）",
+        "利用参观券，或先了解展览再选择（16-A/B）",
+        "接受辩论邀请，或选择与熟人讨论（17-A/B）；形式偏好不等于兴趣高低已核定",
+        "选择旁听，或先试听再决定（20-A/B）"
       ],
       "typical_low_manifestations": [
-        "以不感兴趣为由取消",
-        "以没时间为由放弃",
-        "选择娱乐/时尚类内容"
+        "对博物馆内容不感兴趣、限制在熟悉主题，或因时间不足不参加（13-C/D、16-C/D）；分别保留理由",
+        "不喜欢俱乐部或其讨论内容（17-C/D）；区别于17-B仍喜欢讨论",
+        "因偏好实际事务或认为已了解足够而不旁听（20-C/D）"
       ],
       "common_trait_activating_cues": [
-        "主动选择或邀请而非被动接受",
-        "智力活动与纯娱乐活动并存",
-        "非强制、无外部压力"
-      ]
+        "外部提供邀请、信息、券或内容选项",
+        "可以接受、查询后安排、限制接触或拒绝；不统一假定没有社交压力",
+        "13明确取消不会使熟人生气，不能推广到所有邀请",
+        "部分题目涉及社交、文化或领域兴趣，需保留具体条件"
+      ],
+      "coverage_note": "本版清单与主次归属映射一致；同题不同表现可支持不同族，不表示各选项均支持所有关联族。典型表现中的待核方向不作为作者正式计分结论。 22保留为内容选择来源，但本版不按杂志类别自行确定高低方向。"
     }
   ],
   "item_evidence_mapping": {
@@ -256,149 +301,157 @@
       "primary_family": "OEF01",
       "secondary_family": null,
       "status": "core",
-      "note": "创新比赛邀请 — 纯非工具性投入"
+      "note": "保留构思兴趣与表达兴趣但不参加的区别，不宣称比赛无奖励。"
     },
     "openness_to_ideas_02": {
       "primary_family": "OEF01",
       "secondary_family": "OEF05",
-      "status": "core",
-      "note": "智力题信封 — 同时涉及非工具性投入和认知挑战偏好"
+      "status": "core"
     },
     "openness_to_ideas_03": {
       "primary_family": "OEF01",
       "secondary_family": "OEF05",
-      "status": "core",
-      "note": "候诊室数独 — 非工具性 + 难度选择"
+      "status": "provisional",
+      "note": "原中文题干语境异常，标provisional待核；选项暂保留于来源清单，不自行修补。"
     },
     "openness_to_ideas_04": {
       "primary_family": "OEF01",
       "secondary_family": "OEF03",
-      "status": "core",
-      "note": "书中科学理论 — 非工具性 + 深层理解"
+      "status": "core"
     },
     "openness_to_ideas_05": {
       "primary_family": "OEF02",
       "secondary_family": null,
       "status": "core",
-      "note": "拉丁词 — 纯知识缺口"
+      "note": "D用已有知识尝试理解的方向待核，不预设它就是回避求知。"
     },
     "openness_to_ideas_06": {
       "primary_family": "OEF04",
       "secondary_family": "OEF01",
       "status": "provisional",
-      "note": "气候辩论 — 新观点接纳为主，非工具性为辅"
+      "note": "保留新论据接触与权衡，不预设挑战被试既有信念。"
     },
     "openness_to_ideas_07": {
       "primary_family": "OEF01",
       "secondary_family": null,
-      "status": "core",
-      "note": "纪录片vs电影 — 疲劳是情境条件，核心是非工具性选择。不单独成族"
+      "status": "core"
     },
     "openness_to_ideas_08": {
       "primary_family": "OEF03",
       "secondary_family": "OEF02",
-      "status": "core",
-      "note": "新科学发现 — 深层理解/知识整合为主，知识缺口为辅"
+      "status": "core"
     },
     "openness_to_ideas_09": {
       "primary_family": "OEF02",
-      "secondary_family": "OEF05",
+      "secondary_family": null,
       "status": "core",
-      "note": "软件新功能 — 知识缺口（了解新功能）+ 认知挑战（尝试自学）。不单独成族"
+      "note": "探索新功能可有实用价值；移除没有明确高难度证据的OEF05次要归属。"
     },
     "openness_to_ideas_10": {
       "primary_family": "OEF03",
       "secondary_family": "OEF02",
       "status": "core",
-      "note": "月食 — 深层理解（理解天文背景）为主"
+      "note": "B表达成因兴趣但未明确实际探究，兴趣与行为分别记录。"
     },
     "openness_to_ideas_11": {
       "primary_family": "OEF01",
       "secondary_family": null,
-      "status": "core",
-      "note": "街头哲学演讲 — 非工具性投入"
+      "status": "core"
     },
     "openness_to_ideas_12": {
       "primary_family": "OEF01",
       "secondary_family": null,
-      "status": "core",
-      "note": "哲学脱口秀 — 非工具性投入"
+      "status": "core"
     },
     "openness_to_ideas_13": {
       "primary_family": "OEF06",
       "secondary_family": null,
-      "status": "core",
-      "note": "自然科学博物馆 — 主动寻求知识探索机会"
+      "status": "core"
     },
     "openness_to_ideas_14": {
       "primary_family": "OEF02",
       "secondary_family": "OEF01",
-      "status": "core",
-      "note": "朋友提及新科学发现 — 知识缺口为主，非工具性为辅"
+      "status": "core"
     },
     "openness_to_ideas_15": {
       "primary_family": "OEF02",
       "secondary_family": "OEF01",
-      "status": "core",
-      "note": "夏令时规定背景 — 知识缺口探索"
+      "status": "core"
     },
     "openness_to_ideas_16": {
       "primary_family": "OEF06",
       "secondary_family": null,
-      "status": "core",
-      "note": "免费博物馆券 — 主动利用知识探索机会"
+      "status": "core"
     },
     "openness_to_ideas_17": {
       "primary_family": "OEF06",
       "secondary_family": "OEF01",
       "status": "core",
-      "note": "辩论俱乐部邀请 — 主动寻求智力讨论机会"
+      "note": "接受俱乐部邀请、喜欢熟人讨论、内容或形式不感兴趣分别保留，不能只按入会与否判断。"
     },
     "openness_to_ideas_18": {
       "primary_family": "OEF05",
       "secondary_family": null,
       "status": "core",
-      "note": "游戏之夜选择 — 纯认知挑战偏好"
+      "note": "新颖性和复杂度同时变化，保留完整四组合，作者计分待核。"
     },
     "openness_to_ideas_19": {
-      "primary_family": "OEF01",
+      "primary_family": null,
       "secondary_family": null,
-      "status": "core",
-      "note": "几何游戏被拒 — 维护智力活动价值，属于非工具性投入的特殊表现。不单独成族"
+      "status": "provisional",
+      "note": "来源保留待核且暂不归族；对朋友拒绝的反应混合兴趣、劝说、接受和共同评价，不直接等同于非工具性投入。"
     },
     "openness_to_ideas_20": {
       "primary_family": "OEF01",
       "secondary_family": "OEF06",
-      "status": "core",
-      "note": "旁听讲座系列 — 非工具性投入 + 主动寻求"
+      "status": "core"
     },
     "openness_to_ideas_21": {
       "primary_family": "OEF01",
-      "secondary_family": "OEF06",
+      "secondary_family": null,
       "status": "core",
-      "note": "度假读书计划 — 非工具性投入，度假是情境条件"
+      "note": "兴趣和执行分开，移除OEF06次要归属；D有扩展知识愿望但执行困难。"
     },
     "openness_to_ideas_22": {
       "primary_family": "OEF06",
-      "secondary_family": "OEF01",
+      "secondary_family": null,
       "status": "core",
-      "note": "免费杂志选择 — 主动选择认知性内容。不单独成族"
+      "note": "保留内容机会选择，移除OEF01次要归属；类别不能直接作为纯O5计分。"
     }
   },
   "coverage_summary": {
     "total_items": 22,
     "stable_families": 5,
     "provisional_families": 1,
-    "items_with_dual_assignment": 13,
-    "overrepresented": "OEF01 ???????? ? ?? primary ? secondary ??15/22?????????????????? OEF01 ?????????????",
-    "underrepresented": "OEF04 新观点认知接纳 — 仅1题。这确认了 Mussel 原题在 receptivity to new/unconventional ideas 方面的覆盖不足。",
+    "core_items": 19,
+    "provisional_items": 3,
     "rejected_items": 0,
-    "core_items": 21,
-    "provisional_items": 1,
-    "rejection_note": "无。22题全部保留，但部分题（07, 09, 19, 21, 22）的独立 mechanism 被拒绝——它们的表面差异来自情境条件或领域，而非不同的心理机制。"
+    "assigned_items": 21,
+    "unassigned_provisional_items": [
+      "openness_to_ideas_19"
+    ],
+    "items_with_dual_assignment": 10,
+    "family_counts": {
+      "OEF01": 13,
+      "OEF02": 6,
+      "OEF03": 3,
+      "OEF04": 1,
+      "OEF05": 3,
+      "OEF06": 5
+    },
+    "support_count_convention": "按同题在某族的主要或次要归属去重计数，跨族可以重复出现，因此族支持数之和不等于独立题数。",
+    "coverage_observations": [
+      "OEF04主要来自06，仅能说直接来源题较少，不能据此确认整个构念的覆盖不足。",
+      "本版全部22题保留来源与审阅状态；19暂不归族，其他题的解释仍有不同程度待核。"
+    ],
+    "coverage_observation_limits": "族的数量、题数集中与双重归属不证明机制独立、冗余或可生成题量上限。未验证的覆盖假设不直接转为新证据。",
+    "pending_checks": [
+      "核对德文原题和作者评分键，尤其03译文、05-D、18四组合及22内容类别。",
+      "复核19的人际应对与兴趣表达及其证据族归属。"
+    ]
   },
   "mapping_convention": {
-    "supporting_item_ids": "?? evidence family ???????????????????",
-    "item_evidence_mapping": "??????????????????????????????????"
+    "supporting_item_ids": "列出本版全部主要或次要归属该族的原题ID，题号在同族内去重，不表示逐选项正式评分或各选项均支持该族。",
+    "item_evidence_mapping": "记录主归属、可选次归属及审阅状态。primary_family为null且status为provisional表示来源保留但归属待核；题目状态不自动控制运行时使用，当前运行时按族status筛选。"
   }
 }

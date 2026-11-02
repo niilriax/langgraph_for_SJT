@@ -35,7 +35,7 @@ Each selected facet has the same five measured quantities and its own gates:
    the largest absolute Spearman rho with the other selected IPIP facets;
 3. convergent validity protection: target-facet IPIP Spearman rho;
 4. internal consistency gate: Cronbach alpha >= .70;
-5. virtual facet-score test-retest stability gate: absolute-agreement ICC >= .70.
+5. virtual facet-score test-retest ICC: reported for reference only; it is not a gate.
 
 Use construct and theoretical coverage as hard selection constraints and as
 the tie-breaking rationale. The four single-item qualification gates are
@@ -49,7 +49,7 @@ or validity.
 The program compares current whole forms by the following policy, separately
 for every selected facet:
 
-1. Cronbach alpha and ICC must each be >= .70 for every facet;
+1. Cronbach alpha must be >= .70 for every facet;
 2. each facet's target IPIP Hedges' g must strictly increase;
 3. each facet's delta_min must strictly increase;
 4. each facet's target IPIP Spearman rho must strictly increase.

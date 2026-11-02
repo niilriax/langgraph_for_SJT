@@ -11,9 +11,10 @@ from typing import Any
 
 from pydantic import Field
 
-from sjt_system.agent.agent_factory import mechanism_validation_agent
 from sjt_system.agent.retry import ainvoke_model_with_schema_repair
 from sjt_system.knowledge.behavior_evidence import StrictModel
+from sjt_system.prompt.blueprint_prompt import BLUEPRINT_PROMPT
+from sjt_system.prompt.situation_expansion_prompt import EXPANSION_PROMPT
 from sjt_system.runtime.io import write_json_atomic
 
 
@@ -29,6 +30,10 @@ class SituationDraft(StrictModel):
     domain: str = Field(min_length=1, max_length=100)
     actor_relation: str = Field(min_length=1, max_length=160)
     event_class: str = Field(min_length=1, max_length=200)
+    # Supplied concrete behaviors (high and low) that are realistic options here.
+    manifestation_ids: list[str] = Field(default_factory=list, max_length=8)
+    # Supplied trigger type (activation route) this situation realizes.
+    trigger_id: str = Field(default="", max_length=40)
 
 
 class MechanismDraft(StrictModel):
@@ -82,328 +87,6 @@ class BlueprintRowDraft(StrictModel):
 
 class BlueprintAgentOutput(StrictModel):
     rows: list[BlueprintRowDraft] = Field(min_length=1)
-
-
-EXPANSION_PROMPT = """
-Expand all supplied behavior evidence for one personality facet into a compact,
-theory-grounded, and population-appropriate situation space. Do not write SJT
-stems, response options, scores, reviews, rationales, or workflow metadata.
-
-INPUT AUTHORITY
-
-Use the supplied facet_profile to determine:
-
-* the meaning and direction of the target facet;
-* its boundaries from adjacent facets, ability, morality, and social
-  desirability;
-* the psychological processes that are admissible for the target construct.
-
-Use the supplied behavior evidence to determine:
-
-* the observable behavioral difference to be activated;
-* the level of abstraction of the expansion;
-* which behavioral processes may be represented.
-
-Use supplied theory_notes, when available, to determine:
-
-* which situational cues can plausibly activate the behavior difference;
-* which competing goals, priorities, or preferences are theoretically relevant;
-* why different expressions of the behavior may emerge.
-
-Use target_population to constrain:
-
-* domains and actor relations;
-* realistic authority, resources, and opportunities;
-* event frequency and stakes;
-* cultural and developmental appropriateness.
-
-Do not invent a psychological conflict merely because it is generally
-plausible. A proposed mechanism must be supported by the facet_profile,
-theory_notes, or the immediate psychological implications of the supplied
-behavior evidence.
-
-OUTPUT SCOPE
-
-The input includes required_situation_count. Across all behavior expansions,
-return exactly that many unique situation entries. Distribute the required
-situations across supported mechanisms without forcing extra mechanisms. A
-mechanism may contain one or more situations. Do not duplicate situations
-through superficial wording changes merely to satisfy capacity. Do not return
-more or fewer situation entries than requested.
-
-For each supplied behavior_id, return exactly one behavior expansion. Preserve
-the supplied behavior_id and do not create new IDs.
-
-Each behavior expansion contains 1–4 activation mechanisms. The number must vary
-with the theoretical and behavioral complexity of the evidence. Do not generate
-additional mechanisms merely to reach a preferred count.
-
-Each activation mechanism must be one clear sentence that specifies:
-
-1. the trait-relevant situational cue;
-2. two competing goals, priorities, or preferences that are both legitimate in
-   ordinary circumstances;
-3. why the situation leaves meaningful behavioral discretion;
-4. the observable decision pattern through which the supplied behavior
-   difference may emerge.
-
-An activation mechanism must explain when and why the behavior evidence may be
-expressed. It must not merely restate the high and low endpoints.
-
-DISTINCTNESS OF ACTIVATION MECHANISMS
-
-Activation mechanisms must represent substantively different activation
-processes.
-
-Two mechanisms are distinct only when at least one of the following differs
-meaningfully:
-
-* the trait-relevant cue;
-* the competing psychological priorities;
-* the reason behavioral discretion is preserved;
-* the observable choice through which the trait is expressed.
-
-Do not create separate mechanisms merely by changing:
-
-* location;
-* actor identity;
-* actor relation;
-* organization type;
-* academic subject;
-* surface event wording.
-
-Merge mechanisms that differ only in setting or surface realization. Prefer one
-well-supported mechanism over several semantically redundant mechanisms.
-
-TRAIT ACTIVATION AND SITUATIONAL STRENGTH
-
-Each mechanism must provide an opportunity for the target behavior difference
-to be expressed.
-
-Use weak situations in which:
-
-* no explicit rule dictates one response;
-* no option is clearly illegal, unsafe, cruel, deceptive, or irresponsible;
-* consequences are meaningful but not extreme;
-* the focal person has realistic choice;
-* both competing paths retain some practical or psychological justification.
-
-Do not use strong situations in which:
-
-* formal rules clearly require one action;
-* severe punishment makes one response unavoidable;
-* safety or emergency demands determine the response;
-* one path is obviously moral and the other obviously harmful;
-* one path requires incompetence, recklessness, or implausible bad intent.
-
-Each mechanism must contain two legitimate competing priorities. Do not contrast
-a facet-relevant tendency with negligence, dishonesty, cruelty, inability,
-general irresponsibility, or an obviously inferior decision.
-
-CONSTRUCT PURITY
-
-Preserve construct purity when converting behavior evidence into activation
-mechanisms.
-
-Do not turn the target distinction into:
-
-* lawfulness versus illegality;
-* rule compliance versus violation;
-* obedience versus defiance;
-* morality versus immorality;
-* helping versus harming;
-* competence versus incompetence;
-* emotional maturity versus dysfunction;
-* socially approved versus socially condemned behavior.
-
-When the source evidence mentions cheating, rule bending, exploitation,
-aggression, irresponsibility, or harm, retain only a directly supported
-facet-relevant process. Do not use the misconduct itself as the
-situation-defining conflict.
-
-Do not rehabilitate a contaminated source example by inventing an unsupported
-process such as information asymmetry, privacy, disclosure, trust, negotiation,
-or impression management. If the relevant process is not directly supported by
-the behavior evidence or supplied theory, do not use it.
-
-A mechanism must be explained more strongly by the target facet than by another
-personality facet, general ability, social skill, professional knowledge,
-morality, or situational demand.
-
-OBSERVABILITY
-
-Define mechanisms through observable differences in what the person:
-
-* says;
-* discloses;
-* withholds;
-* emphasizes;
-* chooses;
-* postpones;
-* initiates;
-* continues;
-* changes across comparable conditions.
-
-Do not define a mechanism through inaccessible motives such as:
-
-* genuine versus false concern;
-* sincerity versus insincerity;
-* hidden selfishness;
-* malicious intent;
-* unconscious goals;
-* a desire to manipulate.
-
-When such a latent process is relevant, express it through observable indicators
-such as:
-
-* changes in communication before and after a request;
-* consistency across comparable audiences;
-* timing of relational expressions;
-* inclusion or omission of decision-relevant information;
-* differences between stated reasons and subsequent action.
-
-Indirect communication, politeness, persuasion, selective emphasis, privacy
-protection, strategic timing, or negotiation alone is not sufficient evidence
-of a low trait expression.
-
-SITUATION ENTRIES
-
-Each activation mechanism may contain one or more situation entries. The total
-across this facet, rather than a per-mechanism quota, must satisfy
-required_situation_count.
-
-Each situation entry contains exactly:
-
-* domain;
-* actor_relation;
-* event_class.
-
-domain identifies a broad area of ordinary life relevant to target_population.
-
-actor_relation identifies the relationship and any psychologically relevant
-role feature, without inventing unnecessary personal detail.
-
-event_class must describe the trait-relevant cue and decision tension,
-not merely name a generic activity. Avoid broad labels such as:
-
-* asking for help;
-* working in a group;
-* attending an activity;
-* giving feedback;
-* resolving a conflict.
-
-The event_class must be abstract enough to support multiple later SJT
-items but specific enough to preserve:
-
-* the activation cue;
-* the competing priorities;
-* the behavioral discretion;
-* the intended observable distinction.
-
-POPULATION APPROPRIATENESS
-
-Every situation entry must:
-
-* be reasonably likely in the ordinary life of target_population;
-* give the focal person realistic authority, information, and access;
-* avoid requiring specialized professional expertise unless supplied;
-* use realistic stakes, resources, and time pressure;
-* avoid rare emergencies, extreme misconduct, or culturally implausible events;
-* avoid assuming relationships or responsibilities uncommon in the population.
-
-FINAL INTERNAL CHECK
-
-Before returning, silently verify each activation mechanism:
-
-* Is it directly supported by the behavior evidence, facet profile, or supplied
-  theory?
-* Does it contain a trait-relevant cue rather than a generic setting?
-* Does it contain two legitimate competing priorities?
-* Does the situation preserve meaningful behavioral discretion?
-* Are the behavioral differences observable?
-* Is the mechanism explained more strongly by the target facet than by another
-  construct?
-* Is it distinct from all other mechanisms for the same behavior_id?
-* Can it support a weak-situation SJT without creating an obvious correct
-  response?
-* Do the situation entries preserve the same activation mechanism rather than
-  introduce new conflicts?
-
-Revise, merge, or discard any mechanism that fails a check.
-
-Return only the requested structured object. Do not include commentary,
-explanations, citations, construct boundaries, scores, reviews, or text outside
-the object.
-""".strip()
-
-
-BLUEPRINT_PROMPT = """
-Design a PSJT two-way specification table from the supplied facets, behavior
-evidence expansions, and the exact requested final item count. The measurement
-axis is facet plus behavior_id. The candidate situation axis is mechanism_id
-plus situation_id.
-
-Return exactly row_total unique measurement rows, ordered by construct
-coverage. row_total equals the requested final item count. Each row must
-contain exactly one candidate_reference, so the candidate count equals the
-number of final retained items. If a candidate exhausts its failure-call
-budget, the workflow removes it and regenerates one replacement in the same
-temporary form slot. Expansion
-has prepared a situation pool larger than generation_total; select exactly
-generation_total unique situation references from it.
-Do not return generation or retention counts.
-
-Every candidate reference must cite IDs exactly as supplied. Prefer different
-activation mechanisms when the evidence supports them. Do not create or infer
-IDs.
-
-Prioritize construct representation: cover every supplied behavior_id when the
-requested count allows, and cover multiple mechanisms within a behavior when
-available candidate references allow. Do not concentrate rows merely to
-simplify selection. Do not generate item content, explanations, row IDs, or
-duplicated combinations.
-
-EVIDENCE-GUIDED SELECTION
-
-Each supplied facet includes its behavior_evidence. Use each evidence
-entry's behavior_dimension, high_expression, low_expression, and
-boundary_condition to validate every candidate mechanism before
-selecting it.
-
-Reject any mechanism whose activation_mechanism:
-
-* describes a behavioral pattern not covered by the evidence's
-  high_expression or low_expression — such as persistence versus
-  stopping engagement, social participation versus withdrawal,
-  directness versus indirectness, or general compliance versus
-  defiance;
-* relies on a behavioral signal the evidence's boundary_condition
-  explicitly excludes;
-* would still be selectable if the evidence's high_expression were
-  removed — i.e., the mechanism is not actually constrained by the
-  facet's defined behavior.
-
-When a mechanism is rejected, do not select any of its situations.
-Prefer mechanisms whose activation_mechanism operates on the same
-behavioral dimension the evidence defines, so that every generated item
-remains construct-pure.
-
-FACET QUOTAS
-
-The task input includes facet_retention_quotas. Return exactly the specified
-number of rows for every facet, including facets from different domains. Do
-not trade rows between facets even when one facet has more available
-situations than another.
-
-If blueprint_semantic_feedback is supplied in the task input, treat it as a hard
-correction to the previous proposal. Replace the cited candidate references
-and re-check global uniqueness across all rows before returning the object.
-
-If the available mechanisms cannot supply row_total unique, construct-pure
-candidate references, return the maximum construct-pure subset and let the
-program raise an error rather than padding with out-of-scope mechanisms or
-repeating a situation.
-""".strip()
 
 
 def _agent(prompt: str, output_type: type, prefix: str, temperature: float) -> Any:
@@ -486,6 +169,10 @@ async def ensure_facet_expansion(
     required_situation_count: int = 1,
     agent: Any | None = None,
 ) -> FacetExpansion:
+    from sjt_system.authoring.behavior_repertoire import (
+        domain_coverage_problems, domain_coverage_rule, life_domains_for, load_manifestations,
+        load_trigger_types, trigger_coverage_problems, trigger_coverage_rule,
+    )
     required_situation_count = max(1, int(required_situation_count))
     path = expansion_cache_path(run_id, str(facet["facet_id"]))
     if path.exists():
@@ -494,16 +181,25 @@ async def ensure_facet_expansion(
         if expansion_situation_count(cached) >= required_situation_count:
             return cached
     runnable = agent or create_expansion_agent()
+    manifestations = load_manifestations(str(facet["facet_id"]), behavior_evidence)
+    domains = life_domains_for(target_population)
+    coverage = domain_coverage_rule(required_situation_count, len(domains))
+    triggers = load_trigger_types(str(facet["facet_id"]), behavior_evidence)
+    trigger_rule = trigger_coverage_rule(required_situation_count, len(triggers))
     last_count = 0
+    coverage_problems: list[str] = []
     for attempt in range(_MAX_VALIDATION_RETRIES + 1):
         revision = ""
-        if attempt:
+        if attempt and last_count < required_situation_count:
             revision = (
                 f"上一候选有 {last_count} 个情境条目，但至少需要 "
                 f"{required_situation_count} 个。保持现有 Behavior Evidence 和"
                 "实质机制边界；如果数量不足，增加真实不同的情境条目；"
                 "不要为凑数创建重复机制或同质情境。"
             )
+        elif attempt and coverage_problems:
+            revision = ("上一候选的生活领域或触发方式覆盖不符合要求：" + "；".join(coverage_problems)
+                        + "。保持机制不变，调整情境的 domain、trigger_id 与事件，使其分布到更多生活领域和触发方式。")
         expansion = await _generate_expansion(
             runnable,
             facet,
@@ -512,12 +208,28 @@ async def ensure_facet_expansion(
             output_language,
             required_situation_count,
             extra_context=revision,
+            behavior_manifestations=manifestations,
+            life_domains=domains,
+            domain_coverage=coverage,
+            trigger_types=triggers,
+            trigger_coverage=trigger_rule,
         )
         last_count = expansion_situation_count(expansion)
         if last_count < required_situation_count:
             continue
-        # 数量满足“至少”即接受（不足才重试，偏大直接用）；
-        # Expansion 是离线设计提案，语义质量由统一审题把关。
+        coverage_problems = domain_coverage_problems(
+            [situation.domain for behavior in expansion.behavior_expansions
+             for mechanism in behavior.mechanisms for situation in mechanism.situations],
+            domains, coverage)
+        if triggers:
+            entries = [(situation.trigger_id, behavior.behavior_id)
+                       for behavior in expansion.behavior_expansions
+                       for mechanism in behavior.mechanisms for situation in mechanism.situations]
+            coverage_problems += trigger_coverage_problems(
+                [tid for tid, _ in entries], triggers, trigger_rule, [bid for _, bid in entries])
+        if coverage_problems and attempt < _MAX_VALIDATION_RETRIES:
+            continue
+        # 数量满足即接受；领域/触发方式覆盖在重试后仍不足时保留最后一版（软约束）。
         break
     else:
         raise ValueError(
@@ -556,7 +268,13 @@ async def _generate_expansion(
     output_language: str,
     required_situation_count: int,
     extra_context: str = "",
+    behavior_manifestations: list[Mapping[str, Any]] | None = None,
+    life_domains: list[str] | None = None,
+    domain_coverage: Mapping[str, int] | None = None,
+    trigger_types: list[Mapping[str, Any]] | None = None,
+    trigger_coverage: Mapping[str, int] | None = None,
 ) -> FacetExpansion:
+    from sjt_system.authoring.behavior_repertoire import manifestations_for_prompt, trigger_types_for_prompt
     input_data: dict[str, Any] = {
         "facet_profile": dict(facet),
         "behavior_evidence": [dict(row) for row in behavior_evidence],
@@ -564,6 +282,14 @@ async def _generate_expansion(
         "output_language": output_language,
         "required_situation_count": required_situation_count,
     }
+    if behavior_manifestations:
+        input_data["behavior_manifestations"] = manifestations_for_prompt(behavior_manifestations)
+    if life_domains:
+        input_data["life_domains"] = list(life_domains)
+        input_data["domain_coverage"] = dict(domain_coverage or {})
+    if trigger_types:
+        input_data["trigger_types"] = trigger_types_for_prompt(trigger_types)
+        input_data["trigger_coverage"] = dict(trigger_coverage or {})
     if extra_context:
         input_data["revision_instruction"] = extra_context
     raw = await ainvoke_model_with_schema_repair(
@@ -574,83 +300,6 @@ async def _generate_expansion(
     return assign_expansion_ids(
         str(facet["facet_id"]), target_population, raw
     )
-
-
-async def _validate_and_repair_mechanisms(
-    expansion: FacetExpansion,
-    runnable: Any,
-    facet: Mapping[str, Any],
-    behavior_evidence: list[Mapping[str, Any]],
-    target_population: str,
-    output_language: str,
-    required_situation_count: int,
-) -> FacetExpansion:
-    neighbor_facets = _neighbor_facet_definitions(facet)
-    for retry in range(_MAX_VALIDATION_RETRIES + 1):
-        failed_mechanisms: list[tuple[int, int, str, str]] = []
-        mechanisms = [
-            (bi, mi, mechanism)
-            for bi, behavior in enumerate(expansion.behavior_expansions)
-            for mi, mechanism in enumerate(behavior.mechanisms)
-        ]
-        results = await asyncio.gather(
-            *(
-                _validate_one_mechanism(
-                    mechanism.activation_mechanism,
-                    facet,
-                    neighbor_facets,
-                )
-                for _, _, mechanism in mechanisms
-            ),
-            return_exceptions=True,
-        )
-        for (bi, mi, mechanism), result in zip(mechanisms, results):
-            if isinstance(result, BaseException):
-                raise result
-            if not result.get("target_is_first"):
-                failed_mechanisms.append((
-                    bi, mi,
-                    mechanism.activation_mechanism,
-                    result.get("reason", ""),
-                ))
-
-        if not failed_mechanisms:
-            return expansion
-
-        if retry >= _MAX_VALIDATION_RETRIES:
-            _discard_failed_mechanisms(expansion, failed_mechanisms)
-            return expansion
-
-        revision = _build_validation_feedback(failed_mechanisms)
-        expansion = await _generate_expansion(
-            runnable,
-            facet,
-            behavior_evidence,
-            target_population,
-            output_language,
-            required_situation_count,
-            extra_context=revision,
-        )
-    return expansion
-
-
-async def _validate_one_mechanism(
-    mechanism_text: str,
-    facet: Mapping[str, Any],
-    neighbor_facets: list[dict[str, Any]],
-) -> dict[str, Any]:
-    raw = await mechanism_validation_agent.ainvoke({
-        "input_data": {
-            "target_facet": dict(facet),
-            "neighbor_facets": neighbor_facets,
-            "mechanism": mechanism_text,
-        }
-    })
-    if hasattr(raw, "model_dump"):
-        return raw.model_dump()
-    if isinstance(raw, Mapping):
-        return dict(raw)
-    raise ValueError(f"校验 agent 返回了非预期的类型：{type(raw).__name__}")
 
 
 def _neighbor_facet_definitions(

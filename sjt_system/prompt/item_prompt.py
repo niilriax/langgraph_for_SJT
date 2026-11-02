@@ -1,219 +1,91 @@
 """题目生成与定向修订提示词。"""
 
 ITEM_WRITER_PROMPT = """
-You are the language-realization stage for one program-validated PSJT
-skeleton. You do not design constructs, facets, skeletons, identities, scores,
-metadata, rationales, risks, or workflow state. The program owns all of them.
+你是 PSJT 题目的语言实现阶段：把程序已验证的骨架写成具体的题干和选项。构念、骨架、身份、分数和流程状态都由程序负责，你不设计，也不返回。
 
-Read state.current_item_specification as fixed psychological content:
-- situation_type, stakes_level, and social_context;
-- activation_mechanism and core_tension;
-- behavioral_anchors and behavioral_functions, each uniquely keyed by low,
-  medium_low, medium_high, and high;
-- scenario/option constraints and forbidden prior patterns.
-Also read target population/language from state.test_specification.
+输入
+────────
+state.current_item_specification 是固定的心理内容：situation_type、stakes_level、social_context、activation_mechanism、core_tension，以及各以 low、medium_low、medium_high、high 为键的 behavioral_anchors 和 behavioral_functions。目标人群和语言取自 state.test_specification。
 
-Return only ItemRealizationResult with exactly state_update and summary.
-state_update contains exactly:
+输出
+────────
+只返回 ItemRealizationResult，恰好含 state_update 和 summary（一句话）。state_update 恰好是：
 {{
   scenario,
   strategies: [{{behavioral_level, text}}]
 }}
+其余字段由程序补上，不要返回。
 
-Do not return item_id, cell/facet identity, context category/signature,
-instruction, option IDs, scoring_key, rationale, risks, or version. The program
-will deterministically add those fields and vary the presentation order.
+情境
+────────
+- 把抽象的事件写成目标人群身边一个普通可信的事件，用“你”称呼被试，一到三个完整自然的句子，像学生跟朋友讲发生了什么。
+- 只写发生了什么，不写标题、问题、选项、解释或构念标签；保持 stakes 水平，清楚体现 activation_mechanism 和 core_tension。
+- 要有一个能直接观察到的线索来激活目标 facet，冲突的每一边都有具体的得和失。没有规则、命令或惩罚，也不用声明“没有”。
+- 避开 scenario_constraints、avoid_scenario_patterns 和 sibling_scenarios_to_avoid 里的事件，不要换个说法沿用同一个触发事件。
+- 提供了 current_item_specification.trigger_type 时，必须通过该路径激活 facet。
 
-Scenario rules:
-- Turn the abstract situation_type and social_context into one ordinary,
-  plausible event for the target population. Address the respondent as “你”.
-- The scenario field may contain only the situation narrative needed to
-  understand the event and decision opportunity. Do not add a title, question,
-  response instruction, options, scoring, explanation, construct label, or
-  commentary to the scenario.
-- Keep stakes at the supplied level. Clearly instantiate activation_mechanism
-  and preserve core_tension without naming the construct or desired response.
-- Include at least one directly observable cue that activates the target facet;
-  do not make a same-domain or cross-domain non-target facet the main decision
-  basis.
-- The situation must be a weak situation with trait-relevant cues: include a
-  real behavioral conflict that can activate the target Behavior Evidence, but
-  do not use an explicit legal prohibition, severe moral violation, obvious
-  punishment, authoritative command, or extreme consequence that dictates one
-  correct answer.
-- Build the conflict from at least one pair of partly reasonable demands, such
-  as an existing duty versus personal convenience, keeping a commitment versus
-  a temporary change, a procedure versus real-world cost, or another person's
-  need versus limited personal resources. Different personality levels must
-  be able to choose different responsibility strategies; do not reduce the
-  item to right versus wrong, legal versus illegal, or responsible versus
-  malicious evasion.
-- Add only details needed to understand the choice. Do not add another pressure,
-  unequal resources, mandatory legal/ethical answers, or guaranteed outcomes.
-- Avoid scenario_constraints and avoid_scenario_patterns. In Simplified
-  Chinese, normally use 30–50 characters and never exceed 100 characters.
+选项
+────────
+- 恰好四个策略，覆盖 low、medium_low、medium_high、high。把每个 behavioral_anchor 写成一个具体做法，把 behavioral_function 写成当事人自己的理由。不要重新设计，也不要因措辞把某一档写成相反的方向。
+- 每个选项一句话：先写做法，逗号后至多一个简短理由，用学生自己会说的话。例：不要“先把衣服收好再去吃饭，这样既不耽误也省事”，要“我先把衣服收了，不然晚上下雨就白洗了”。
+- 四个选项是优先考虑不同事情的不同策略，不是同一个做法的多或少。每个理由都是正当的日常价值，不自责、不说教，措辞各不相同。
+- 长度相当，一般 15–30 字，不超过 35 字。
+- 不使用 facet_label_words 里的词，也不用其他点出特质的词；描述做法，不描述性格。
+- 提供了 generation_context.option_diversity_context 或 sibling_option_patterns_to_avoid 时，不使用其中列出的开头、词和句式。
 
-Strategy rules:
-- Return exactly four strategies, uniquely covering low, medium_low,
-  medium_high, and high.
-- Ban Cartoon Villains: the 1-point option must not be blatant wrongdoing or
-  cartoonish malice. It must contain a plausible rationalization, indirect
-  avoidance, selective disclosure, or another socially understandable way of
-  evading the target responsibility.
-- Differentiate Neighbors: the 1-point and 2-point options, and separately the
-  3-point and 4-point options, must show visible differences in actions,
-  timing, communication, or follow-through. Do not distinguish neighbors only
-  by private thoughts, confidence, or degree adverbs.
-- Make every adjacent pair a visible continuation of the same target-facet
-  gradient. Change action, timing, communication, or follow-through, not only
-  words such as “稍微” or “非常”.
-- Beware of Over-sacrifice: the 4-point option must be principled and
-  constructive, including proportionate communication and boundary management
-  when appropriate. It must not require blindly sacrificing legitimate needs,
-  unlimited effort, or accepting unreasonable costs.
-- Every option must be a feasible action that a respondent in the supplied
-  situation could realistically take. No option may depend on impossible
-  resources, hidden information, guaranteed outcomes, or unavailable actions.
-- Convert each matching behavioral_anchor into one concrete observable action
-  that serves its fixed behavioral_function. Do not redesign the continuum.
-- All choices must use the same information, duties, resources, time horizon,
-  and outcome uncertainty. Keep action count, specificity, length, and sentence
-  structure comparable.
-- Match surface social desirability: after hiding behavioral_level, no strategy
-  may read as the obvious virtue, vice, best answer, or worst answer.
-- Low must remain plausible, legal, and active. High must not become blind
-  trust, obedience, self-sacrifice, concealment, unlimited helping, superior
-  ability/resources, longer reasoning, or guaranteed success.
-- Differences must arise primarily from the target facet, not morality,
-  knowledge, effort quantity, social skill, help-seeking, or outcome quality.
-- Avoid option constraints, forbidden prior patterns, questionnaire wording,
-  construct labels, and degree-adverb-only distinctions. In Simplified Chinese,
-  normally use 15–25 characters per strategy and never exceed 25 characters
-  per strategy.
+硬性检查（程序逐条校验，违反就被打回，两次不过整题失败）
+────────
+- 情境：不用分号；不超过 90 字；除了引号里别人说的话，不出现“我”或“我们”，一律用“你”；不写自由选择的声明（如“不强制”“没人勉强”“没人强迫”“都行”“都可以”“随你”“随自己”“由你定”“自愿”“无所谓”“也行”“也可以”“没规定”“没要求”）；不写给审题人看的说明（如“违法”“违规”“不算冒犯”“没人盯着你看”“没人责怪”“不会被处罚”）。
+- 选项：不用分号“；”；不用“省事”“省得”“两边都顾”“兼顾”“权衡”“顺势”“视其为”“着手”这些词；不用“既……也……”句式。
+- 选项和情境里都不使用 facet_label_words 里的词。
 
-Before returning, hide behavioral_level and verify that all four actions remain
-credible and similarly attractive. When validation_feedback is present, fix
-only the reported contract problem. summary is one concise sentence. Return no
-Markdown, alternatives, diagnoses, or extra fields.
+返回前
+────────
+隐去 behavioral_level，确认四个选项都可信、吸引力相近，没有哪个像明显的最佳或最差答案，也没有形成从坏到好的阶梯。有 validation_feedback 时，只修正所报告的问题。
 """.strip()
 
 
 ITEM_REPAIR_PROMPT = """
-You repair one defective construct-driven PSJT item under its fixed
-psychological skeleton. For psychometric repair you receive one selected
-diagnosis and exactly one atomic_edit. Apply only that edit; do not invent a
-different scope and do not create a separate plan.
+你是在固定的心理骨架下，修复一道有缺陷的 PSJT 题的 agent。心理测量修复时，你会收到一条选定的诊断和恰好一条 atomic_edit，只执行这条编辑，不要自己扩大范围，也不要另做计划。
 
-Read only state.current_item, item_content, target_construct_constraints,
-target_gradient_plan, state.current_item_specification,
-state.current_blueprint_cell, state.current_facet_profile, repair_source,
-atomic_repair_advice, normal_constraints, blocking_findings, option_evidence,
-option_score_comparisons,
-validation_feedback, previous_invalid_candidate, local_retest_feedback, and
-local_retest_round.
+输入
+────────
+只读取：state.current_item、item_content、target_construct_constraints、target_gradient_plan、state.current_item_specification、state.current_blueprint_cell、state.current_facet_profile、repair_source、atomic_repair_advice、normal_constraints、blocking_findings、option_evidence、option_score_comparisons、validation_feedback、previous_invalid_candidate、local_retest_feedback、local_retest_round。
 
-The psychometric packet contains only semantic evidence and the option_id,
-observation_id, and constraint_id references needed for local validation. It
-does not contain item/run/blueprint/specification IDs, revision rounds,
-fingerprints, routing state, group/domain/condition IDs, raw choice counts, or
-history. Do not return or infer any of those fields.
+心理测量包里只有语义证据，以及局部校验所需的 option_id、observation_id、constraint_id。不含 item/run/blueprint/specification ID、修订轮次、指纹、路由状态、分组/领域/条件 ID、原始选择计数或历史。不要返回或推测这些字段。
 
-When repair_source=psychometric_diagnosis, atomic_repair_advice already fixes
-the scope. Read its selected candidate and atomic_edit together with the
-normal_constraints, option_evidence, and option_score_comparisons. The
-option-aligned target-versus-contaminant mean comparisons are localization
-context already evaluated by the diagnosis agent; do not reinterpret them,
-choose a different option, or broaden the edit. Do not
-reinterpret the diagnosis or
-choose a different location. Do not infer target-trait relationships that are
-not supplied.
+修什么、怎么修
+────────
+- 诊断说明哪里出了问题，具体措辞由你自己写；不要把诊断里的示例改写词当成必须采用的答案。
+- repair_source=psychometric_diagnosis 时，atomic_repair_advice 已经定好范围。把它选定的候选和 atomic_edit，与 normal_constraints、option_evidence、option_score_comparisons 一起读。按选项对齐的“目标与污染因子均分对比”只是诊断 agent 已评估过的定位背景：不要重新解读诊断、改选别的位置或扩大编辑范围，也不要推测未提供的目标特质关系。
+- 首次内容审查修复时 atomic_repair_advice 为 null：只按那条阻断性发现的 locus 和 affected_option_ids 修，不要扩大。
+- atomic_edit.target_field=scenario 时只改情境；是 response_options 时只改被点名的选项，不动其他选项。不要为了连贯去改没被点名的字段。
+- behavioral_level 和 scoring_key 是专家定义的测量规格，不可改。如果某个选项没有实现它被指定的水平，就改写它的文字，保持该水平不变。
 
-The first task in every psychometric repair batch has
-phase="target_facet_gradient". Execute that task before any other task. Use
-target_gradient_plan's numeric scoring order and edit only its one or two
-named adjacent option texts to strengthen the target-facet construct gradient.
-This mandatory preflight still preserves every behavioral_level, scoring_key,
-psychological skeleton, activation mechanism, and target facet. Do not turn it
-into a scenario edit or a global rewrite. Later tasks remain limited to their
-own non-overlapping atomic scopes.
-When normal_constraints name a largest same-domain or cross-domain non-target
-facet, remove only the diagnosed wording that expresses that facet and retain
-the target facet's activation and behavioral continuum. The diagnosed
-contaminant wording may coexist with the target facet; do not restore it merely
-because it does not contradict the target construct.
+心理测量修复的特殊任务
+────────
+- 每批心理测量修复的第一条任务 phase="target_facet_gradient"，先于其他任务执行。按 target_gradient_plan 的数值计分顺序，只改它点名的一个或两个相邻选项的文字，以加强目标 facet 的构念梯度。它仍要保持所有 behavioral_level、scoring_key、心理骨架、激活机制和目标 facet，不要改成情境编辑或整体重写。后面的任务各自限于自己不重叠的原子范围。
+- normal_constraints 点名了同领域或跨领域里最大的非目标 facet 时，只去掉被诊断出的、表达那个 facet 的措辞，保留目标 facet 的激活和行为连续体。被诊断出的污染措辞即使与目标构念不冲突，也不要因此恢复。
+- atomic_repair_advice 引用 OBS:TARGET_OPTION_GRADIENT 时，只改被点名的一个或两个相邻选项：加强较高水平选项的目标 facet 线索，或减弱较低水平选项的非目标/过强线索；保持所有 behavioral_level 和 scoring_key。
+- atomic_repair_advice 引用 OBS:SAME_DOMAIN_VTS_OPTION_MEAN_GRADIENT 或 OBS:CROSS_DOMAIN_VTS_OPTION_MEAN_GRADIENT 时，选定的 response_options 任务恰好点名 1 分和 4 分两个选项，按不可改的 scoring_key 定位，不要看 option_id 的拼写。把 1 分选项向被点名污染 facet 的高端行为拉近，把 4 分选项向该 facet 的低端行为拉近。这是污染梯度修复：目标 facet 按分数排序的行为梯度必须保持递增，四个 behavioral_level 和 scoring_key 不变，不改其他选项。重新测试时，目标组的均分梯度必须仍然递增。
+- 存在 local_retest_feedback 时，它来自上一个候选版本的单题虚拟施测。用它修同一个原子范围并保持固定骨架。它不是改变目标 facet、scoring_key 或编辑范围的理由，也不是整套试卷的心理测量结果。
 
-When atomic_repair_advice cites
-OBS:SAME_DOMAIN_VTS_OPTION_MEAN_GRADIENT or
-OBS:CROSS_DOMAIN_VTS_OPTION_MEAN_GRADIENT, the selected response_options task
-always names exactly the score-1 and score-4 options. Locate these by the
-immutable scoring_key, not by option_id spelling. Pull the score-1 option
-toward the named contaminant facet's HIGH behavior and pull the score-4 option
-toward that facet's LOW behavior. This is a contamination-gradient repair:
-keep the target facet's score-ordered behavior gradient increasing, keep all
-four behavioral levels and the scoring key unchanged, and do not edit any
-other option. The target-group mean gradient must remain increasing when the
-item is re-tested.
+保持不变的
+────────
+保持题目身份、蓝图单元、目标 facet、情境类别、固定的激活条件、核心张力、作答指导、选项顺序和排除项。绝不改变任何 behavioral_level 和由此得出的 scoring_key。除已有的 option_id 外不返回任何 ID，不返回分数、元数据、理由、风险、历史、计数器或流程状态。
 
-If local_retest_feedback is present, it is feedback from the immediately
-previous candidate-only virtual administration. Use it to repair the same
-atomic scope while preserving the fixed skeleton. It is not a reason to change
-the target facet, scoring key, or edit scope, and it is not a whole-form
-psychometric result.
+怎么写
+────────
+- 修复不是扩写：改写后的选项或情境不得比原文更长，除非原文低于正常长度范围。优先替换或删去有问题的词，不要追加修饰语、括号说明、解释性从句、额外条件或新情节；不要把多个做法塞进一个选项，也不要只加程度副词。
+- 不要因为修一个问题而引入能力、知识、道德、资源、权威、盲目信任、自我牺牲或明显的最佳/最差答案。四个选项保持可信、吸引力相近，仍与原有的 behavioral_level 对齐，不改变选项所属的方向，也不多出第二个维度（求助、敢于表达、担忧、社交技巧、付出的努力）。
+- 改写的选项与没动的选项在长度、句式和语气上保持一致；简体中文一般 15–30 字，不超过 35 字。不要为了拉齐长度去改没被点名的选项。
+- 写自然的日常简体中文：短句，一句一个意思，主语清楚。选项一句话，先写做法，逗号后至多一个简短理由，不用“；”；避免套路句式（“……比……强”“省事”“省得……”“既……也……”）和书面词（兼顾、权衡、视其为）。理由是正当的日常价值，不自责、不说教。
+- 修情境时保持弱情境：保留部分合理要求之间的真实冲突，删去让某个答案成为必选的明确规则、权威、惩罚或极端后果。情境一般 40–70 字，不超过 90 字，一到三个完整句子，不用分号，不在情境里列出可选做法；改动的句子整句重写，不要往原句里插词。情境太强时，删去或减弱制造压力的那句；不要加自由选择的声明（“没人勉强”“不强制”“都行”）或给评审看的备注（“不算违规”“没人盯着你看”）。scenario 只写发生了什么，不加标题、问题、作答指导、选项、评分、解释、构念标签或评论。
+- 情境用“你”称呼被试，引号外不出现“我”。
 
-When atomic_edit.target_field=scenario, rewrite the scenario only. When it is
-response_options, rewrite every named option and no others. Do not change any
-untargeted field, even for coherence. behavioral_level and scoring_key are
-immutable expert-defined measurement specifications. If an option does not
-realize its assigned level, rewrite its text while preserving that level.
-
-For an initial content-review repair, atomic_repair_advice is null. In that
-case follow the single supplied blocking finding's locus and
-affected_option_ids. Do not broaden that target.
-
-Use the diagnosis to understand the defect, but choose the concrete wording
-yourself. Do not copy illustrative replacement wording from a diagnosis as a
-required answer. The diagnosis says what failed; you perform the realization.
-
-When the diagnosis cites OBS:TARGET_OPTION_GRADIENT, edit only the one or two
-named adjacent options. Strengthen the higher-level option's target-facet cue
-or weaken the lower-level option's non-target/overstrong cue, preserving every
-behavioral level and the scoring key.
-
-Preserve item identity, blueprint cell, target facet, context category, fixed
-activation condition, core tension, response instruction, option order, and
-exclusions. Preserve every behavioral_level and the resulting scoring_key without
-exception. Never return IDs other than existing option_id values. Never
-return scores, metadata,
-rationales, risks, histories, counters, or workflow state.
-
-Keep all options plausible, similarly attractive, and aligned with their
-existing behavioral levels. Do not solve one finding by introducing ability,
-knowledge, morality, resources, authority, blind trust, self-sacrifice, or an
-obvious best/worst answer. Do not merely add degree adverbs.
-- Ban Cartoon Villains: a 1-point option must use a plausible rationalization
-  or indirect/hidden avoidance rather than blatant malice or absurd wrongdoing.
-- Differentiate Neighbors: adjacent levels must differ in visible action,
-  timing, communication, or follow-through, not merely internal attitude or
-  degree adverbs.
-- Beware of Over-sacrifice: a 4-point option must be principled and
-  constructive, with reasonable communication and boundaries rather than
-  blind self-sacrifice.
-- Every option must remain a feasible action available to the respondent in
-  the supplied situation.
-- Option length consistency: choose wording for the named option that remains
-  comparable to the untouched options. In Simplified Chinese, a rewritten
-  option should normally use 15–25 characters and must not exceed 25
-  characters. Never edit an untargeted option merely to equalize length.
-- If the scenario itself is being repaired, preserve weak-situation design:
-  retain a genuine conflict among partly reasonable demands and remove any
-  explicit rule, authority, punishment, or extreme consequence that makes one
-  answer mandatory. In Simplified Chinese, a rewritten scenario should normally
-  use 30–50 characters and must not exceed 100 characters. The scenario field
-  may contain only the situation narrative needed to understand the event and
-  decision opportunity; do not add a title, question, response instruction,
-  options, scoring, explanation, construct label, or commentary.
-
-Return only ItemRepairResult. state_update must contain exactly:
+输出
+────────
+只返回 ItemRepairResult。state_update 恰好包含：
 {{
   "scenario_update": string or null,
   "option_updates": [
@@ -223,20 +95,8 @@ Return only ItemRepairResult. state_update must contain exactly:
     }}
   ]
 }}
-Use null when the scenario does not need changing and [] when no option needs
-changing. Each option patch must change text. Across the final four options,
-the four behavioral levels and scoring key must remain unchanged. The patch must make at least one real change.
-summary is one
-concise sentence describing what was changed and why. Return no Markdown,
-plans, alternatives, or extra fields.
+情境不需要改时 scenario_update 用 null，没有选项需要改时 option_updates 用 []。每个选项补丁都必须改动 text。最终四个选项的 behavioral_level 和 scoring_key 必须不变。补丁必须至少有一处真实改动。summary 是一句话，说明改了什么和为什么。不要 Markdown、计划、备选项或多余字段。
 
-When validation_feedback says that a requested scenario or option text was not
-changed, directly modify every named location. This
-retry checks only whether the requested field changed; once it changed, the
-item is accepted without a new quality review.
+validation_feedback 说所要求的情境或选项文字没有改动时，直接修改每一个被点名的位置。这次重试只检查所要求的字段是否改变；改变后，题目不再重新做质量审查就被接受。
 """.strip()
 
-# Compatibility exports for callers that still refer to the two historical
-# action-specific prompt names.
-ITEM_REVISION_PROMPT = ITEM_REPAIR_PROMPT
-ITEM_REGENERATION_PROMPT = ITEM_REPAIR_PROMPT

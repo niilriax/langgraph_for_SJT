@@ -673,63 +673,6 @@ def _frequency_display(option: Mapping[str, Any], group_n: object) -> str:
     return f"{float(rate) * 100:.1f}% ({count}/{group_n})"
 
 
-def _option_frequency_rows(diagnostics: Mapping[str, Any]) -> list[dict[str, Any]]:
-    aggregate = diagnostics.get("aggregate") or diagnostics.get("all") or {}
-    option_ids = [
-        str(row.get("option_id"))
-        for row in aggregate.get("options") or []
-        if isinstance(row, Mapping)
-    ]
-    rows: list[dict[str, Any]] = []
-
-    def add_group(label: str, group: Mapping[str, Any], estimable: object) -> None:
-        by_option = {
-            str(row.get("option_id")): row
-            for row in group.get("options") or []
-            if isinstance(row, Mapping)
-        }
-        result = {
-            "分组": label,
-            "N": group.get("group_n"),
-            "可用于定位": "是" if estimable is True else "否",
-        }
-        for option_id in option_ids:
-            result[option_id] = _frequency_display(
-                by_option.get(option_id) or {}, group.get("group_n")
-            )
-        rows.append(result)
-
-    add_group("全样本", aggregate, True)
-    for condition in diagnostics.get("by_condition") or []:
-        if isinstance(condition, Mapping):
-            add_group(
-                f"条件 {condition.get('condition_id')}",
-                condition,
-                True,
-            )
-    return rows
-
-
-def _option_facet_mean_display_rows(
-    rows: Sequence[Mapping[str, Any]],
-) -> list[dict[str, Any]]:
-    return [
-        {
-            "题目": row.get("item_id"),
-            "实验臂": row.get("condition_id"),
-            "facet": row.get("facet_name") or row.get("facet_id"),
-            "选项": row.get("option_id"),
-            "计分": _metric_text(row.get("option_score", row.get("score"))),
-            "选择人数": row.get("n"),
-            "facet均值": _metric_text(row.get("facet_mean")),
-            "标准误": _metric_text(row.get("facet_standard_error")),
-            "参与过滤": "否",
-        }
-        for row in rows
-        if isinstance(row, Mapping)
-    ]
-
-
 def _option_score_comparison_display_rows(
     rows: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -774,42 +717,6 @@ def _agent_option_score_comparison_display_rows(
         for row in rows
         if isinstance(row, Mapping)
     ]
-
-
-def _arm_difference_display_rows(
-    diagnostics: Mapping[str, Any],
-) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for comparison in diagnostics.get("comparisons") or []:
-        if not isinstance(comparison, Mapping):
-            continue
-        overall = comparison.get("overall") or {}
-        high_band = next(
-            (
-                row
-                for row in comparison.get("by_score_band") or []
-                if isinstance(row, Mapping) and row.get("score_band") == "high"
-            ),
-            {},
-        )
-        rows.append(
-            {
-                "比较": comparison.get("comparison_id"),
-                "污染facet": comparison.get("comparator_facet_name")
-                or comparison.get("comparator_dimension_id"),
-                "配对N": comparison.get("matched_subject_count"),
-                "同选项率": _metric_text(overall.get("same_option_rate")),
-                "总体目标-污染臂题分": _metric_text(
-                    overall.get("target_minus_comparator_mean_item_score")
-                ),
-                "高分组三四级选择率差": _metric_text(
-                    high_band.get("target_minus_comparator_high_option_rate")
-                ),
-                "可估计": "是" if comparison.get("estimable") is True else "否",
-                "参与过滤": "否",
-            }
-        )
-    return rows
 
 
 def _round_overview_row(entry: Mapping[str, Any]) -> dict[str, Any]:
@@ -1147,7 +1054,7 @@ def _render_facet_iteration_state(state: Mapping[str, Any]) -> None:
             "主动单题门槛：CITC≥.30、IPIP目标Hedges'g≥.50、目标IPIP rho_s≥.40、Δmin≥.30。"
             "Profile目标rho_s/同域VTS/跨域VTS只作诊断，threshold=None、passes=None。"
             "整卷五项：α、ICC、目标g、目标rho、Δmin；基线首测可直接建立，即使α/ICC未过。"
-            "后续成功轮要求α和ICC≥.70，且g/rho/Δmin均较上一完成轮严格上升>1e-12。"
+            "后续成功轮要求α≥.70（ICC仅作参考），且g/rho/Δmin均较上一完成轮严格上升>1e-12。"
         )
         attempts = iteration.get("local_attempts") or {}
         st.dataframe(
@@ -1191,7 +1098,7 @@ def _render_facet_iteration_state(state: Mapping[str, Any]) -> None:
                         "α": metrics.get("cronbach_alpha"),
                         "α≥.70": (metrics.get("alpha_gate") or {}).get("passed"),
                         "ICC": metrics.get("virtual_test_retest_icc"),
-                        "ICC≥.70": (metrics.get("stability_gate") or {}).get("passed"),
+                        "ICC≥.70(参考)": (metrics.get("stability_gate") or {}).get("passed"),
                         "Hedges' g": metrics.get("target_hedges_g"),
                         "目标rho": metrics.get("target_spearman_rho"),
                         "Δmin": metrics.get("discriminant_delta_min"),
@@ -1242,7 +1149,7 @@ def _render_virtual_test_statistics(value: object) -> bool:
     st.caption(
         "主动门槛：CITC≥.30、单题IPIP目标Hedges'g≥.50、目标IPIP rho_s≥.40、Δmin≥.30。"
         "Profile目标ρs、同域VTS与跨域VTS仅作诊断，无阈值、无资格判定权。"
-        "整卷五项指标为alpha、ICC、目标g、目标rho与Δmin；alpha/ICC门槛均为.70。"
+        "整卷五项指标为alpha、ICC、目标g、目标rho与Δmin；alpha门槛为.70；ICC仅作参考，不参与判定。"
         "难度、选项使用率与Cronbach alpha仅作描述；结果不是正式单题信效度。"
     )
     with st.expander("查看完整分析配置与路径"):
@@ -1313,7 +1220,7 @@ def _render_iteration_history(value: object) -> bool:
                 "目标rho": facet.get("target_spearman_rho"),
                 "Δmin": facet.get("discriminant_delta_min"),
                 "α≥.70": (facet.get("alpha_gate") or {}).get("passed"),
-                "ICC≥.70": (facet.get("stability_gate") or {}).get("passed"),
+                "ICC≥.70(参考)": (facet.get("stability_gate") or {}).get("passed"),
                 "g升幅": _improvement_value(_comparison_gate(comparison, "hedges_g_improvement_gate")),
                 "g升幅通过": (_comparison_gate(comparison, "hedges_g_improvement_gate")).get("passed"),
                 "rho升幅": _improvement_value(_comparison_gate(comparison, "target_rho_improvement_gate", "target_rho_noninferiority_gate")),
@@ -1440,7 +1347,7 @@ def _render_iteration_history(value: object) -> bool:
     st.caption(
         "每轮先用候选题组成临时测验，再计算整卷指标；这些是虚拟开发期筛查结果，"
         "不能替代真人样本的正式信效度。每facet报告五项整卷指标；首测建立基线，"
-        "基线后最多完成两轮成功返修；每轮各facet须满足α/ICC≥.70，且g、rho、Δmin原始值较上一完成轮分别严格上升>1e-12；不使用平台期早停。"
+        "基线后最多完成两轮成功返修；每轮各facet须满足α≥.70（ICC仅作参考），且g、rho、Δmin原始值较上一完成轮分别严格上升>1e-12；不使用平台期早停。"
     )
     if facet_rows:
         st.markdown("**各 facet 五项整卷指标及相对上一完成轮的升幅**")

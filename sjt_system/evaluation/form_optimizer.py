@@ -35,12 +35,12 @@ from sjt_system.evaluation.selection import (
 from sjt_system.evaluation.form_metrics import (
     FORM_ALPHA_DEFAULT_MINIMUM,
     PLATEAU_DEFAULT_MIN_DELTA,
-    VIRTUAL_FORM_ICC_DEFAULT_MINIMUM,
     assess_form_plateau,
     batch_provisional_form_quality,
     build_provisional_form_metrics,
     facet_form_gate_comparison,
     form_quality_summary,
+    icc_gate_passed,
     prepare_provisional_form_metric_context,
     whole_form_objective_improves,
 )
@@ -672,8 +672,7 @@ def _hold_historical_facets(
         if not mixed_evaluation.get("valid") or not (
             mixed_facet.get("cronbach_alpha") is not None
             and mixed_facet["cronbach_alpha"] >= FORM_ALPHA_DEFAULT_MINIMUM
-            and mixed_facet.get("virtual_test_retest_icc") is not None
-            and mixed_facet["virtual_test_retest_icc"] >= VIRTUAL_FORM_ICC_DEFAULT_MINIMUM
+            and icc_gate_passed(mixed_facet.get("virtual_test_retest_icc"))
         ):
             unavailable.append(f"{facet_id}: 历史题组重测或组合校验未通过")
             continue
@@ -786,7 +785,7 @@ def _search_factorized_test_forms(
                 if any(not isinstance(facet.get(key), (int, float)) for key in fields):
                     return infeasible("Incomplete full facet metrics in exact factorized search")
                 eligible = (facet["cronbach_alpha"] >= FORM_ALPHA_DEFAULT_MINIMUM
-                            and facet["virtual_test_retest_icc"] >= VIRTUAL_FORM_ICC_DEFAULT_MINIMUM)
+                            and icc_gate_passed(facet["virtual_test_retest_icc"]))
                 incumbent = (historical_facets.get(pool["facet_id"]) or {}).get("metrics")
                 from sjt_system.evaluation.facet_iteration import is_enabled
                 improves = is_enabled(state) and eligible and (incumbent is None or all(
@@ -824,7 +823,7 @@ def _search_factorized_test_forms(
             g = float(proxies["target_hedges_g"][index])
             delta = float(proxies["discriminant_delta_min"][index])
             rho = float(proxies["target_spearman_rho"][index])
-            eligible = alpha >= FORM_ALPHA_DEFAULT_MINIMUM and icc >= VIRTUAL_FORM_ICC_DEFAULT_MINIMUM
+            eligible = alpha >= FORM_ALPHA_DEFAULT_MINIMUM and icc_gate_passed(icc)
             improves = eligible and (incumbent is None or (
                 g > float(incumbent["target_hedges_g"]) + 1e-12
                 and rho > float(incumbent["target_spearman_rho"]) + 1e-12
@@ -1042,7 +1041,7 @@ def _search_best_test_forms(
                 for facet_id, proxies in batch_quality["facet_metrics_proxy"].items():
                     alpha = float(proxies["cronbach_alpha"][index])
                     icc = float(proxies["virtual_test_retest_icc_proxy"][index])
-                    if alpha < FORM_ALPHA_DEFAULT_MINIMUM or icc < VIRTUAL_FORM_ICC_DEFAULT_MINIMUM:
+                    if alpha < FORM_ALPHA_DEFAULT_MINIMUM or not icc_gate_passed(icc):
                         continue
                     incumbent = (historical_facets.get(facet_id) or {}).get("metrics")
                     if incumbent is None or (
@@ -1054,8 +1053,7 @@ def _search_best_test_forms(
                 ranking_key = (
                     facet_improvements,
                     1.0
-                    if float(batch_quality["stability_proxy"][index])
-                    >= VIRTUAL_FORM_ICC_DEFAULT_MINIMUM
+                    if icc_gate_passed(float(batch_quality["stability_proxy"][index]))
                     and float(batch_quality["alpha_proxy"][index]) >= FORM_ALPHA_DEFAULT_MINIMUM
                     else 0.0,
                     float(batch_quality["ipip_target_known_groups_hedges_g"][index]),

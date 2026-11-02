@@ -229,6 +229,7 @@ class ItemSpecification(TypedDict):
     option_constraints: list[str]
     avoid_scenario_patterns: list[str]
     avoid_response_patterns: list[str]
+    trigger_type: NotRequired[dict[str, str]]
 
 
 class ItemPatternProfile(TypedDict):
@@ -313,23 +314,11 @@ class CompactSkeletonResult(TypedDict):
     summary: str
 
 
-# Compatibility aliases for older checkpoints/imports. New model calls use the
-# singular contract above and never ask the model to copy specification IDs.
-CompactSkeletonBatchStateUpdate = CompactSkeletonStateUpdate
-CompactSkeletonBatchResult = CompactSkeletonResult
-
-
 class SkeletonReviewFinding(TypedDict):
     severity: Literal["warning", "blocking"]
     issue: str
     evidence: str
     instruction: str | None
-
-
-class SkeletonReview(TypedDict):
-    findings: list[SkeletonReviewFinding]
-    evidence_limitations: list[str]
-    summary: str
 
 
 class SJTResponseOption(TypedDict):
@@ -362,11 +351,6 @@ class ItemStateUpdate(TypedDict):
     current_item: SJTItem
 
 
-class ItemResult(TypedDict):
-    state_update: ItemStateUpdate
-    summary: str
-
-
 class ItemOptionTextPatch(TypedDict):
     option_id: str
     text: str
@@ -374,11 +358,6 @@ class ItemOptionTextPatch(TypedDict):
 
 class ItemRevisionStateUpdate(TypedDict):
     option_updates: list[ItemOptionTextPatch]
-
-
-class ItemRevisionResult(TypedDict):
-    state_update: ItemRevisionStateUpdate
-    summary: str
 
 
 class ItemRepairStateUpdate(TypedDict):
@@ -414,11 +393,6 @@ class ItemRegenerationStateUpdate(TypedDict):
     contamination_risks: list[str]
 
 
-class ItemRegenerationResult(TypedDict):
-    state_update: ItemRegenerationStateUpdate
-    summary: str
-
-
 class PsychometricRepairHypothesis(TypedDict):
     failure_mode: Literal[
         "acceptable_development_quality",
@@ -450,20 +424,6 @@ class PsychometricRepairHypothesis(TypedDict):
     repair_instruction: str
     predicted_change: str
     confidence: Literal["low", "medium", "high"]
-
-
-class PsychometricRepairDiagnosis(TypedDict):
-    decision: Literal[
-        "retain",
-        "revise_item",
-        "revise_options",
-        "regenerate_realization",
-        "replace_candidate",
-        "defer",
-    ]
-    primary_hypothesis: PsychometricRepairHypothesis
-    acceptance_criteria: list[str]
-    summary: str
 
 
 class AtomicDiagnosisDiscrepancy(TypedDict):
@@ -514,12 +474,6 @@ class AtomicRepairAdvice(TypedDict):
     candidate_diagnoses: list[AtomicDiagnosisCandidate]
     repair_tasks: list[AtomicRepairTask]
     summary: str
-
-
-class MechanismValidationResult(TypedDict):
-    ranking: list[str]
-    target_is_first: bool
-    reason: str
 
 
 class ItemRequiredEdit(TypedDict):

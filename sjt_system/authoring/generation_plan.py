@@ -488,11 +488,18 @@ def resolve_blueprint_design(
         row for row in mechanism.situations
         if row.situation_id == situation_id
     )
+    from sjt_system.authoring.behavior_repertoire import trigger_brief
+
+    situation_payload = situation.model_dump(mode="json")
+    trigger = trigger_brief(str(facet.get("facet_id")), facet.get("behavior_evidence") or [],
+                            situation_payload.get("trigger_id"))
+    if trigger:
+        situation_payload["trigger_type"] = trigger
     return {
         "facet": deepcopy(facet),
         "behavior_evidence": deepcopy(behavior),
         "activation_mechanism": mechanism.activation_mechanism,
-        "situation": situation.model_dump(mode="json"),
+        "situation": situation_payload,
     }
 
 
@@ -846,6 +853,8 @@ def materialize_item_specifications(
                 ),
                 "avoid_scenario_patterns": [],
                 "avoid_response_patterns": [],
+                **({"trigger_type": deepcopy(situation["trigger_type"])}
+                   if situation.get("trigger_type") else {}),
             }
         )
     return rows

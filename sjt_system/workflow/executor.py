@@ -695,14 +695,6 @@ async def _ainvoke_model(
     )
 
 
-class PsychometricDiagnosisUnavailable(RuntimeError):
-    """A repair diagnosis failed before it could support a safe item change."""
-
-
-PSYCHOMETRIC_REPAIR_TIMEOUT_SECONDS = 600.0
-PSYCHOMETRIC_REPAIR_SUBAGENT_CONCURRENCY = 4
-
-
 def _output_error_kind(exc: ValueError) -> str:
     """Classify output failures without conflating JSON and business errors."""
 
@@ -1167,7 +1159,7 @@ def _select_fixed_facet_iteration(state: PSJTState) -> dict[str, Any]:
                 "comparison": deepcopy(comparisons.get(facet_id) or {}),
                 "baseline_metrics": deepcopy(controller["baseline_facets"][facet_id]["metrics"]),
                 "required_change": (
-                    "All three facet validity values must strictly increase and alpha/ICC must reach .70; "
+                    "All three facet validity values must strictly increase and alpha must reach .70 (ICC is reference-only); "
                     "qualified items in the bottom quartile of any active item-validity metric receive a full repair."
                 ),
             }
@@ -1990,8 +1982,12 @@ async def _fill_compact_slots(
     valid_seed: Mapping[str, Mapping[str, Any]] | None = None,
     target_ids: set[str] | None = None,
     attempts_used: int = 0,
+    extra_input: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, dict[str, Any]], int]:
     """Fill independent fixed slots together without exposing IDs to the model.
+
+    ``extra_input`` adds facet-planning context (assigned difference channel,
+    sibling anchors, label words, planning feedback).
 
     Slot identity is workflow state, not generated content.  Each model call
     therefore returns one anonymous skeleton payload; this function attaches
@@ -2057,6 +2053,7 @@ async def _fill_compact_slots(
                 "behavior_evidence": behavior,
                 "activation_mechanism": design["activation_mechanism"],
                 "situation": design["situation"],
+                **deepcopy(dict(extra_input or {})),
             }
             if last_error is not None or last_problems:
                 input_data["validation_feedback"] = {
@@ -2224,6 +2221,11 @@ async def execute_fixed_blueprint(state: PSJTState) -> dict:
                 expansions,
                 facet_quotas,
             )
+            # Program-level spread: within the mechanisms the proposal vetted,
+            # avoid >2 rows per mechanism and prefer unused life domains.
+            from sjt_system.authoring.behavior_repertoire import rebalance_candidate_references
+            proposal = type(proposal).model_validate({"rows": rebalance_candidate_references(
+                proposal.model_dump(mode="json")["rows"], expansions)})
             candidate_blueprint = build_generation_blueprint(
                 specification,
                 profile,
@@ -2417,34 +2419,6 @@ def _build_option_evidence_for_repair(
             "score": opt_stat.get("score"),
         })
     return result
-
-
-async def _run_psychometric_local_retest(
-    *,
-    state: PSJTState,
-    candidate_item: Mapping[str, Any],
-) -> dict[str, Any]:
-    """Legacy candidate-only administration, outside fixed-cohort rounds."""
-    if fixed_facet_iteration_enabled(state):
-        raise ValueError("Fixed-cohort candidates must be committed and measured in a scheduled batch")
-
-    simulation = await run_single_item_virtual_retest(
-        state,
-        candidate_item,
-    )
-    metrics = evaluate_single_item_candidate(
-        state,
-        candidate_item,
-        simulation.get("records") or [],
-    )
-    return {
-        "simulation": {
-            key: value
-            for key, value in simulation.items()
-            if key != "records"
-        },
-        "metrics": metrics,
-    }
 
 
 async def _execute_psychometric_repair_item(

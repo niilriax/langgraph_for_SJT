@@ -1,0 +1,485 @@
+{
+  "facet_id": "conscientiousness_self_discipline",
+  "neo_code": "C5",
+  "source": "stage3_behavior_bank.json",
+  "behavior_types": [
+    {
+      "type_id": "BT01",
+      "family_id": "SEF01",
+      "direction": "high",
+      "description": "立即或短暂考虑后停止娱乐，转向原定安排",
+      "psychological_function": "改变当下活动的优先顺序",
+      "source_manifestation_ids": [
+        "BM01",
+        "BM02",
+        "BM33"
+      ]
+    },
+    {
+      "type_id": "BT02",
+      "family_id": "SEF01",
+      "direction": "high",
+      "description": "拒绝当前邀请或改变赴约安排，以处理原定事项或新出现的任务",
+      "psychological_function": "调整赴约安排以处理事务",
+      "source_manifestation_ids": [
+        "BM05",
+        "BM13",
+        "BM25",
+        "BM41"
+      ]
+    },
+    {
+      "type_id": "BT03",
+      "family_id": "SEF01",
+      "direction": "high",
+      "description": "先处理原定事项，再视剩余时间参加其他活动，或让他人等候",
+      "psychological_function": "将事项处理置于其他活动之前",
+      "source_manifestation_ids": [
+        "BM06",
+        "BM09",
+        "BM10",
+        "BM14",
+        "BM26",
+        "BM37"
+      ]
+    },
+    {
+      "type_id": "BT04",
+      "family_id": "SEF01",
+      "direction": "high",
+      "description": "立即或短暂休息后处理当前事项，部分来源明确做到完成",
+      "psychological_function": "启动或继续处理事项",
+      "source_manifestation_ids": [
+        "BM17",
+        "BM18",
+        "BM21",
+        "BM22",
+        "BM29",
+        "BM45"
+      ]
+    },
+    {
+      "type_id": "BT05",
+      "family_id": "SEF01",
+      "direction": "high",
+      "description": "在可兼顾另一种偏好的环境中处理原定事项",
+      "psychological_function": "通过改变环境兼顾原定事项与其他偏好",
+      "source_manifestation_ids": [
+        "BM30"
+      ]
+    },
+    {
+      "type_id": "BT07",
+      "family_id": "SEF01",
+      "direction": "high",
+      "description": "允许同时有其他娱乐，但把主要注意力放在原事务上",
+      "psychological_function": "在其他活动同时存在时维持主要任务注意",
+      "source_manifestation_ids": [
+        "BM46"
+      ]
+    },
+    {
+      "type_id": "BT08",
+      "family_id": "SEF01",
+      "direction": "low",
+      "description": "先继续当前享受一会再决定，或明确持续到结束",
+      "psychological_function": "延后停止当前享受的决定，或继续至其结束",
+      "source_manifestation_ids": [
+        "BM03",
+        "BM04"
+      ]
+    },
+    {
+      "type_id": "BT09",
+      "family_id": "SEF01",
+      "direction": "low",
+      "description": "先赴约、娱乐或休息，把原定事项留到之后或本次不做",
+      "psychological_function": "将其他活动置于当前事项之前",
+      "source_manifestation_ids": [
+        "BM07",
+        "BM15",
+        "BM23",
+        "BM27",
+        "BM43",
+        "BM44",
+        "BM47"
+      ]
+    },
+    {
+      "type_id": "BT10",
+      "family_id": "SEF01",
+      "direction": "low",
+      "description": "把事项搁置到之后，部分来源已先作少量准备",
+      "psychological_function": "延后当前事项的处理",
+      "source_manifestation_ids": [
+        "BM19",
+        "BM20",
+        "BM31",
+        "BM36",
+        "BM40"
+      ]
+    },
+    {
+      "type_id": "BT11",
+      "family_id": "SEF01",
+      "direction": "low",
+      "description": "为延期寻找理由，或在延期时没有愧疚",
+      "psychological_function": "以理由或无愧疚的感受伴随延期",
+      "source_manifestation_ids": [
+        "BM11",
+        "BM12"
+      ]
+    },
+    {
+      "type_id": "BT12",
+      "family_id": "SEF01",
+      "direction": "low",
+      "description": "不再继续准备，选择现场发挥或接受当前已近完成的版本",
+      "psychological_function": "减少后续准备，接受即兴处理或当前版本",
+      "source_manifestation_ids": [
+        "BM24",
+        "BM28"
+      ]
+    },
+    {
+      "type_id": "BT13",
+      "family_id": "SEF01",
+      "direction": "low",
+      "description": "先开始，但如果耗时过长就停止",
+      "psychological_function": "以耗时为条件限制持续投入",
+      "source_manifestation_ids": [
+        "BM32"
+      ]
+    },
+    {
+      "type_id": "BT14",
+      "family_id": "SEF01",
+      "direction": "low",
+      "description": "请他人处理或希望他人代做，自己转向其他活动",
+      "psychological_function": "将处理事项转交他人，或期待他人代为处理",
+      "source_manifestation_ids": [
+        "BM16",
+        "BM35",
+        "BM48"
+      ]
+    },
+    {
+      "type_id": "BT15",
+      "family_id": "SEF01",
+      "direction": "low",
+      "description": "不回复请求，等待对方因其重要性再联系",
+      "psychological_function": "以外部再次联系作为是否处理的后续条件",
+      "source_manifestation_ids": [
+        "BM39"
+      ]
+    },
+    {
+      "type_id": "BT16",
+      "family_id": "SEF02",
+      "direction": "high",
+      "description": "立即开始处理积压或想起的待办，可顺便处理其他小事",
+      "psychological_function": "启动积压或想起的事项",
+      "source_manifestation_ids": [
+        "BM49",
+        "BM85",
+        "BM86"
+      ]
+    },
+    {
+      "type_id": "BT17",
+      "family_id": "SEF02",
+      "direction": "high",
+      "description": "为有明确期限的工作保留每天时间或一整段专用时间",
+      "psychological_function": "为任务建立时间安排",
+      "source_manifestation_ids": [
+        "BM53",
+        "BM54"
+      ]
+    },
+    {
+      "type_id": "BT18",
+      "family_id": "SEF02",
+      "direction": "high",
+      "description": "明确决定完成已开始但无趣难处理的内容",
+      "psychological_function": "表达继续到完成的意向",
+      "source_manifestation_ids": [
+        "BM57"
+      ]
+    },
+    {
+      "type_id": "BT19",
+      "family_id": "SEF02",
+      "direction": "high",
+      "description": "继续到一定进度后，再决定是否全部完成",
+      "psychological_function": "先继续到一定进度，再重新决定是否完成",
+      "source_manifestation_ids": [
+        "BM58"
+      ]
+    },
+    {
+      "type_id": "BT20",
+      "family_id": "SEF02",
+      "direction": "high",
+      "description": "将全部事项处理完，可以中间休息",
+      "psychological_function": "完成全部事项，允许中间休息",
+      "source_manifestation_ids": [
+        "BM50",
+        "BM81",
+        "BM82"
+      ]
+    },
+    {
+      "type_id": "BT21",
+      "family_id": "SEF02",
+      "direction": "low",
+      "description": "部分处理后延后，或把整批事项留到之后",
+      "psychological_function": "限制当前处理范围并延后其余事项",
+      "source_manifestation_ids": [
+        "BM51",
+        "BM52",
+        "BM83",
+        "BM88"
+      ]
+    },
+    {
+      "type_id": "BT22",
+      "family_id": "SEF02",
+      "direction": "low",
+      "description": "灵活推进而不固定时间，或有想法时才专心处理",
+      "psychological_function": "以灵活时间或当前状态安排投入",
+      "source_manifestation_ids": [
+        "BM55",
+        "BM56"
+      ]
+    },
+    {
+      "type_id": "BT23",
+      "family_id": "SEF02",
+      "direction": "low",
+      "description": "停止完成原先计划的内容，选择转让或搁置",
+      "psychological_function": "终止当前内容的继续投入",
+      "source_manifestation_ids": [
+        "BM59",
+        "BM60"
+      ]
+    },
+    {
+      "type_id": "BT24",
+      "family_id": "SEF02",
+      "direction": "low",
+      "description": "从第一项开始，再看实际能推进到什么程度",
+      "psychological_function": "启动第一项并依据实际进展继续",
+      "source_manifestation_ids": [
+        "BM84"
+      ]
+    },
+    {
+      "type_id": "BT25",
+      "family_id": "SEF03",
+      "direction": "high",
+      "description": "向他人说明自己的限制目标，并改选其他相容选项",
+      "psychological_function": "说明限制目标并选择相容选项",
+      "source_manifestation_ids": [
+        "BM61"
+      ]
+    },
+    {
+      "type_id": "BT26",
+      "family_id": "SEF03",
+      "direction": "high",
+      "description": "把吸引物交给他人，或移除以避免诱惑",
+      "psychological_function": "移交或移除当前吸引物",
+      "source_manifestation_ids": [
+        "BM62",
+        "BM65"
+      ]
+    },
+    {
+      "type_id": "BT29",
+      "family_id": "SEF03",
+      "direction": "low",
+      "description": "认为一次例外无妨，或将原限制目标改到以后",
+      "psychological_function": "允许当前例外或推迟原限制目标",
+      "source_manifestation_ids": [
+        "BM63",
+        "BM64",
+        "BM68"
+      ]
+    },
+    {
+      "type_id": "BT31",
+      "family_id": "SEF04",
+      "direction": "high",
+      "description": "表达持续投入，或把更多空闲时间用于目标活动",
+      "psychological_function": "表达持续投入或增加目标活动的时间占用",
+      "source_manifestation_ids": [
+        "BM73",
+        "BM74"
+      ]
+    },
+    {
+      "type_id": "BT32",
+      "family_id": "SEF04",
+      "direction": "low",
+      "description": "因更重视空闲时间而拒绝需要持续投入的目标机会",
+      "psychological_function": "为保留空闲时间而拒绝目标机会",
+      "source_manifestation_ids": [
+        "BM75"
+      ]
+    },
+    {
+      "type_id": "BT33",
+      "family_id": "SEF01",
+      "direction": "high",
+      "description": "面对意外干扰仍维持原定任务安排，或决定暂时不用相关工具",
+      "psychological_function": "维持原任务安排；部分来源还限制相关工具的使用",
+      "source_manifestation_ids": [
+        "BM77",
+        "BM78"
+      ]
+    },
+    {
+      "type_id": "BT34",
+      "family_id": "SEF01",
+      "direction": "low",
+      "description": "因感到不顺而什么都不想做，当下不再处理原定任务",
+      "psychological_function": "中断当下任务",
+      "source_manifestation_ids": [
+        "BM79"
+      ]
+    },
+    {
+      "type_id": "BT35",
+      "family_id": "SEF01",
+      "direction": "low",
+      "description": "先处理突然出现的另一事项，再视剩余时间是否处理原定任务",
+      "psychological_function": "先处理其他事项，再有条件地恢复原任务",
+      "source_manifestation_ids": [
+        "BM80"
+      ]
+    },
+    {
+      "type_id": "BT36",
+      "family_id": "SEF01",
+      "direction": "high",
+      "description": "先继续当前偏好的活动，随后处理原定事项",
+      "psychological_function": "在继续当前偏好活动之后处理原定事项",
+      "source_manifestation_ids": [
+        "BM34"
+      ]
+    },
+    {
+      "type_id": "BT37",
+      "family_id": "SEF02",
+      "direction": "low",
+      "description": "延后处理待办，除非当前安排迟迟未能实现",
+      "psychological_function": "以当前安排未能实现作为转向待办的条件",
+      "source_manifestation_ids": [
+        "BM87"
+      ]
+    },
+    {
+      "type_id": "BT38",
+      "family_id": "SEF03",
+      "direction": "low",
+      "description": "先满足当下吸引，再开始原定的限制计划",
+      "psychological_function": "将限制计划的开始放到当下满足之后",
+      "source_manifestation_ids": [
+        "BM67"
+      ]
+    }
+  ],
+  "review_notes": {
+    "review_basis": "逐条核对Stage 3原记录与docs/mussel_zh.json；德文及作者计分未取得。",
+    "direction_convention": "仍为上游理论方向，不能作为作者正式计分；对明确歧义保留事实并从可用行为类型撤下，不自行反转方向。",
+    "family_alignment": "补入11的BM77-BM80至SEF01；22在Stage 2不归族，在本文件四条均待核；10仅SEF04暂定。",
+    "source_corrections": {
+      "BM34": "18-B是先听喜欢的曲目，不是指定一首歌；单独为BT36，不与立即中断完全合并。",
+      "BM67": "12-C未明说吃完整份，BT38删除完整数量。",
+      "BM14": "06-B是加班几小时再赴约，不等于明示全部工作完成。",
+      "BM28": "13-D近完成版本是否足够是质量取舍，不一定是未完成或即兴。"
+    },
+    "deferred_manifestations": {
+      "BM08": "02-D先赴约再计划晚间做项目，上游low；与20-B计划晚间补训练的high存在跨题抽象冲突。保留事实，待原计分，不作为确定方向模板。",
+      "BM42": "20-B赴约并计划晚间补训练，非最佳但不是不中断原时段；与02-D方向差别待核。",
+      "BM38": "19-B中文同时写朋友前完成一切和其余稍后，无法确定分阶段内容；不虚构所有必要步骤。",
+      "BM66": "12-B只吃一勺后把其余计入饮食的中文语义待核，不补写其余丢弃、转交或已纳入明确限量。",
+      "BM76": "10-D贷款或其他资金渠道不直接说明放弃持续训练、即时满足或自律不足；方向待核。",
+      "BM69": "22只有已饱与免费甜点，无明示自设限制目标；Stage 2暂不归族，行为与方向待核。",
+      "BM70": "22只有已饱与免费甜点，无明示自设限制目标；Stage 2暂不归族，行为与方向待核。",
+      "BM71": "22只有已饱与免费甜点，无明示自设限制目标；Stage 2暂不归族，行为与方向待核。",
+      "BM72": "22只有已饱与免费甜点，无明示自设限制目标；Stage 2暂不归族，行为与方向待核。"
+    },
+    "retired_type_ids": {
+      "BT06": "BM42方向待核。",
+      "BT27": "BM66译意待核、BM70的22归属待核。",
+      "BT28": "22无明示自设约束，BM69待核。",
+      "BT30": "22无明示自设约束，BM71/BM72待核。"
+    },
+    "source_usage_convention": "79条非待核BM均引用一次，9条完整保留待核说明；不改写上游原始文件，不虚构新BM。",
+    "remaining_limits": [
+      "A/B/C/D不是本版已核定的计分键。",
+      "灵活安排、休息、委托、改期和不完成无趣阅读均存在其他解释。",
+      "仅家族stable筛选不能自动处理逐题歧义，因此明确待核BM已从behavior_types中撤下。"
+    ],
+    "cross_file_review_status": "Stage 2、3b、4b本轮审查同步完成。",
+    "type_review_boundaries": {
+      "BT01": "改变当下活动的优先顺序，不把所有来源写成立即行动",
+      "BT02": "保留取舍动作及原先社交承诺，不把拒绝统一视为正确",
+      "BT03": "保留不同先后安排；不把加班数小时自动写成已完成工作",
+      "BT04": "区分开始与完成，休息可以与持续投入并存",
+      "BT05": "保留改变地点与处理材料同时进行，不强迫放弃享受环境",
+      "BT07": "记录注意力重点，不推定完全不分心或已经完成",
+      "BT08": "区分暂缓决定与明确一直看完，不统一写成直到自然结束",
+      "BT09": "保留原选项是否打算补做或仅感到欣慰，不统一断言永久放弃",
+      "BT10": "区分完全未做与已浸泡部分物品，不推定心理回避是唯一原因",
+      "BT11": "分别记录理由与感受，不推定两种选项都明确事后合理化",
+      "BT12": "区分即兴应对与质量够用判断，不把不完美写成未完成",
+      "BT13": "记录附条件投入，不等同于根本没有开始",
+      "BT14": "区分实际委托与仅期待他人；保留能力分工的替代解释",
+      "BT15": "保留原明确等待理由，不补写已造成后果",
+      "BT16": "记录启动，不把立即行动推成全部任务均已完成",
+      "BT17": "记录时间安排，不推定已经持续执行或不存在外部要求",
+      "BT18": "保留完成意向，不推定已经完成或必须如此才合理",
+      "BT19": "保留进度门槛与重新决定，不改写为无条件完成承诺",
+      "BT20": "不把不休息当作必要条件，区分休息安排",
+      "BT21": "记录处理范围与时间，不补写迫不得已、无动机等原因",
+      "BT22": "不预断必定逾期或未完成，保留时间条理偏好的解释",
+      "BT23": "记录停止，保留兴趣和继续投入价值的解释",
+      "BT24": "保留已经启动，不添加拒绝负责或保证不完成的动机",
+      "BT25": "记录沟通与选择，不预设社交压力一定存在",
+      "BT26": "分别保留分享和明确移除意图，不一概写成完全不接触",
+      "BT29": "分别记录例外、明年再做和次日开始，不补写羞愧或合理化效果",
+      "BT31": "保留投入表达，不声称回报遥远、没有即时回报或已长期执行",
+      "BT32": "保留明确价值取舍，不泛化所有贷款选择为自律不足",
+      "BT33": "补入原先遗漏的学习反应，不把它们改写成享乐诱惑",
+      "BT34": "保留明确心情与行为，不宣称所有竞争选项都令人愉快",
+      "BT35": "记录先后顺序及条件，不把修理本身定为享乐",
+      "BT36": "保留延后而非立即行动，不把曲目数缩写成一首",
+      "BT37": "记录行动条件，不统一写成无条件拖到明天",
+      "BT38": "不添加已吃完整份或永久放弃目标"
+    },
+    "source_specific_formulations": {
+      "BT02": "拒绝当前邀请或改变赴约安排，以处理工作或训练",
+      "BT08": "先继续娱乐一会再决定，或看到节目结束",
+      "BT18": "明确决定读完已开始但无趣难读的内容",
+      "BT19": "至少读到一半，再决定是否读完",
+      "BT23": "不读完原先计划的内容，选择卖掉或放在一旁",
+      "BT31": "明确坚持训练，或将空闲时间更多用于训练",
+      "BT32": "因空闲时间更重要而拒绝成绩资助机会",
+      "BT33": "面对设备故障仍坚持原定学习，或决定考前不用设备",
+      "BT34": "因坏运气而什么都不想做，当下不再学习",
+      "BT35": "先处理设备故障，再视剩余时间是否学习",
+      "BT36": "先听喜欢的曲目，再处理原定事项",
+      "BT37": "仅在较长时间睡不着时才起来处理忘做的事项"
+    },
+    "field_review_convention": {
+      "review_date": "2026-11-02",
+      "description": "去掉不决定行为差异的原题场景词，保留有证据的顺序、参与范围、注意状态、条件与明确感受；抽象化不是新增领域的实证支持。",
+      "psychological_function": "只陈述来源明确的意图或动作直接产生的互动作用，不补写成功结果及潜在动机；纯感受记录无明确行为功能时标未明示。",
+      "type_review_boundaries": "原字段中的审阅限制移到本项，仍须与类型及族边界一起阅读；不能因移出字段就视为问题已获计分核定。",
+      "source_specific_formulations": "保留本次抽象前的具体表述供来源对照；可用类型以behavior_types中的当前表述为准。",
+      "unchanged_references": "本次保留全部类型编号、族归属、方向及BM引用。待核行为未恢复为可用类型。"
+    }
+  }
+}

@@ -16,7 +16,6 @@ def model_settings(config):
         "requirement_agent": {**base, "include_json_schema": False},
         "item_writer_agent": dict(base), "item_review_agent": dict(base),
         "item_repair_agent": dict(base),
-        "mechanism_validation_agent": {**base, "temperature": .1},
     }
     _, temperature = factory._task_model_parameters("SKELETON_GENERATION", default_temperature=.7)
     roles["compact_skeleton_agent"] = {"model_id": config.model_id, "temperature": temperature}
@@ -59,7 +58,6 @@ def workflow_model_scope(store):
         "item_writer_agent": (factory.ITEM_WRITER_PROMPT, factory.ItemRealizationResult),
         "item_review_agent": (factory.UNIFIED_ITEM_REVIEW_PROMPT, factory.ItemReviewDiagnosis),
         "item_repair_agent": (factory.ITEM_REPAIR_PROMPT, factory.ItemRepairResult),
-        "mechanism_validation_agent": (factory.MECHANISM_VALIDATION_PROMPT, factory.MechanismValidationResult),
         "psychometric_repair_diagnosis_agent": (factory.PSYCHOMETRIC_REPAIR_DIAGNOSIS_PROMPT, factory.AtomicRepairAdvice),
         "psychometric_item_repair_agent": (factory.ITEM_REPAIR_PROMPT, factory.ItemRepairResult),
     }

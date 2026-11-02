@@ -294,13 +294,3 @@ def build_test_form_html(
     return str(Path(output_path).resolve())
 
 
-def generate_test_form_pdf_html(
-    state: Mapping[str, Any],
-    output_root: str | Path,
-) -> str:
-    """Write the printable test form under outputs/final_reports/<run>/."""
-    run_id = str(state.get("run_id") or "unknown")
-    output_dir = Path(output_root) / run_id
-    output_dir.mkdir(parents=True, exist_ok=True)
-    path = output_dir / "test_form.html"
-    return build_test_form_html(state, path)

@@ -312,45 +312,6 @@ def _cli_frequency_display(option: dict, group_n: object) -> str:
     return f"{float(rate) * 100:.1f}%({count}/{group_n})"
 
 
-def _print_option_choice_diagnostics(diagnostics: dict) -> None:
-    aggregate = diagnostics.get("aggregate") or diagnostics.get("all") or {}
-    option_ids = [
-        str(row.get("option_id"))
-        for row in aggregate.get("options") or []
-        if isinstance(row, dict)
-    ]
-    if not option_ids:
-        print("选项选择频率：无可用数据")
-        return
-    print("选项选择频率（仅用于定位文本核查点，不参与过滤）：")
-    print("| 分组 | N | 可用于定位 | " + " | ".join(option_ids) + " |")
-    print("|---|---:|---|" + "---:|" * len(option_ids))
-
-    def print_group(label: str, group: dict, estimable: bool) -> None:
-        options = {
-            str(row.get("option_id")): row
-            for row in group.get("options") or []
-            if isinstance(row, dict)
-        }
-        values = [
-            _cli_frequency_display(options.get(option_id) or {}, group.get("group_n"))
-            for option_id in option_ids
-        ]
-        print(
-            f"| {label} | {group.get('group_n', 0)} | "
-            f"{'是' if estimable else '否'} | " + " | ".join(values) + " |"
-        )
-
-    print_group("全样本", aggregate, True)
-    for condition in diagnostics.get("by_condition") or []:
-        if isinstance(condition, dict):
-            print_group(
-                f"条件 {condition.get('condition_id')}",
-                condition,
-                True,
-            )
-
-
 def _print_option_score_comparisons(rows: list[dict]) -> None:
     if not rows:
         print("按选项对齐的设定分数均值：无可用数据")
@@ -647,7 +608,7 @@ def print_psychometric_summary(
         f"{_format_metric(virtual_summary.get('median_item_target_ipip_spearman_rho'))}；"
         "Δmin最小值="
         f"{_format_metric(virtual_summary.get('minimum_item_discriminant_delta_min'))}；"
-        "；整卷alpha≥.70、ICC≥.70，后续成功轮每facet的g/rho/Δmin均须较上一完成轮严格上升>1e-12"
+        "；整卷alpha≥.70（ICC仅作参考），后续成功轮每facet的g/rho/Δmin均须较上一完成轮严格上升>1e-12"
     )
     combined_state = {**state, **proposed_update}
     round_result = proposed_update.get("psychometric_round_result") or (
@@ -767,7 +728,7 @@ def print_provisional_iteration_summary(proposed_update: dict) -> None:
             f"g={_format_metric(facet.get('target_hedges_g'))}；"
             f"rho={_format_metric(facet.get('target_spearman_rho'))}；"
             f"Δ={_format_metric(facet.get('discriminant_delta_min'))}；"
-            f"首轮基线允许alpha/ICC低于.70；alpha门槛=.70；ICC门槛=.70"
+            f"首轮基线允许alpha低于.70；alpha门槛=.70；ICC仅作参考，不参与判定"
         )
     iteration = proposed_update.get("facet_iteration_state") or {}
     comparisons = iteration.get("comparisons") or []

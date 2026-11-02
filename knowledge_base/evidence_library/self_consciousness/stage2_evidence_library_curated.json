@@ -2,76 +2,104 @@
   "facet": "self_consciousness",
   "facet_id": "neuroticism_self_consciousness",
   "neo_code": "N4",
-  "definition": "在社交场合中容易感到尴尬、害羞或不自在，对他人评价敏感。核心是 sensitivity to social evaluation and tendency to feel embarrassed or inferior in social situations，不等同于社交焦虑障碍、内向 (E) 或低自尊。",
-  "high_pole": "在社交场合中容易感到不自在，担心他人评价，回避引人注目的情境",
-  "low_pole": "在社交场合中从容自在，不太在意他人看法，能坦然面对尴尬",
+  "definition": "在社会接触、受到注意或被评价时，较容易感到尴尬、羞怯或不自在，并对他人如何看待自己较敏感的倾向。内在感受、自我指向解释和行为应对需分别记录；回避、参与、幽默或解释不能单独替代特质判断。不直接等同于低外向、低自尊或临床诊断。",
+  "high_pole": "在相同社会情境中较容易出现尴尬、羞怯、不自在或评价顾虑；部分来源表现为减少曝光、隐藏或回避，也可能在继续参与时仍感到不适。",
+  "low_pole": "在相同社会情境中较少受到尴尬或评价顾虑的困扰；不要求必须幽默、主动表现、享受关注或具有较高社交技巧。仅凭留下或主动应对不能确定内在感受。",
   "curation_notes": {
-    "curated_from": "LLM Stage 2 V3 output (8 families) + human re-analysis",
-    "curated_to": "5 families (4 stable + 1 provisional)",
-    "key_issues_fixed": [
-      "V1/V2: EF01 (社交失误后回避) and EF08 (社交失误后主动化解) were split into two families. This is WRONG — EF08 is simply the LOW pole of EF01's mechanism. Merged.",
-      "V1/V2: EF01 (自己犯错) and EF06 (公开场合尴尬事件) were split by event type. Merged — they share the same mechanism of 'reactive avoidance after an embarrassing event.'",
-      "V3: EF05 (明确负面评价后的防御性反应) was identified but mixes anger (N2) with self-consciousness. Only the 'image concern' component is retained; anger is flagged as contamination."
-    ]
+    "curated_from": "LLM Stage 2 V3 output and subsequent curation, revised against the 22 Chinese source items in docs/mussel_zh.json",
+    "curated_to": "5 organizing families (4 stable + 1 provisional); 21 items assigned and item17 retained provisionally without family assignment",
+    "review_basis": "本轮逐题核对项目中文题干与选项，未核对德文原文或作者原始评分键。旧记录中的human re-analysis不作为本文件已经获得专家核定的证明。",
+    "grouping_principle": "五族用于组织不同社会情境中的感受、解释与应对，不表示五种独立且经验证的心理机制。进入情境前的选择、已受到注意后的感受和后续参与可以重叠。",
+    "interpretation_convention": "保留明确感受、实际动作和行为过程，不用回避或留下、沉默或解释单独推断高低。幽默、主动修复、公开参与或拒绝也不能自动视为无尴尬或高尴尬。单次选项不能推出反应更持久等时间特性。",
+    "status_convention": "stable/provisional为当前整理与使用状态，construct_purity是待验证的内容判断；支持题数不机械决定状态，core也不是作者评分或纯度已验证的结论。",
+    "runtime_scope": "当前加载器按族status筛选，不按逐题status筛选。17暂不归族，不进入任一支持清单；03主要关联provisional的NEF04，默认不加载。族关联与逐选项方向仍需分别核对。",
+    "mapping_revisions": [
+      "04主要归入NEF03，因为其他客人已看向自己；次要关联NEF02仅对应是否接受进一步表演，不说曝光尚未发生。",
+      "17保留为provisional且暂不归族：情侣亲密行为引起的不适可能涉及隐私、规范或场景偏好，原题未明确自己遭到评价。",
+      "15仍主要归入NEF05，次要关联NEF01仅记录公开不适与应对的组织性重叠，不视为新增独立心理机制。",
+      "20、21继续保留实际反应，不把愤怒或解释删改成未明示的形象担忧；补齐原先支持清单遗漏。"
+    ],
+    "source_review_flags": {
+      "self_consciousness_03": "A有自我指向思考和外表检查，B仅明确分心看笔记；C继续演示、D主动澄清都不能证明完全没有自我怀疑。",
+      "self_consciousness_08": "B明确克服自己且为了伴侣参与；C容易被说服且通常喜欢此类任务。不能把被说服统一解释为勉强或同一特质方向；A公开表示宁愿旁观也不单独证明内在轻松。",
+      "self_consciousness_09": "A明确尴尬，B为不引人注意愿意容许响更久；关掉电话的动作本身也可能反映礼貌，不能独立定向。",
+      "self_consciousness_12": "转身或先放下物品不等于原题明确说永久放弃购买；不补写长期购物结果。",
+      "self_consciousness_16": "醉酒者公开指控包含潜在安全与冲突规避解释，不能强制归为轻度非威胁尴尬。",
+      "self_consciousness_17": "来源保留、归属待核；不因不适就断言担心他人对自己的评价。",
+      "self_consciousness_20": "沉默烦恼、主动解释、幽默回应和不在意分别保留。主动解释不等于低N4，烦恼也不直接等于评价恐惧。",
+      "self_consciousness_21": "尴尬、愤怒、正面理解和愚人节解释分别保留；不把愤怒改写成形象顾虑，幽默理解也可能反映情境归因差异。"
+    },
+    "cross_file_review_status": "Stage 3b、4b已完成本轮中文原题审查与同步；08四条BM方向冲突待核，17在三层保持待核。德文原文和作者计分仍待核。"
   },
   "evidence_library": [
     {
       "family_id": "NEF01",
-      "family_name": "尴尬/失误后的评价回避",
-      "definition": "发生可能引起他人注意和评价的公开尴尬事件后，因担心他人负面评价而选择回避、逃离或隐藏，而非留在情境中坦然面对或主动化解。",
-      "high_trait_evidence": "尴尬事件发生后优先减少曝光——回避、逃离、隐藏、沉默。",
-      "low_trait_evidence": "尴尬事件发生后留在情境中——坦然自嘲、主动化解、正常处理、不在意他人目光。",
+      "family_name": "尴尬或公开评价事件中的感受与应对",
+      "definition": "在尴尬、失误、敏感信息被看见或公开评论等互动中，记录明确的不自在、尴尬、烦恼等感受，以及隐藏、回避、继续、解释或玩笑等不同应对。不是所有事件都由自己失误引起，也不是所有反应都属于回避。",
+      "high_trait_evidence": "可表现为明确尴尬、不自在或较在意曝光，部分行为包含隐藏、离开或减少接触；是否沉默、换位或退出不能脱离具体原因独立定向。",
+      "low_trait_evidence": "可表现为较少受明确评价顾虑困扰、继续原活动、直接处理或把事件看作玩笑；主动处理和幽默不自动证明没有尴尬或社交技能更高。",
       "supporting_item_ids": [
         "self_consciousness_01",
+        "self_consciousness_05",
         "self_consciousness_07",
         "self_consciousness_09",
         "self_consciousness_12",
         "self_consciousness_14",
+        "self_consciousness_15",
         "self_consciousness_16",
-        "self_consciousness_17",
         "self_consciousness_18",
         "self_consciousness_19",
-        "self_consciousness_05"
+        "self_consciousness_20",
+        "self_consciousness_21"
       ],
-      "support_count": 10,
+      "support_count": 12,
       "status": "stable",
-      "construct_purity": "high",
+      "construct_purity": "medium",
       "competing_facets": [
-        "E2: 乐群 (回避社交场合)",
-        "A4: 顺从 (不敢投诉/表达)"
+        "E2: 乐群",
+        "E3: 果断性",
+        "A4: 顺从",
+        "N2: 愤怒敌意"
       ],
-      "boundary_condition": "仅适用于轻度、非威胁性的社交尴尬事件。不适用于：人身安全威胁、职业惩戒风险、法律后果。高自我意识不能写成'社交恐惧症'——必须是'在普通人也会感到尴尬的情境中，反应更强烈且更持久'。低自我意识不能写成'厚脸皮或不顾他人感受'——必须是'能够坦然面对普通社交失误'。HIGH和LOW是同一证据的两端——主动化解尴尬属于LOW极，不是独立的证据族。",
+      "boundary_condition": "保留感受、动作和原因的区别，不以留下或离开单独定向。01因尴尬留在错误影厅；19-B留在场所但隐藏；20、21有烦恼、解释或愤怒而非仅回避。16可能有安全考量。单次反应不能证明更持久。12的转身或放下物品不等于已放弃购买。",
       "alternative_explanations": [
-        "内向 (E) 可能表现为回避社交但不一定出于评价恐惧",
-        "社交技能差异可能影响化解尴尬的能力",
-        "情境严重性差异（打翻酒 vs 被当众羞辱）"
+        "避免打扰、礼貌、隐私与具体活动偏好",
+        "社交技巧及直接表达能力",
+        "安全判断与冲突规避，尤其16",
+        "愤怒体验、冒犯感、幽默理解与情境归因，尤其20、21",
+        "对关系或职业角色的实际顾虑，不等同于普遍评价恐惧"
       ],
       "typical_high_manifestations": [
-        "留在错误影厅不换厅以避免引人注目",
-        "逃离尴尬现场",
-        "假装没看到相关人物",
-        "立即关掉引起注意的手机",
-        "放弃购买私密物品"
+        "因不舒服或尴尬留在错误影厅（01-A/B）；与因尴尬离开其他场所是不同动作",
+        "误认他人后迅速离开或整晚回避（07-A/B）",
+        "明确尴尬而关掉电话，或试图不引人注意地处理（09-A/B）；保留理由",
+        "转身避开上级，或先放下敏感物品再问候（12-A/B），不补写放弃购买",
+        "希望在无人看见的位置继续停留（19-B）或明确感到尴尬（21-A）"
       ],
       "typical_low_manifestations": [
-        "起身去正确影厅",
-        "礼貌道歉并澄清误解",
-        "主动问候并开玩笑化解",
-        "接电话并小声告知稍后联系",
-        "继续正常购物"
+        "起身纠正错误影厅安排（01-C）",
+        "道歉并说明误会，或通过互动处理误认（07-C/D）；技能因素仍需考虑",
+        "纠正按错按钮后继续原安排（14-C/D）",
+        "自嘲后留下，或不作回应继续活动（19-C/D）；沉默的含义需结合场景",
+        "将评论理解为小玩笑，或作中性、正面情境解释（20-D、21-C/D）；并非自动证明低N4"
       ],
       "common_trait_activating_cues": [
-        "公开场合中的尴尬事件（自身失误、敏感物品暴露、他人指责等）",
-        "可能被在场他人注意和评价",
-        "事件刚发生，个体意识到尴尬"
-      ]
+        "出现失误、敏感信息被看见或可能引起社会评价的事件",
+        "部分题目有明确在场他人反应，部分仅为与相关人物相遇",
+        "事件、已有感受和后续动作分别记录，不预设个体必然尴尬或必然想退出"
+      ],
+      "source_response_notes": [
+        "20-A/B的烦恼与解释、21-B的愤怒作为实际反应保留，不因不符合回避定义而删除，也不擅自确定为纯N4高极。",
+        "16-A/B的离开与换位保留，同时标记安全解释；09-C/D的接听或继续观看也不能脱离礼貌规范单独判分。"
+      ],
+      "coverage_note": "本版支持清单覆盖全部主要或次要归属；族内不同感受、动作和情境并非每题均具备，高低方向为待评分键核对的构念解释。"
     },
     {
       "family_id": "NEF02",
-      "family_name": "评价暴露的预期性回避",
-      "definition": "在面对即将可能成为他人注意和评价焦点的机会时（尚未发生尴尬），因预期性担忧而主动回避或拒绝进入该情境。",
-      "high_trait_evidence": "尚未成为焦点，仅仅因为预期自己将成为评价对象，就提前减少曝光或退出。",
-      "low_trait_evidence": "即使预期将成为注意焦点，也较自然地进入情境并执行。",
+      "family_name": "公开表现机会中的参与选择与评价顾虑",
+      "definition": "在公开表演、演讲、提问或继续接受关注的机会面前，记录拒绝、附条件参与、自然接受及其明确理由。机会可以是首次进入焦点，也可以延长已有关注，不统一假定曝光从未发生。",
+      "high_trait_evidence": "可能表达不舒服、不愿在多人面前表现、回避公开发言，或虽克服不适仍参与；单独拒绝、被劝说或为了他人参加不能唯一确定评价顾虑。",
+      "low_trait_evidence": "可能表达高兴、通常喜欢任务或较自然地参与；参与动作本身不证明内在没有不适，宁愿旁观也不能仅凭公开表达就定为低极。",
       "supporting_item_ids": [
         "self_consciousness_04",
         "self_consciousness_08",
@@ -82,109 +110,122 @@
       "status": "stable",
       "construct_purity": "medium",
       "competing_facets": [
-        "E3: 果断性 (不敢在公开场合表达)",
-        "E2: 乐群 (不喜欢成为众人焦点)"
+        "E3: 果断性",
+        "E2: 乐群",
+        "A4: 顺从"
       ],
-      "boundary_condition": "仅适用于非强制性的公开表演/演讲/提问机会。不适用于：工作必需的汇报、学业必需的答辩。区分 NEF01 与 NEF02：NEF01 是尴尬已经发生后的反应性回避，NEF02 是尴尬尚未发生前的预期性回避。两者是不同的心理机制——前者是 shame/embarrassment reactivity，后者是 anticipatory social-evaluative anxiety。",
+      "boundary_condition": "04已被众人注视，次要归属仅针对进一步表演；08需区分为了伴侣克服自己与通常喜欢任务而容易被说服。拒绝可反映内容偏好或能力经验；参与可伴随不适。原题的选择空间不等于所有现实必需汇报都不能涉及本特质。",
       "alternative_explanations": [
-        "公开演讲能力/经验不足",
-        "对表演内容不感兴趣",
-        "文化差异（某些文化中拒绝公开表演是正常的谦逊）"
+        "公开演讲或表演经验、能力与活动偏好",
+        "对伴侣、主人或其他人的关系考虑",
+        "外部推动、现场礼仪与发言时机判断",
+        "公开表达或主导的偏好，区别于受评价困扰程度"
       ],
       "typical_high_manifestations": [
-        "拒绝公开表演提议",
-        "被说服后才勉强参与",
-        "在公共讲座中有问题但不提问"
+        "对进一步生日表演表示不舒服而拒绝（04-A/B的次要参与选择）",
+        "表示不喜欢公开演讲或不愿在陌生人面前讲话（13-A/B、22-A）",
+        "将问题留待可能单独交谈时再问（22-B）；原因与计分仍需核对",
+        "为了伴侣而克服自己参与（08-B）；记录不适与参与并存，不改写为拒绝"
       ],
       "typical_low_manifestations": [
-        "接受公开表演并感到高兴",
-        "主动提问",
-        "自然地做简短演讲"
+        "接受进一步表演并明确高兴，或希望继续（04-C/D的次要参与选择）",
+        "因通常喜欢任务而容易被说服参加，或直接走向表演位置（08-C/D）；两者的理由不同",
+        "确认主人意愿后发言，或主动热情发言（13-C/D）",
+        "在他人也想提问或演讲者停顿时提问（22-C/D）；不推定两者内在体验相同"
       ],
       "common_trait_activating_cues": [
-        "非强制性的公开表演/演讲/提问机会",
-        "预期自己将成为注意焦点",
-        "尚未发生负面评价"
-      ]
+        "存在公开表现、发言或继续接受关注的机会",
+        "04已处于关注中，08、13、22主要呈现随后参与的选择",
+        "部分选项明确给出喜欢、不舒服或关系考虑，不能替其他选项补写同样原因"
+      ],
+      "coverage_note": "本版支持清单覆盖全部主要或次要归属；族内不同感受、动作和情境并非每题均具备，高低方向为待评分键核对的构念解释。"
     },
     {
       "family_id": "NEF03",
-      "family_name": "社会注意焦点敏感性",
-      "definition": "当自己已经成为他人注意的中心时（不论原因），对这种社会曝光本身感到不适并试图降低曝光程度。",
-      "high_trait_evidence": "一旦成为注意中心就感到不自在，主动减少曝光或退缩。",
-      "low_trait_evidence": "对成为注意中心较自在，能够继续正常互动甚至享受关注。",
+      "family_name": "受到社会注意后的感受与反应",
+      "definition": "已经成为他人关注对象时，对庆祝性关注、被模仿引笑或意外聚光等具体事件表现出的感受与应对。关注的意义和人际背景分别记录，不统一认定只有曝光本身起作用。",
+      "high_trait_evidence": "可能明确感到不自在、受伤或希望减少继续曝光，也可在事后回避类似场合；并非每个来源都已有当场退出行为。",
+      "low_trait_evidence": "可能接受或享受关注、一起笑或继续表现；这些行为不单独证明没有受伤或不适。",
       "supporting_item_ids": [
+        "self_consciousness_04",
         "self_consciousness_06",
         "self_consciousness_10"
       ],
-      "support_count": 2,
+      "support_count": 3,
       "status": "stable",
       "construct_purity": "medium",
       "competing_facets": [
         "E2: 乐群",
-        "E3: 果断性"
+        "E3: 果断性",
+        "N2: 愤怒敌意"
       ],
-      "boundary_condition": "仅适用于非自愿成为注意焦点的情境。不适用于：主动选择成为焦点的场合（如自愿表演）、专业角色要求（如教师、主持人）。区分 NEF02 与 NEF03：NEF02 是进入情境前的预期性回避，NEF03 是已经成为焦点后的实时不适。",
+      "boundary_condition": "04为生日关注后是否继续，06为上级模仿与笑声，10为被当成贵宾意外聚光。明确嘲笑与庆祝性关注不同，不把所有受伤解释为仅对曝光敏感。行为、感受和关注来源需分开；本组与NEF02等有交叉，不声称机制独立。",
       "alternative_explanations": [
-        "内向 (E) 可能在任何引人注目的情境中不适",
-        "对上级/权威的特殊敏感（权力动态）"
+        "被冒犯感、幽默理解及与模仿者的权力关系",
+        "对生日庆祝或表演形式的喜好",
+        "误认情境的理解与公开表达经验",
+        "享受关注的外向性表现，不等同于评价困扰的反面已被确定"
       ],
       "typical_high_manifestations": [
-        "因被模仿而感到震惊和受伤",
-        "尽快逃离聚光灯",
-        "退缩到角落"
+        "已经被注视后，对继续表演表示不舒服并拒绝（04-A/B）",
+        "被上级模仿时感到受伤，或决定以后避开类似聚会（06-A/B）",
+        "尽快离开聚光位置，或解释误认后离开（10-A/B）"
       ],
       "typical_low_manifestations": [
-        "一起笑，不在乎",
-        "待在聚光灯中并享受关注"
+        "接受生日表演并高兴，或要求安可（04-C/D）",
+        "一起笑或模仿上级，将其视为游戏（06-C/D）；不自动断言没有其他情绪",
+        "留在聚光位置发言或明确享受关注（10-C/D）"
       ],
       "common_trait_activating_cues": [
-        "意外成为社交注意焦点",
-        "被模仿、误认、公开赞扬或关注",
-        "在场他人正在注视自己"
-      ]
+        "已受到在场他人的注意",
+        "关注可能来自生日庆祝、上级模仿或意外的贵宾式聚光",
+        "不把这些来源一律标为公开赞扬、负面评价或非自愿曝光的全部可能形式"
+      ],
+      "coverage_note": "本版支持清单覆盖全部主要或次要归属；族内不同感受、动作和情境并非每题均具备，高低方向为待评分键核对的构念解释。"
     },
     {
       "family_id": "NEF04",
-      "family_name": "模糊社会评价线索的自我指向解释",
-      "definition": "面对含义不确定的他人反应（如笑、低语、表情变化）时，自动将其解释为与自己有关且可能负面的信号，并因此分心或自我怀疑。",
-      "high_trait_evidence": "将模糊的社交线索自动解释为针对自己的评价，产生自我监控和注意力分散。",
-      "low_trait_evidence": "不轻易将模糊信号解释为针对自己，保持任务导向。",
+      "family_name": "模糊社交反应下的自我关注与任务反应",
+      "definition": "公开表现时遇到含义未明的笑声与低语，记录是否转向自身检查、感到分心、继续任务或主动澄清。自我指向解释是其中一个明确选项的表现，不强加给全部反应。",
+      "high_trait_evidence": "03-A表现为怀疑自己是否说了好笑的话并检查外表；03-B只明确分心并看笔记，未明确自我归因或负面评价解释。",
+      "low_trait_evidence": "03-C继续演示，03-D暂停并询问是否有疑问；这些应对不直接证明内心完全没有自我怀疑。",
       "supporting_item_ids": [
         "self_consciousness_03"
       ],
       "support_count": 1,
       "status": "provisional",
-      "construct_purity": "high",
+      "construct_purity": "medium",
       "competing_facets": [
-        "N1: 焦虑 (一般性担忧)",
-        "C1: 胜任感 (怀疑自己的能力)"
+        "N1: 焦虑",
+        "C1: 胜任感"
       ],
-      "boundary_condition": "仅适用于社交线索客观上含义模糊、有多种可能解释的情境。不适用于：明确被嘲笑或批评。仅1题支持，标记为 provisional——但保留因为这个机制对后续生成特别有价值：它不依赖特定事件类型，而是靠'模糊线索→自我指向解释'这个认知过程。",
+      "boundary_condition": "仅03作为主要支持题，保留为暂定组。未明确同事为何笑或低语，不能把所有反应都写成自动、负面的自我归因，也不能由继续或询问断定无不适。诊断价值和独立机制尚未验证，不因适合生成就宣称价值最高。",
       "alternative_explanations": [
-        "一般性焦虑 (N1) 可能导致对任何模糊信号的灾难化解释",
-        "低胜任感 (C1) 可能导致对自身表现的习惯性怀疑"
+        "一般分心、注意力和演示准备程度",
+        "对自身表现的自信与对现场反馈的理解",
+        "澄清沟通的习惯与技能"
       ],
       "typical_high_manifestations": [
-        "怀疑自己说了好笑的话并检查外表",
-        "被打扰后需要看笔记才能维持专注"
+        "想到自己的表达并检查外表（03-A）",
+        "因受到干扰而查看笔记（03-B）；与自我归因分开记录"
       ],
       "typical_low_manifestations": [
-        "继续演示不中断",
-        "主动询问同事是否有疑问"
+        "继续演示（03-C）",
+        "短暂停顿并询问是否有不清楚之处（03-D）"
       ],
       "common_trait_activating_cues": [
-        "公开演讲或表现的场合",
-        "他人发出含义不确定的社交信号（笑、低语、对视后移开目光等）",
-        "信号不一定指向自己"
-      ]
+        "正在向同事演示",
+        "两个同事突然笑并低语，其原因未明确",
+        "是否指向自己尚未由题干确定，不预设被试会负面解释"
+      ],
+      "coverage_note": "本版支持清单覆盖全部主要或次要归属；族内不同感受、动作和情境并非每题均具备，高低方向为待评分键核对的构念解释。"
     },
     {
       "family_id": "NEF05",
-      "family_name": "连带社会评价敏感性",
-      "definition": "当同行者做出引人注意或失礼的行为时，因可能被他人将自己与行为者归为一组而产生的尴尬和回避倾向。",
-      "high_trait_evidence": "对同行者的失礼行为感到尴尬，试图回避或制止以保护自己的社会形象。",
-      "low_trait_evidence": "不因同行者行为感到尴尬，能区分他人行为和自身形象。",
+      "family_name": "同行者引发的社会关注与尴尬反应",
+      "definition": "同行者做出引人注意的行为或引发周围人反应时，记录自身尴尬、回避、制止、继续互动或玩笑回应。被视为与同行者一组是可能解释，不是每个选项已证明的心理过程。",
+      "high_trait_evidence": "可明确表示羞愧、不舒服、避免目光、离开或因被注视而要求同行者安静；不把所有制止行为都等同于形象保护。",
+      "low_trait_evidence": "可继续聊天、一起笑、不在意周围目光或以玩笑回应；不能仅凭动作推断已明确区分自己与同行者形象。",
       "supporting_item_ids": [
         "self_consciousness_02",
         "self_consciousness_11",
@@ -194,31 +235,33 @@
       "status": "stable",
       "construct_purity": "medium",
       "competing_facets": [
-        "E2: 乐群 (回避社交场合)",
-        "E5: 刺激寻求 (对高风险行为的容忍度)",
-        "A4: 顺从 (不敢制止朋友)"
+        "E2: 乐群",
+        "A4: 顺从",
+        "E3: 果断性"
       ],
-      "boundary_condition": "仅适用于同行者的轻度失礼行为（吹口哨、打嗝、讲尴尬故事）。不适用于：同行者违法或严重违规。高自我意识不能等同于'对朋友要求苛刻'。低自我意识不能等同于'缺乏社会规范意识'——有些人确实不认为朋友的轻度失礼会影响他人对自己的评价。",
+      "boundary_condition": "02、11、15的同行者行为分别为吹口哨、打嗝和大声讲故事，不能统一认证为轻度失礼或高风险行为。制止可能反映礼貌、噪音或规范；玩笑与指向朋友也可能在说明行为者。感受与应对分别记录，不能据此概括所有文化中的行为意义。",
       "alternative_explanations": [
-        "幽默感差异 (对尴尬故事的接受度)",
-        "对朋友行为的实际认同度",
-        "文化差异（某些文化中对朋友公开失礼的容忍度不同）"
+        "对具体行为的认同与社会规范判断",
+        "幽默理解、噪音敏感和现场礼仪",
+        "直接表达或制止他人的倾向",
+        "文化、关系及是否认为目光针对自己的解释"
       ],
       "typical_high_manifestations": [
-        "尴尬地避免目光接触",
-        "快速告别离开",
-        "要求朋友安静"
+        "朋友行为后明确尴尬并避免目光，可能事后表达不赞同（02-A/B）",
+        "离开，或明确羞愧且想离开但实际留下（11-A/B）；感受与动作不一致也要保留",
+        "感到羞愧而避开目光，或因被注视不适要求安静（15-A/B）"
       ],
       "typical_low_manifestations": [
-        "一起笑",
-        "假装什么都没发生继续交谈",
-        "赞美对方化解尴尬"
+        "赞美对方，或笑并指向行为者（02-C/D）；不补写已完成形象切割的动机",
+        "继续交谈或以玩笑回应现场（11-C/D）；D明确想缓解不愉快，不等于无不适",
+        "一起笑或不在意周围目光而继续听故事（15-C/D）"
       ],
       "common_trait_activating_cues": [
-        "同行者在公共场合的轻度失礼行为",
-        "周围有他人在场",
-        "自己与行为者可能被归为一组"
-      ]
+        "同行者行为引起注意或现场不适",
+        "周围有他人在场，02明确有人恼怒看向自己，15明确其他客人注视",
+        "是否认为自己受牵连、是否认同行为及如何应对按具体选项分别记录"
+      ],
+      "coverage_note": "本版支持清单覆盖全部主要或次要归属；族内不同感受、动作和情境并非每题均具备，高低方向为待评分键核对的构念解释。"
     }
   ],
   "item_evidence_mapping": {
@@ -236,18 +279,18 @@
       "primary_family": "NEF04",
       "secondary_family": null,
       "status": "provisional",
-      "note": "仅1题，provisional"
+      "note": "A的自我检查与B的分心看笔记分开记录；继续和澄清不证明完全没有自我怀疑。"
     },
     "self_consciousness_04": {
-      "primary_family": "NEF02",
-      "secondary_family": null,
-      "status": "core"
+      "primary_family": "NEF03",
+      "secondary_family": "NEF02",
+      "status": "core",
+      "note": "主要是已经受到注意后的反应；次要归属仅表示是否接受进一步表演。"
     },
     "self_consciousness_05": {
       "primary_family": "NEF01",
       "secondary_family": null,
-      "status": "core",
-      "note": "主动化解尴尬 = NEF01 的 LOW 极表现，不是独立 evidence"
+      "status": "core"
     },
     "self_consciousness_06": {
       "primary_family": "NEF03",
@@ -262,13 +305,14 @@
     "self_consciousness_08": {
       "primary_family": "NEF02",
       "secondary_family": null,
-      "status": "core"
+      "status": "core",
+      "note": "参与、被劝说、公开表示旁观和为了伴侣克服自己分别保留，计分及体验不能仅凭动作确定。"
     },
     "self_consciousness_09": {
       "primary_family": "NEF01",
       "secondary_family": null,
       "status": "core",
-      "note": "手机响 = NEF01，event type 不独立成族"
+      "note": "明确尴尬与不引人注意的处理理由须保留，关电话本身不自动定向。"
     },
     "self_consciousness_10": {
       "primary_family": "NEF03",
@@ -284,7 +328,7 @@
       "primary_family": "NEF01",
       "secondary_family": null,
       "status": "core",
-      "note": "买私密物品 = NEF01，event type 不独立成族"
+      "note": "转身或先放下物品未明确永久放弃购买。"
     },
     "self_consciousness_13": {
       "primary_family": "NEF02",
@@ -300,19 +344,19 @@
       "primary_family": "NEF05",
       "secondary_family": "NEF01",
       "status": "core",
-      "note": "连带尴尬 + 自身也感到不适"
+      "note": "NEF05为同行者行为，NEF01为公开不适与应对的组织性重叠，不当成两份独立证据。"
     },
     "self_consciousness_16": {
       "primary_family": "NEF01",
       "secondary_family": null,
       "status": "core",
-      "note": "被醉汉指责 = NEF01，event type 不独立成族"
+      "note": "保留公开指控下的行为，但安全与冲突规避是重要替代解释。"
     },
     "self_consciousness_17": {
-      "primary_family": "NEF01",
+      "primary_family": null,
       "secondary_family": null,
-      "status": "core",
-      "note": "遇到亲密情侣 = NEF01，event type 不独立成族"
+      "status": "provisional",
+      "note": "原题保留待核，暂不归族；情侣亲密行为引发不适不直接证明自己受到负面评价。"
     },
     "self_consciousness_18": {
       "primary_family": "NEF01",
@@ -328,13 +372,13 @@
       "primary_family": "NEF01",
       "secondary_family": null,
       "status": "core",
-      "note": "防御性反应 (沉默烦恼/辩解/愤怒)。'愤怒'被标记为可能的 N2 污染。仅保留'形象关注'成分，不过度独立。"
+      "note": "烦恼、解释、幽默与不在意都保留；不把所有反应改写为评价回避。"
     },
     "self_consciousness_21": {
       "primary_family": "NEF01",
       "secondary_family": null,
       "status": "core",
-      "note": "同上——'因医生让自己尴尬而愤怒'可能更反映 N2 敌意而非 N4。"
+      "note": "明确尴尬、愤怒与情境解释分别保留，不把愤怒删改为形象关注。"
     },
     "self_consciousness_22": {
       "primary_family": "NEF02",
@@ -346,19 +390,39 @@
     "total_items": 22,
     "stable_families": 4,
     "provisional_families": 1,
-    "overrepresented": "NEF01 ??????? ? ?? primary ? secondary ??13/22??Mussel ???????'????'??",
-    "underrepresented": "NEF04 模糊线索自我指向解释 — 仅1题，但这恰是构念中最具认知诊断价值的机制。NEF02 预期性回避虽有4题但相比NEF01仍偏少。",
-    "possible_construct_gaps": [
-      "Mussel 原题缺乏对'inferiority/自卑感'的直接操作化——题目多关注尴尬/回避行为，而非内在的自卑体验。这可能反映了人格 SJT 的方法限制：自卑感较难通过情境行为直接测量。",
-      "缺乏对'正性评价情境中的自我意识'的测量——如被公开表扬时的不自在。现有题目仅覆盖负性和中性情境。"
-    ],
-    "core_items": 21,
-    "provisional_items": 1,
+    "core_items": 20,
+    "provisional_items": 2,
     "rejected_items": 0,
-    "items_with_dual_assignment": 1
+    "assigned_items": 21,
+    "unassigned_provisional_items": [
+      "self_consciousness_17"
+    ],
+    "items_with_dual_assignment": 2,
+    "family_counts": {
+      "NEF01": 12,
+      "NEF02": 4,
+      "NEF03": 3,
+      "NEF04": 1,
+      "NEF05": 3
+    },
+    "support_count_convention": "同题在每个族内去重计数，主次归属都列入清单；跨族题数之和不表示独立证据数量。",
+    "coverage_observations": [
+      "03是模糊笑声与低语的直接来源较少，不证明其独立性或诊断价值最高。",
+      "04有生日庆祝性关注，10有贵宾式意外聚光，不能说全部原题都只有负性或中性关注；这些也不等于已系统测量公开表扬。",
+      "可暂观察明确自卑感表达是否充分，但不能据此确认这是SJT方法固有限制。"
+    ],
+    "corrected_claims": [
+      "不再把主动化解、留下或幽默回应一律等同于低N4。",
+      "不把所有原题都归为轻度、非威胁事件；16保留安全解释。",
+      "NEF01支持清单与20、21以及15次要归属同步；17暂不归族，04主次归属重新组织。"
+    ],
+    "pending_checks": [
+      "核对德文原文、中文译文与作者评分，尤其08及动作和感受不一致的选项。",
+      "复核17的归属及16的安全、20和21的愤怒与情境归因解释。"
+    ]
   },
   "mapping_convention": {
-    "supporting_item_ids": "?? evidence family ???????????????????",
-    "item_evidence_mapping": "??????????????????????????????????"
+    "supporting_item_ids": "列出本版主或次归属该族的来源题号，族内去重；不表示每题每个选项均支持族内所有解释，也不是作者逐选项计分键。",
+    "item_evidence_mapping": "记录主归属、可选次归属与审阅状态。primary_family为null且status为provisional表示来源保留、归属待核；core也不代表无替代解释。运行时按族status而非逐题status筛选。"
   }
 }

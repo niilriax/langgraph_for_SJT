@@ -26,7 +26,7 @@ class ExperimentConfig(BaseModel):
     seed: int = Field(default=7, ge=0, strict=True)
     mean: float = 50.0
     sd: float = Field(default=15.0, gt=0)
-    target_mean: float = 60.0
+    target_mean: float = 50.0
     target_sd: float = Field(default=15.0, gt=0)
     same_domain_mean: float = 50.0
     same_domain_sd: float = Field(default=15.0, gt=0)
@@ -106,7 +106,6 @@ def make_participants(config, role):
         mean_score=config.mean, standard_deviation=config.sd, seed=seed,
         max_concurrency=config.max_concurrency, response_temperature=config.response_temperature)
     sample_config["experiment_sample_role"] = role
-    sample_config["reference_questionnaires_enabled"] = False
     return {"role": role, "config": sample_config, "respondents": refs}
 
 

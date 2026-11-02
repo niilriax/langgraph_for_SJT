@@ -389,3 +389,31 @@ def test_disagreement_triggers_at_most_one_virtual_arbitration(tmp_path):
     assert [kind for kind, _ in fake.calls].count("expert_arbitration") == 1
     assert len(result["expert_reviews"]) == 3
 
+
+
+def test_length_units_count_cjk_chars_and_latin_words_without_punctuation():
+    assert review.text_length_units("你先把报告交了，再去吃饭。") == 11
+    assert review.text_length_units("Clarified low-level action") == 4
+
+
+def test_content_edit_rejects_rewrite_that_grows_past_limit():
+    item = item_fixture()
+    item["response_options"][0]["text"] = "先把手头的事做完再去帮忙"
+    tasks = [{"field": "response_options", "option_ids": [item["response_options"][0]["option_id"]]}]
+    option_id = tasks[0]["option_ids"][0]
+    limit = review.patch_length_limits(item, tasks)["response_options"][option_id]
+    assert limit == 12 + review.OPTION_GROWTH_UNITS
+
+    ok = review.apply_authorized_patch(item, {"reason": "r", "response_options": [
+        {"option_id": option_id, "text": "做完手头的事就去帮忙"}]}, tasks)
+    assert review.validate_patch_length(item, ok, tasks) is ok
+
+    long = review.apply_authorized_patch(item, {"reason": "r", "response_options": [
+        {"option_id": option_id, "text": "先把自己手头上已经答应别人的那件事情认真做完之后再去主动帮忙"}]}, tasks)
+    with pytest.raises(ValueError, match="长度上限"):
+        review.validate_patch_length(item, long, tasks)
+
+
+def test_already_long_text_may_not_grow_further():
+    long_text = "字" * (review.OPTION_MAX_UNITS + 5)
+    assert review._length_limit(long_text, review.OPTION_MAX_UNITS, review.OPTION_GROWTH_UNITS) == review.OPTION_MAX_UNITS + 5

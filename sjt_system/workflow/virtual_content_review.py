@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import Mapping
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from sjt_system.evaluation import virtual_content_review as review
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 from sjt_system.runtime.progress import emit_progress
 from sjt_system.runtime.trace import utc_timestamp
 from sjt_system.evaluation.facet_iteration import (
@@ -33,16 +38,6 @@ def replacement_capacity_available(
     """Check the persistent replacement policy without admitting a deferred item."""
 
     return _replacement_capacity_available(state, item_id)
-
-
-def replacement_only_measurement_allowed(state: Mapping[str, Any]) -> bool:
-    """Allow a deferred-only replacement batch after the base measurements."""
-
-    if fixed_facet_iteration_enabled(state):
-        controller = state["facet_iteration_state"]
-        return controller.get("status") not in {"complete", "paused"}
-    measurement = int(state.get("psychometric_analysis_round") or 0)
-    return measurement < review.MAX_MEASUREMENTS or replacement_measurement_pending(state)
 
 
 def _call_budget_exhausted(result):
@@ -170,6 +165,92 @@ async def _stage_deferred_replacement(
     return archive.result()
 
 
+REPAIR_DIVERSITY_REWRITE_ATTEMPTS = 2
+MAX_REPAIR_DIVERSITY_REWRITES_PER_FACET = 8
+
+
+async def diversify_replacement_drafts(state, items, drafts, progress_by_id, log_path):
+    """Rewrite staged same-slot replacements whose options repeat a facet template.
+
+    Runs after every candidate of the batch is staged and before the atomic
+    commit. Only replacements are rewritten (scenario and option texts; option
+    identity, levels and scoring stay); evidence-authorized local edits keep
+    their authorized scope."""
+    from sjt_system.authoring.diversity import option_diversity_context, option_template_report
+    from sjt_system.runtime.io import write_json_atomic
+    from sjt_system.workflow.executor import execute_item_action_with_repair
+
+    log_path = Path(log_path)
+    log = json.loads(log_path.read_text(encoding="utf-8")) if log_path.exists() else {"rewrites": {}}
+    view = {old_id: drafts.get(old_id, item) for old_id, item in items.items()}
+    replaceable = {old_id for old_id in drafts
+                   if isinstance((progress_by_id.get(old_id) or {}).get("staged_design"), Mapping)}
+    cells = {str(row["cell_id"]): row for row in (state.get("blueprint") or {}).get("cells") or []}
+    facets = {}
+    for old_id, item in view.items():
+        facets.setdefault(str(item.get("target_dimension_id")), []).append(old_id)
+
+    def apply(old_id, candidate):
+        view[old_id] = candidate
+        drafts[old_id] = deepcopy(candidate)
+        progress_by_id[old_id]["staged_design"]["item"] = deepcopy(candidate)
+
+    async def fix_facet(old_ids):
+        def siblings():
+            return [view[old_id] for old_id in old_ids]
+        by_candidate = {str(view[old_id]["item_id"]): old_id for old_id in old_ids}
+        flagged = option_template_report(siblings())["flagged"]
+        targets = [by_candidate[item_id] for item_id in flagged
+                   if by_candidate.get(item_id) in replaceable][:MAX_REPAIR_DIVERSITY_REWRITES_PER_FACET]
+        for old_id in targets:
+            cached = log["rewrites"].get(old_id)
+            if cached is not None:
+                if cached.get("candidate"):
+                    apply(old_id, cached["candidate"])
+                continue
+            current = view[old_id]
+            reasons = option_template_report(siblings())["flagged"].get(str(current["item_id"]))
+            if not reasons:
+                continue
+            bundle = progress_by_id[old_id]["staged_design"]
+            best, best_reasons = current, list(reasons)
+            for _attempt in range(REPAIR_DIVERSITY_REWRITE_ATTEMPTS):
+                local = {**state, "item_pool": [row for row in siblings() if row is not current],
+                         "current_item": None, "current_item_review": None, "active_psychometric_repair": None,
+                         "current_item_specification": deepcopy(bundle["specification"]),
+                         "current_blueprint_cell": deepcopy(cells[str(bundle["slot"]["blueprint_cell_id"])]),
+                         "option_diversity_context": option_diversity_context(
+                             siblings(), str(current["item_id"]), best_reasons)}
+                route = {"next_action": "generate_item", "reason": "replacement option diversity rewrite",
+                         "target_item_id": current["item_id"],
+                         "target_blueprint_cell_id": bundle["slot"]["blueprint_cell_id"]}
+                try:
+                    result = await execute_item_action_with_repair("generate_item", route, local)
+                except ValueError:
+                    continue
+                generated = result["state_update"]["current_item"]
+                texts = {row["behavioral_level"]: row["text"] for row in generated["response_options"]}
+                if set(texts) != {row["behavioral_level"] for row in current["response_options"]}:
+                    continue
+                candidate = {**deepcopy(current), "scenario": generated["scenario"],
+                             "response_options": [{**deepcopy(row), "text": texts[row["behavioral_level"]]}
+                                                  for row in current["response_options"]]}
+                trial = [candidate if row is current else row for row in siblings()]
+                trial_reasons = option_template_report(trial)["flagged"].get(str(current["item_id"]), [])
+                if len(trial_reasons) < len(best_reasons):
+                    best, best_reasons = candidate, trial_reasons
+                if not trial_reasons:
+                    break
+            if best is not current:
+                apply(old_id, best)
+            log["rewrites"][old_id] = {"candidate_item_id": current["item_id"], "reasons_before": reasons,
+                                       "reasons_after": best_reasons,
+                                       "candidate": deepcopy(best) if best is not current else None}
+            write_json_atomic(log_path, log)
+
+    await asyncio.gather(*(fix_facet(old_ids) for old_ids in facets.values()))
+
+
 async def execute_virtual_content_review_batch(state):
     from sjt_system.authoring.context import build_item_pattern_profile
     from sjt_system.evaluation.repair_reconstruction import make_rebuilder
@@ -253,6 +334,8 @@ async def execute_virtual_content_review_batch(state):
     save_run_checkpoint(state, checkpoint_root=scoped_output("run_checkpoints", DEFAULT_CHECKPOINT_ROOT))
     batch_id = f"virtual-content-review/{state['run_id']}/{measurement}"
     progress_by_id = {}
+    # Shared by all concurrent same-slot replacements in this batch.
+    replacement_scenarios: dict[str, dict[str, str]] = {}
 
     async def run_one(entry):
         item_id = str(entry["item_id"])
@@ -260,7 +343,8 @@ async def execute_virtual_content_review_batch(state):
 
         def bounded_rebuilder(*, review_generated_candidate):
             rebuild = make_rebuilder(state, item, None,
-                                     review_generated_candidate=review_generated_candidate)
+                                     review_generated_candidate=review_generated_candidate,
+                                     sibling_registry=replacement_scenarios)
 
             async def bounded(archive, stage):
                 if not replacement_capacity_available(state, item_id):
@@ -450,6 +534,10 @@ async def execute_virtual_content_review_batch(state):
                                                   "deferred_count": len(deferred), "failed_count": len(failures)},
         }, "summary": "虚拟内容复审失败，整批不提交并保留检查点", "repair_attempt_count": 0}
 
+    await diversify_replacement_drafts(
+        state, items, drafts, progress_by_id,
+        scoped_output("virtual_content_review", PROJECT_ROOT / "outputs" / "virtual_content_review")
+        / f"run-{quote(str(state['run_id']), safe='')}" / f"option_diversity-{measurement}.json")
     lineage = deepcopy(state.get("item_lineage") or {})
     blueprint = deepcopy(state.get("blueprint") or {})
     specifications = deepcopy(state.get("item_specifications") or [])

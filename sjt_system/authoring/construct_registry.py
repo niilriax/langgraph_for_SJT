@@ -405,17 +405,6 @@ def _registry() -> dict[str, dict[str, Any]]:
     }
 
 
-def list_inventories() -> list[dict[str, str]]:
-    return [
-        {
-            "inventory_id": item["inventory_id"],
-            "inventory_name": item["inventory_name"],
-            "inventory_version": item["inventory_version"],
-        }
-        for item in _registry().values()
-    ]
-
-
 def construct_selection_catalog() -> list[dict[str, Any]]:
     """Return stable IDs and labels needed by requirement clarification."""
 
@@ -920,67 +909,3 @@ def resolve_construct_profile(
     return snapshot
 
 
-def resolve_neo_ffi_criterion(
-    *,
-    construct_profile: Mapping[str, Any] | None = None,
-    target_construct: str | None = None,
-) -> dict[str, str]:
-    """Resolve the target Big Five domain to its Neo-FFI criterion scale."""
-
-    profile_domain = (
-        construct_profile.get("domain_id")
-        if isinstance(construct_profile, Mapping)
-        else None
-    )
-    resolved_profile = None
-    if isinstance(target_construct, str) and target_construct.strip():
-        resolved_profile = resolve_construct_profile(target_construct)
-    target_domain = (
-        resolved_profile.get("domain_id")
-        if isinstance(resolved_profile, Mapping)
-        else None
-    )
-    if (
-        isinstance(profile_domain, str)
-        and isinstance(target_domain, str)
-        and profile_domain != target_domain
-    ):
-        raise ValueError(
-            "construct_profile.domain_id 与 "
-            "test_specification.target_construct 不一致"
-        )
-    domain_id = profile_domain or target_domain
-    if not isinstance(domain_id, str) or not domain_id:
-        raise ValueError(
-            "无法确定目标 Big Five domain；心理测量分析不能猜测 Neo-FFI "
-            "参照维度"
-        )
-    dimension_code = _NEO_FFI_DIMENSION_CODES.get(domain_id)
-    if dimension_code is None:
-        raise ValueError(
-            f"目标 domain {domain_id!r} 没有受支持的 Neo-FFI 映射"
-        )
-    name_zh, name_en = _DOMAIN_NAMES[domain_id]
-    return {
-        "domain_id": domain_id,
-        "domain_name": name_zh,
-        "domain_name_en": name_en,
-        "neo_ffi_dimension": dimension_code,
-    }
-
-
-def get_facet(
-    profile: dict[str, Any],
-    facet_id: str,
-) -> dict[str, Any]:
-    facet = next(
-        (
-            candidate
-            for candidate in profile.get("facets") or []
-            if candidate.get("facet_id") == facet_id
-        ),
-        None,
-    )
-    if facet is None:
-        raise ValueError(f"构念档案中不存在 facet：{facet_id}")
-    return deepcopy(facet)

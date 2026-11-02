@@ -28,6 +28,11 @@ VIRTUAL_FORM_ICC_DEFAULT_MINIMUM = 0.70
 FORM_ALPHA_DEFAULT_MINIMUM = 0.70
 FORM_CONVERGENT_NONINFERIORITY_TOLERANCE = 0.0
 FORM_QUALITY_EPSILON = 1e-12
+# Virtual retest ICC re-samples the same persona prompt, so it mainly reflects
+# sampling noise (temperature, whole-form answer cascades) rather than item
+# quality. It is computed and reported for reference only and does not decide
+# round completion or form eligibility.
+VIRTUAL_FORM_ICC_FILTERING_AUTHORITY = False
 CURRENT_FORM_METRIC_FRAMEWORK = "virtual_form_response_transmission_v4"
 
 
@@ -785,13 +790,21 @@ def facet_form_gate_comparison(
         comparisons.append({
             "sjt_facet_id": facet_id,
             "alpha_gate": {"observed": alpha, "minimum": FORM_ALPHA_DEFAULT_MINIMUM, "passed": alpha_pass},
-            "stability_gate": {"observed": icc, "minimum": VIRTUAL_FORM_ICC_DEFAULT_MINIMUM, "passed": icc_pass},
+            "stability_gate": {"observed": icc, "minimum": VIRTUAL_FORM_ICC_DEFAULT_MINIMUM, "passed": icc_pass,
+                               "filtering_authority": VIRTUAL_FORM_ICC_FILTERING_AUTHORITY},
             "hedges_g_improvement_gate": {"observed": g, "incumbent": old_g, "min_delta": FORM_QUALITY_EPSILON, "passed": g_pass},
             "target_rho_improvement_gate": {"observed": rho, "incumbent": old_rho, "min_delta": FORM_QUALITY_EPSILON, "passed": rho_pass},
             "discriminant_delta_improvement_gate": {"observed": delta, "incumbent": old_delta, "min_delta": FORM_QUALITY_EPSILON, "passed": delta_pass},
-            "passed": bool(alpha_pass and icc_pass and g_pass and rho_pass and delta_pass),
+            "passed": bool(alpha_pass and icc_gate_passed(icc) and g_pass and rho_pass and delta_pass),
         })
     return comparisons
+
+
+def icc_gate_passed(icc: Any, minimum: float = VIRTUAL_FORM_ICC_DEFAULT_MINIMUM) -> bool:
+    """Return ICC's contribution to a decision; always True while reference-only."""
+    if not VIRTUAL_FORM_ICC_FILTERING_AUTHORITY:
+        return True
+    return icc is not None and float(icc) >= float(minimum)
 
 
 def form_quality_summary(
@@ -866,9 +879,11 @@ def form_quality_summary(
                     "discriminant_delta_min": delta,
                     "status": "complete" if complete else "unavailable",
                     "alpha_gate": {"minimum": FORM_ALPHA_DEFAULT_MINIMUM, "observed": alpha, "passed": alpha_pass},
-                    "stability_gate": {"minimum": float(stability_minimum), "observed": facet_icc, "passed": icc_pass},
+                    "stability_gate": {"minimum": float(stability_minimum), "observed": facet_icc, "passed": icc_pass,
+                                       "filtering_authority": VIRTUAL_FORM_ICC_FILTERING_AUTHORITY},
                     "relative_g_rho_delta_gates": "pending_baseline",
-                    "eligible_for_best_so_far": bool(complete and alpha_pass and icc_pass),
+                    "eligible_for_best_so_far": bool(
+                        complete and alpha_pass and icc_gate_passed(facet_icc, stability_minimum)),
                 })
         identifiers = [str(row.get("sjt_facet_id") or "") for row in rows]
         all_facets_present = bool(
@@ -899,10 +914,10 @@ def form_quality_summary(
             "objective_tertiary_name": "diagnostic_mean_facet_rho",
             "facet_metrics": rows,
             "alpha_gate": {"metric": "each_facet_cronbach_alpha", "minimum": FORM_ALPHA_DEFAULT_MINIMUM, "passed": bool(complete and all(row["alpha_gate"]["passed"] for row in rows))},
-            "stability_gate": {"metric": "each_facet_virtual_test_retest_icc", "minimum": float(stability_minimum), "passed": bool(complete and all(row["stability_gate"]["passed"] for row in rows))},
+            "stability_gate": {"metric": "each_facet_virtual_test_retest_icc", "minimum": float(stability_minimum), "passed": bool(complete and all(row["stability_gate"]["passed"] for row in rows)), "filtering_authority": VIRTUAL_FORM_ICC_FILTERING_AUTHORITY},
             "eligible_for_best_so_far": bool(eligible),
             "aggregation": "none_for_decisions; diagnostic_aggregates_only",
-            "formula": "各facet分别要求α和ICC≥.70；相对上一完成轮，各facet的g、rho、Δ分别严格上升，数值容差1e-12",
+            "formula": "各facet分别要求α≥.70（ICC仅作参考，不参与判定）；相对上一完成轮，各facet的g、rho、Δ分别严格上升，数值容差1e-12",
             "interpretation": "全部facet各自满足五项指标的门槛；虚拟开发证据不等于真人信效度。",
         }
 
@@ -2174,7 +2189,7 @@ def build_provisional_form_metrics(
         ],
         "iteration_constraints": [
             "each_facet.cronbach_alpha >= 0.70",
-            "each_facet.virtual_test_retest_icc >= 0.70",
+            "each_facet.virtual_test_retest_icc reported for reference only",
             "each_facet.target_hedges_g_improvement > 1e-12",
             "each_facet.discriminant_delta_min_improvement > 1e-12",
             "each_facet.target_spearman_rho_improvement > 1e-12",

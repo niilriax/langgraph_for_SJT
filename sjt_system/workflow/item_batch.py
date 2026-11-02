@@ -24,6 +24,179 @@ MERGED_MAPS = (
 )
 
 
+SKELETON_PLAN_ATTEMPTS = 3
+DIVERSITY_REWRITE_ATTEMPTS = 2
+MAX_DIVERSITY_REWRITES_PER_FACET = 8
+
+
+def _anchor_summary(skeleton: Mapping[str, Any], channel: str | None) -> dict[str, Any]:
+    tendencies = {str(row.get("behavioral_level")): row.get("behavioral_tendency")
+                  for row in skeleton.get("option_structure") or [] if isinstance(row, Mapping)}
+    return {"difference_channel": channel, "situation_type": skeleton.get("situation_type"),
+            "low": tendencies.get("low"), "high": tendencies.get("high")}
+
+
+async def plan_facet_skeletons(
+    state: Mapping[str, Any], slots: list[tuple[dict, dict]], plan_path: Path,
+) -> dict[str, dict[str, Any]]:
+    """Plan the skeletons of each facet's pending slots before item writing.
+
+    Facets run concurrently; within a facet skeletons are generated in order so
+    each one sees its siblings' anchors and gets its own difference channel."""
+    from sjt_system.authoring.behavior_repertoire import ManifestationAssigner, load_manifestations
+    from sjt_system.authoring.diversity import (
+        difference_channels_for, label_words_for, skeleton_label_problems,
+    )
+    from sjt_system.authoring.generation_plan import _expansion_models
+    from sjt_system.workflow.executor import _fill_compact_slots
+
+    blueprint = state["blueprint"]
+    existing = {str(key): value for key, value in (state.get("item_skeletons") or {}).items()}
+    plan = json.loads(plan_path.read_text(encoding="utf-8")) if plan_path.exists() else {}
+    skeletons = plan.setdefault("skeletons", {})
+    channels = plan.setdefault("channels", {})
+    behaviors = plan.setdefault("behaviors", {})
+    profile_facets = {str(row["facet_id"]): row for row in (state.get("construct_profile") or {}).get("facets") or []}
+    try:
+        expansions = _expansion_models(blueprint)
+    except Exception:  # noqa: BLE001 - behaviors are optional guidance
+        expansions = []
+    situation_behaviors = {situation.situation_id: list(situation.manifestation_ids)
+                           for expansion in expansions for behavior in expansion.behavior_expansions
+                           for mechanism in behavior.mechanisms for situation in mechanism.situations}
+    lock = asyncio.Lock()
+    by_facet: dict[str, list[tuple[dict, dict]]] = {}
+    for cell, specification in slots:
+        by_facet.setdefault(str(cell["facet_id"]), []).append((cell, specification))
+
+    async def plan_facet(facet_id: str, rows: list[tuple[dict, dict]]) -> None:
+        rotation = difference_channels_for(facet_id, len(rows))
+        words = label_words_for(facet_id)
+        assigner = ManifestationAssigner(load_manifestations(
+            facet_id, (profile_facets.get(facet_id) or {}).get("behavior_evidence") or []))
+        for assigned in behaviors.values():
+            assigner.note(assigned.get("high"))
+            assigner.note(assigned.get("low"))
+        anchors: list[dict[str, Any]] = []
+        for index, (cell, specification) in enumerate(rows):
+            item_id = str(specification["specification_id"])
+            known = existing.get(item_id) or skeletons.get(item_id)
+            if known:
+                anchors.append(_anchor_summary(known, channels.get(item_id)))
+                continue
+            channel = rotation[index]
+            preferred = situation_behaviors.get(str(cell.get("situation_id")), [])
+            high = assigner.pick(str(cell.get("behavior_id")), "high", preferred)
+            low = assigner.pick(str(cell.get("behavior_id")), "low", preferred)
+            assigned_behaviors = ({"high": high["description"], "low": low["description"]}
+                                  if high and low else None)
+            feedback = None
+            skeleton = None
+            for attempt in range(1, SKELETON_PLAN_ATTEMPTS + 1):
+                extra = {"assigned_difference_channel": channel,
+                         "sibling_skeleton_anchors": deepcopy(anchors),
+                         "facet_label_words": words}
+                if assigned_behaviors:
+                    extra["assigned_behaviors"] = assigned_behaviors
+                if feedback:
+                    extra["planning_feedback"] = feedback
+                try:
+                    generated, _ = await _fill_compact_slots(
+                        state, blueprint, cell, target_ids={item_id}, extra_input=extra)
+                except ValueError:
+                    break
+                skeleton = generated[item_id]
+                problems = skeleton_label_problems(skeleton, words)
+                if not problems:
+                    break
+                feedback = {"problems": problems, "attempt": attempt + 1}
+            if skeleton is None:
+                # Leave the slot to its own microflow, which reports failures normally.
+                continue
+            async with lock:
+                skeletons[item_id] = skeleton
+                channels[item_id] = channel
+                if high and low:
+                    behaviors[item_id] = {"high": high["manifestation_id"], "low": low["manifestation_id"]}
+                write_json_atomic(plan_path, plan)
+            anchors.append(_anchor_summary(skeleton, channel))
+
+    await asyncio.gather(*(plan_facet(facet_id, rows) for facet_id, rows in by_facet.items()))
+    return {key: deepcopy(value) for key, value in skeletons.items()}
+
+
+async def diversify_options(
+    state: Mapping[str, Any], update: dict[str, Any], log_path: Path,
+) -> None:
+    """Rewrite items whose options share a template with too many siblings.
+
+    Facets run concurrently; inside a facet flagged items are rewritten one by
+    one so every rewrite sees the current siblings. Only the scenario and
+    option texts change; option identity, behavioral levels and scoring stay."""
+    from sjt_system.authoring.context import build_item_pattern_profile
+    from sjt_system.authoring.diversity import option_diversity_context, option_template_report
+    from sjt_system.workflow.executor import execute_item_action_with_repair
+
+    merged = {**state, **update}
+    pool = {str(row["item_id"]): row for row in update["item_pool"]}
+    specifications = {str(row["specification_id"]): row for row in update.get("item_specifications") or []}
+    cells = {str(row["cell_id"]): row for row in (state.get("blueprint") or {}).get("cells") or []}
+    log = json.loads(log_path.read_text(encoding="utf-8")) if log_path.exists() else {"rewrites": []}
+    done = {row["item_id"] for row in log["rewrites"]}
+    lock = asyncio.Lock()
+    facets: dict[str, list[str]] = {}
+    for item_id, item in pool.items():
+        facets.setdefault(str(item.get("target_dimension_id")), []).append(item_id)
+
+    async def fix_facet(item_ids: list[str]) -> None:
+        def siblings():
+            return [pool[item_id] for item_id in item_ids]
+        targets = [item_id for item_id in option_template_report(siblings())["flagged"]
+                   if item_id not in done][:MAX_DIVERSITY_REWRITES_PER_FACET]
+        for item_id in targets:
+            reasons = option_template_report(siblings())["flagged"].get(item_id)
+            if not reasons or item_id not in specifications:
+                continue
+            original = pool[item_id]
+            best, best_reasons = original, list(reasons)
+            for _attempt in range(DIVERSITY_REWRITE_ATTEMPTS):
+                local = {**merged, "item_pool": siblings(), "current_item": None,
+                         "current_item_review": None, "active_psychometric_repair": None,
+                         "current_item_specification": deepcopy(specifications[item_id]),
+                         "current_blueprint_cell": deepcopy(cells[str(original["blueprint_cell_id"])]),
+                         "option_diversity_context": option_diversity_context(siblings(), item_id, best_reasons)}
+                route = {"next_action": "generate_item", "reason": "option diversity rewrite",
+                         "target_item_id": item_id, "target_blueprint_cell_id": original["blueprint_cell_id"]}
+                try:
+                    result = await execute_item_action_with_repair("generate_item", route, local)
+                except ValueError:
+                    continue
+                generated = result["state_update"]["current_item"]
+                texts = {row["behavioral_level"]: row["text"] for row in generated["response_options"]}
+                if set(texts) != {row["behavioral_level"] for row in original["response_options"]}:
+                    continue
+                candidate = {**deepcopy(original), "scenario": generated["scenario"],
+                             "response_options": [{**deepcopy(row), "text": texts[row["behavioral_level"]]}
+                                                  for row in original["response_options"]]}
+                trial = [candidate if row["item_id"] == item_id else row for row in siblings()]
+                trial_reasons = option_template_report(trial)["flagged"].get(item_id, [])
+                if len(trial_reasons) < len(best_reasons):
+                    best, best_reasons = candidate, trial_reasons
+                    pool[item_id] = candidate
+                if not trial_reasons:
+                    break
+            async with lock:
+                if best is not original:
+                    update["item_pattern_profiles"][item_id] = build_item_pattern_profile(
+                        best, specifications[item_id])
+                log["rewrites"].append({"item_id": item_id, "reasons_before": reasons,
+                                        "reasons_after": best_reasons, "rewritten": best is not original})
+                write_json_atomic(log_path, log)
+
+    await asyncio.gather(*(fix_facet(item_ids) for item_ids in facets.values()))
+    update["item_pool"] = list(pool.values())
+
+
 def pending_slots(state: Mapping[str, Any]) -> list[tuple[dict, dict]]:
     blueprint = state.get("blueprint") or {}
     cells = {str(row["cell_id"]): row for row in blueprint.get("cells") or []}
@@ -192,8 +365,15 @@ async def execute_item_generation_batch(state: Mapping[str, Any]) -> dict[str, A
                              if str(row["specification_id"]) not in pending_ids)
     checkpoint_dir = scoped_output("item_generation", PROJECT_ROOT / "outputs" / "item_generation") / str(state["run_id"])
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    from sjt_system.evaluation.virtual_content_review import is_enabled as diversity_enabled
+    slot_state = state
+    if diversity_enabled(state):
+        unstarted = [(cell, specification) for cell, specification in slots
+                     if not (checkpoint_dir / (quote(str(specification["specification_id"]), safe="") + ".json")).exists()]
+        planned = await plan_facet_skeletons(state, unstarted, checkpoint_dir / "skeleton_plan.json")
+        slot_state = {**state, "item_skeletons": {**(state.get("item_skeletons") or {}), **planned}}
     outcomes = await asyncio.gather(*(
-        _develop_slot(state, cell, specification,
+        _develop_slot(slot_state, cell, specification,
             checkpoint_path=checkpoint_dir / (quote(str(specification["specification_id"]), safe="") + ".json"))
         for cell, specification in slots
     ), return_exceptions=True)
@@ -258,4 +438,6 @@ async def execute_item_generation_batch(state: Mapping[str, Any]) -> dict[str, A
         "current_item_repair_failure": None, "current_item_repair_attempted": False,
         "skeleton_slot_failure_pending": False, "review_process_status": "not_started",
     })
+    if diversity_enabled(state) and not failures and slots:
+        await diversify_options(state, update, checkpoint_dir / "option_diversity.json")
     return {"state_update": update, "summary": f"Concurrent fixed-slot batch: {len(slots)} slots, {failures} failures; progress saved per slot."}

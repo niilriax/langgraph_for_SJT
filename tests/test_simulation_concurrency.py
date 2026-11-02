@@ -848,6 +848,7 @@ def test_later_bank_reuses_only_unchanged_versions_and_freezes_ipip(
 
     monkeypatch.setattr(simulation, "build_sjt_batch_messages", capture_sjt_rows)
     calls: list[tuple[int, str, list[str], str]] = []
+    prompts_by_subject: dict[tuple[int, str], dict[str, str]] = {}
     active_round = 1
 
     async def fake_invoke(runnable, messages, *, validator, job_label, **_kwargs):
@@ -857,6 +858,8 @@ def test_later_bank_reuses_only_unchanged_versions_and_freezes_ipip(
         stage = "retest" if "retest" in job_label else "main"
         ids = row_ids_by_messages[id(messages)]
         calls.append((active_round, stage, ids, repr(messages)))
+        subject = job_label.rsplit("/", 1)[-1]
+        prompts_by_subject.setdefault((active_round, subject), {})[stage] = repr(messages)
         answer = "D" if stage == "retest" else "A"
         return validator({"responses": [
             {"item_id": item_id, "selected_option_id": answer} for item_id in ids
@@ -880,6 +883,12 @@ def test_later_bank_reuses_only_unchanged_versions_and_freezes_ipip(
     assert len([row for row in calls if row[0] == 1 and row[1] == "main"]) == respondent_count
     assert len([row for row in calls if row[0] == 1 and row[1] == "retest"]) == respondent_count
     assert len([row for row in calls if row[0] == 1 and row[1] == "ipip"]) == respondent_count
+    # The retest re-administers the identical form: same items, item order and
+    # option order (hence an identical request) as the main administration.
+    retested = [stages for (round_number, _), stages in prompts_by_subject.items()
+                if round_number == 1 and "retest" in stages]
+    assert len(retested) == respondent_count
+    assert all(stages["retest"] == stages["main"] for stages in retested)
 
     first_manifest = Path(first["manifest_path"])
     if ipip_corruption == "missing":

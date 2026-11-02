@@ -10,7 +10,6 @@ from sjt_system.prompt import (
     COMPACT_SKELETON_BATCH_PROMPT,
     ITEM_REPAIR_PROMPT,
     ITEM_WRITER_PROMPT,
-    MECHANISM_VALIDATION_PROMPT,
     PSYCHOMETRIC_REPAIR_DIAGNOSIS_PROMPT,
     REQUIREMENT_PROMPT,
     UNIFIED_ITEM_REVIEW_PROMPT,
@@ -20,7 +19,6 @@ from sjt_system.state import (
     ItemReviewDiagnosis,
     ItemRepairResult,
     ItemRealizationResult,
-    MechanismValidationResult,
     RequirementResult,
     AtomicRepairAdvice,
 )
@@ -257,10 +255,3 @@ PSYCHOMETRIC_REASONING_ROLE_MANIFEST = {
         "prompt_sha256": sha256(ITEM_REPAIR_PROMPT.encode("utf-8")).hexdigest(),
     },
 }
-
-
-mechanism_validation_agent = create_agent(
-    system_prompt=MECHANISM_VALIDATION_PROMPT,
-    output_type=MechanismValidationResult,
-    temperature=0.1,
-)
