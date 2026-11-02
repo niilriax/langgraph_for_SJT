@@ -1,0 +1,207 @@
+{
+  "facet_id": "extraversion_gregariousness",
+  "neo_code": "E2",
+  "source": "stage4_cue_bank.json, cross-checked against docs/mussel_zh.json and revised Stage 2/3b",
+  "trigger_types": [
+    {
+      "trigger_id": "TT01",
+      "name": "可选择的社会接触机会",
+      "description": "出现具有选择余地的交谈、共同活动或聚会机会，同时存在不参与、减少接触或独处的可能；不要求个体必须主动发起接触。",
+      "origin": "source",
+      "linked_family_ids": [
+        "GEF01"
+      ],
+      "source_cue_ids": [
+        "C01"
+      ]
+    },
+    {
+      "trigger_id": "TT02",
+      "name": "参与形式与人数可选",
+      "description": "同一活动可以共同或独立参与，或者可以选择不同人数或交往范围的参与安排；共同参与与独立参与、较大群体与小范围是不同的比较，需按具体来源分别使用。",
+      "origin": "source",
+      "linked_family_ids": [
+        "GEF01"
+      ],
+      "source_cue_ids": [
+        "C03",
+        "C07",
+        "C08"
+      ]
+    },
+    {
+      "trigger_id": "TT03",
+      "name": "可接触对象包含陌生人",
+      "description": "可接触的对象中包含不熟悉的人，个体具有与其交谈、共同参与，或仅接触熟人、减少接触的选择空间；不预设会将对方纳入长期社交圈。",
+      "origin": "source",
+      "linked_family_ids": [
+        "GEF01"
+      ],
+      "source_cue_ids": [
+        "C02"
+      ]
+    },
+    {
+      "trigger_id": "TT04",
+      "name": "共处与接触机会可选",
+      "description": "可选择的生活或活动环境在他人共处、共享空间或社会接触机会方面存在差异；噪音、隐私、成本、便利和替代环境可得性应按具体题目保留，不默认全部选项等价。",
+      "origin": "source",
+      "linked_family_ids": [
+        "GEF02"
+      ],
+      "source_cue_ids": [
+        "C01",
+        "C04"
+      ]
+    },
+    {
+      "trigger_id": "TT05",
+      "name": "身体状态中的接触选择",
+      "description": "个体处于疲劳后的休息安排或仍有身体不适的背景中，可以选择与人接触、亲近陪伴或独处；不预设不适轻微、成本可控或其社会接触意愿。",
+      "origin": "source",
+      "linked_family_ids": [
+        "GEF03"
+      ],
+      "source_cue_ids": [
+        "C06"
+      ]
+    },
+    {
+      "trigger_id": "TT06",
+      "name": "活动增加参与者提议",
+      "description": "已有活动安排中，熟人提出带其他不熟悉的人共同参加，参与范围可能改变，个体可以接受或表达维持原有安排的偏好；这不等于长期社交圈必然扩大。",
+      "origin": "source",
+      "linked_family_ids": [
+        "GEF01"
+      ],
+      "source_cue_ids": [
+        "C05"
+      ]
+    },
+    {
+      "trigger_id": "TT07",
+      "name": "他人邀请共同参与",
+      "description": "他人明确发出共同活动的邀请，个体具有是否接受的选择空间；邀请的出现不预设个体愿意参加、感到高兴或积极投入。",
+      "origin": "source",
+      "linked_family_ids": [
+        "GEF01"
+      ],
+      "source_cue_ids": [
+        "C01"
+      ]
+    },
+    {
+      "trigger_id": "TT08",
+      "name": "独处任务后可安排时间",
+      "description": "个体独自完成一段任务后，原有事务已经处理完，现在有可自主安排的时间，并可选择与他人共同活动或继续独处；不预设社交需求随独处而上升，也不预设对陪伴的渴望。",
+      "origin": "source",
+      "linked_family_ids": [
+        "GEF01"
+      ],
+      "source_cue_ids": [
+        "C01"
+      ]
+    }
+  ],
+  "review_notes": {
+    "review_basis": "核对上游线索、修订后的 Stage 2/3b 与项目中文原题。尚未核对德文原题或作者原始评分键。",
+    "trigger_convention": "触发类型记录提供特质表达机会的情境条件，不断言这些条件必然导致特定心理或行为，不表示八种相互独立且经实验证明的因果机制。部分类型是宽泛条件、其他类型是其具体情形，不能仅按编号将它们视为独立证据。",
+    "origin_convention": "source 表示本轮可在注明的中文原题中核对相应情境事实，不表示仅凭上游C编号就已验证内容。TT07与TT08由原题直接核对；所引C01仅为宽泛线索，具体依据见source_traceability。",
+    "source_traceability": {
+      "TT01": {
+        "source_item_ids": [
+          "gregariousness_01",
+          "gregariousness_02",
+          "gregariousness_03",
+          "gregariousness_04",
+          "gregariousness_05",
+          "gregariousness_06",
+          "gregariousness_10",
+          "gregariousness_13",
+          "gregariousness_14",
+          "gregariousness_16",
+          "gregariousness_18",
+          "gregariousness_19",
+          "gregariousness_20",
+          "gregariousness_22"
+        ],
+        "note": "可选择的接触机会；不同原题可能含工作、家庭或仪式背景，不统一断言完全没有社会义务。"
+      },
+      "TT02": {
+        "source_item_ids": [
+          "gregariousness_01",
+          "gregariousness_02",
+          "gregariousness_03",
+          "gregariousness_05",
+          "gregariousness_06",
+          "gregariousness_13",
+          "gregariousness_14",
+          "gregariousness_16",
+          "gregariousness_19",
+          "gregariousness_20",
+          "gregariousness_22"
+        ],
+        "note": "01、06主要提供共同或独立参与；其他题体现人数、交往范围或接触形式的选择。各题并不同时具备所有比较维度。"
+      },
+      "TT03": {
+        "source_item_ids": [
+          "gregariousness_04",
+          "gregariousness_05",
+          "gregariousness_13"
+        ],
+        "note": "仅选原题明确包含不熟悉对象的来源。C02列入02，但公共观赛题没有明确说明观众熟悉程度，该题不用于证明陌生人条件。"
+      },
+      "TT04": {
+        "source_item_ids": [
+          "gregariousness_07",
+          "gregariousness_08",
+          "gregariousness_12",
+          "gregariousness_15",
+          "gregariousness_17",
+          "gregariousness_21"
+        ],
+        "note": "21仅发现儿童旁的空座，其他座位尚不确定；该题依据直接来自原题和宽泛C01，不宣称C04已经单独列出21。12、17控制费用相近或相同，15控制相同食物和价格，不推广到全部来源。"
+      },
+      "TT05": {
+        "source_item_ids": [
+          "gregariousness_09",
+          "gregariousness_11"
+        ],
+        "note": "09为疲劳后的休息日；11仍有流感不适但不再传染。两者都没有量化轻微成本。"
+      },
+      "TT06": {
+        "source_item_ids": [
+          "gregariousness_05",
+          "gregariousness_13"
+        ],
+        "note": "朋友提议增加本次活动参与者。删除缺少依据的GEF03关联，不沿用C05的观点受到挑战分类。"
+      },
+      "TT07": {
+        "source_item_ids": [
+          "gregariousness_04",
+          "gregariousness_06"
+        ],
+        "note": "04明确受邀参加私人聚会，06明确受邀参加研讨会。不是仅从facet定义扩展出的假想条件；关联GEF01。"
+      },
+      "TT08": {
+        "source_item_ids": [
+          "gregariousness_16"
+        ],
+        "note": "仅提取独处完成任务后有空闲的背景。未提取或假定内部社交渴望；不能把本背景视为已验证的独立激活机制。"
+      }
+    },
+    "upstream_cue_limits": [
+      "C01是宽泛的选择机会标签；具体可选择什么、是否存在义务与成本，均以逐题内容为准。",
+      "C02对02的陌生人判断未获题干明确支持，本文件TT03不采用这部分推断。",
+      "C05的cue_category为观点受到挑战，但05、13实际提供的是增加参与者提议，本文件不采用该分类。",
+      "C06的cue_category为已有投入与诱惑冲突，本文件仅采用09、11的身体状态背景，不采用该分类。",
+      "上游线索库本次未改写，保留其记录以便追溯；本文件以以上核对范围限制引用含义。"
+    ],
+    "family_alignment": "按修订后的Stage 2：TT05关联GEF03，其余类型按明确原题及组织用途关联GEF01或GEF02；TT06、TT07不再关联GEF03，TT08仅关联GEF01。",
+    "overlap_notes": [
+      "TT01为宽泛的社会接触选择机会；TT03、TT06、TT07可同时出现在其下，不应把同一事实重复计作独立支持。",
+      "TT03说明对象熟悉程度，TT06说明活动中新增参与者的提议；二者可在05、13中重叠。",
+      "TT08的任务完成背景可与TT01、TT02重叠，不用于预先写出高乐群反应。"
+    ]
+  }
+}

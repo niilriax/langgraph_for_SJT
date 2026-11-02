@@ -1,0 +1,305 @@
+{
+  "facet_id": "extraversion_gregariousness",
+  "neo_code": "E2",
+  "source": "stage3_behavior_bank.json",
+  "behavior_types": [
+    {
+      "type_id": "BT01",
+      "family_id": "GEF01",
+      "direction": "high",
+      "description": "主动与不熟悉的人开启交谈",
+      "psychological_function": "主动建立社会接触",
+      "source_manifestation_ids": [
+        "BM01"
+      ]
+    },
+    {
+      "type_id": "BT02",
+      "family_id": "GEF01",
+      "direction": "high",
+      "description": "选择加入或寻找群体活动、共同活动或公共聚会，而非独自参与",
+      "psychological_function": "选择与他人共同参与的机会",
+      "source_manifestation_ids": [
+        "BM02",
+        "BM03",
+        "BM10",
+        "BM11",
+        "BM14",
+        "BM15",
+        "BM65",
+        "BM66"
+      ]
+    },
+    {
+      "type_id": "BT03",
+      "family_id": "GEF01",
+      "direction": "high",
+      "description": "主动邀请熟悉的人到自己安排的活动中相聚，不要求参与人数很多",
+      "psychological_function": "主动发起与熟悉对象的社会接触",
+      "source_manifestation_ids": [
+        "BM18"
+      ]
+    },
+    {
+      "type_id": "BT04",
+      "family_id": "GEF01",
+      "direction": "high",
+      "description": "选择与朋友见面，并希望有更多朋友参与",
+      "psychological_function": "偏好较多的朋友共同相处",
+      "source_manifestation_ids": [
+        "BM13"
+      ]
+    },
+    {
+      "type_id": "BT05",
+      "family_id": "GEF01",
+      "direction": "high",
+      "description": "接受、欢迎或鼓励熟人带其他不熟悉的人共同参与",
+      "psychological_function": "接受社会接触对象和参与范围的增加",
+      "source_manifestation_ids": [
+        "BM16",
+        "BM45",
+        "BM46",
+        "BM47"
+      ]
+    },
+    {
+      "type_id": "BT06",
+      "family_id": "GEF01",
+      "direction": "low",
+      "description": "提前离开、取消或不参加可选的社交活动",
+      "psychological_function": "减少或结束当前可选的社会接触",
+      "source_manifestation_ids": [
+        "BM05",
+        "BM06",
+        "BM22",
+        "BM49"
+      ]
+    },
+    {
+      "type_id": "BT07",
+      "family_id": "GEF01",
+      "direction": "low",
+      "description": "选择独处或不受打扰的活动，部分原题明确表达享受自己的时间",
+      "psychological_function": "偏好独自活动或较少的社会接触",
+      "source_manifestation_ids": [
+        "BM07",
+        "BM20",
+        "BM24",
+        "BM25",
+        "BM27",
+        "BM28",
+        "BM68"
+      ]
+    },
+    {
+      "type_id": "BT08",
+      "family_id": "GEF01",
+      "direction": "low",
+      "description": "偏好只与少数熟人、朋友本人、伴侣或家人相处，而非接触更多人",
+      "psychological_function": "将交往范围限制在较少或熟悉的对象",
+      "source_manifestation_ids": [
+        "BM05",
+        "BM19",
+        "BM21",
+        "BM23",
+        "BM26",
+        "BM48",
+        "BM50",
+        "BM67"
+      ]
+    },
+    {
+      "type_id": "BT09",
+      "family_id": "GEF02",
+      "direction": "high",
+      "description": "选择有他人共处、共享空间或社会接触机会的环境；部分选项明确偏好人多或热闹",
+      "psychological_function": "选择具有他人陪伴或接触机会的环境",
+      "source_manifestation_ids": [
+        "BM04",
+        "BM29",
+        "BM30",
+        "BM31",
+        "BM32",
+        "BM33",
+        "BM34",
+        "BM35",
+        "BM36"
+      ]
+    },
+    {
+      "type_id": "BT10",
+      "family_id": "GEF02",
+      "direction": "low",
+      "description": "选择较独立、较少共处或较不受打扰的环境；部分选项明确偏好安静或人少",
+      "psychological_function": "偏好较少社会接触或更多个人空间的环境",
+      "source_manifestation_ids": [
+        "BM09",
+        "BM37",
+        "BM38",
+        "BM39",
+        "BM40",
+        "BM41",
+        "BM42",
+        "BM43",
+        "BM44"
+      ]
+    },
+    {
+      "type_id": "BT11",
+      "family_id": "GEF03",
+      "direction": "high",
+      "description": "在疲劳或身体不适背景下，仍选择与朋友见面、给他人打电话或邀请来访",
+      "psychological_function": "在该身体状态背景中选择社会接触",
+      "source_manifestation_ids": [
+        "BM51",
+        "BM53",
+        "BM54"
+      ]
+    },
+    {
+      "type_id": "BT12",
+      "family_id": "GEF01",
+      "direction": "high",
+      "description": "在参与形式可选时，选择与他人共同参加，而非独自获取相同活动的内容",
+      "psychological_function": "选择共同参与及其社会接触机会",
+      "source_manifestation_ids": [
+        "BM57",
+        "BM58",
+        "BM59"
+      ]
+    },
+    {
+      "type_id": "BT13",
+      "family_id": "GEF01",
+      "direction": "low",
+      "description": "在参与形式可选时，选择个人或独立参与，或因省去路程等具体理由选择远程参与",
+      "psychological_function": "选择较少共同参与的形式",
+      "source_manifestation_ids": [
+        "BM61",
+        "BM62",
+        "BM63",
+        "BM64"
+      ]
+    },
+    {
+      "type_id": "BT14",
+      "family_id": "GEF03",
+      "direction": "low",
+      "description": "在疲劳或身体不适背景下，选择与伴侣或家人相处，或选择独处；两种行为应分别保留",
+      "psychological_function": "在该身体状态背景中选择较小范围接触或独处",
+      "source_manifestation_ids": [
+        "BM55",
+        "BM56"
+      ]
+    },
+    {
+      "type_id": "BT15",
+      "family_id": "GEF01",
+      "direction": "high",
+      "description": "主动组织较大规模的聚会，邀请较多客人参与",
+      "psychological_function": "主动发起较大范围的群体交往",
+      "source_manifestation_ids": [
+        "BM12"
+      ]
+    },
+    {
+      "type_id": "BT16",
+      "family_id": "GEF01",
+      "direction": "high",
+      "description": "选择外出，并表达对遇见新人的期待；不预设已经开始交谈",
+      "psychological_function": "选择可能带来新社会接触的机会",
+      "source_manifestation_ids": [
+        "BM17"
+      ]
+    },
+    {
+      "type_id": "BT17",
+      "family_id": "GEF01",
+      "direction": "low",
+      "description": "选择与一人共同活动，而非加入群体；仍保留一对一接触",
+      "psychological_function": "选择较小规模的共同活动形式",
+      "source_manifestation_ids": [
+        "BM08"
+      ]
+    },
+    {
+      "type_id": "BT18",
+      "family_id": "GEF01",
+      "direction": "low",
+      "description": "选择独自进行活动，而非加入群体或与他人同行",
+      "psychological_function": "选择独自活动的形式",
+      "source_manifestation_ids": [
+        "BM08"
+      ]
+    },
+    {
+      "type_id": "BT19",
+      "family_id": "GEF01",
+      "direction": "high",
+      "description": "在共同活动开始前，通过线上渠道主动联系其他参与者",
+      "psychological_function": "主动建立与活动参与者的社会接触",
+      "source_manifestation_ids": [
+        "BM60"
+      ]
+    }
+  ],
+  "review_notes": {
+    "review_basis": "核对 stage3_behavior_bank.json、修订后的 Stage 2，以及 docs/mussel_zh.json 中的中文原题；尚未核对德文原题和作者原始评分键。",
+    "direction_convention": "high/low 保留上游的构念方向标记，不能视为已经核定的作者正式计分。小范围亲近交往不等于没有社交，远程参与也不普遍等于低乐群。",
+    "psychological_function_convention": "仅说明行为与社会接触的直接关系，不将恢复自主感、追求可预测性、降低消耗等未经原题证实的动机写为事实。",
+    "abstraction_convention": "去掉具体活动载体，但保留参与或退出、主动或接受、熟悉程度、人数差异及原题明确给出的身体状态或便利理由；同一类型中的不同表现不是必须同时出现的条件。",
+    "family_alignment": "BT12、BT13 以及从 BT11 拆出的 BT19 归入 GEF01，对应 Stage 2 中01、06的修订归属。GEF03仅保留09、11的身体状态背景。",
+    "split_decisions": [
+      "保留原BT01作为主动交谈，另设BT16记录期待遇见新人，避免把期待当成已发生的交谈。",
+      "原BT03仅用BM18表示邀请熟人相聚，另设BT15用BM12表示大型聚会。",
+      "原BT11移除BM52，将BM60拆为GEF01下的BT19。",
+      "BM05含两种原始行为，分别纳入BT06与BT08。BM08含一对一与独处两种行为，分别纳入BT17与BT18。"
+    ],
+    "scoped_source_options": {
+      "BT06": {
+        "BM05": [
+          "gregariousness_04:C"
+        ]
+      },
+      "BT08": {
+        "BM05": [
+          "gregariousness_04:D"
+        ]
+      },
+      "BT17": {
+        "BM08": [
+          "gregariousness_19:C"
+        ]
+      },
+      "BT18": {
+        "BM08": [
+          "gregariousness_19:D"
+        ]
+      }
+    },
+    "source_usage_convention": "一个上游BM若合并了不同原题选项，可在多个类型中按 scoped_source_options 拆开引用；这表示不同子行为，不代表重复计算独立证据。BM编号仍指向上游原记录，未改写其内容。",
+    "excluded_manifestations": {
+      "BM52": "09-B仅表示外出做其他事情，没有明确社会接触；不作为确定的E2高极行为模板，原记录保留待核。"
+    },
+    "remaining_source_limits": [
+      "本次修订行为类型，不声称已覆盖全部22题的每个选项。上游BM对部分选项未单独记录，例如11-D的家人陪伴与独处交替、19-B的先入群后离群，不能用现有单一BM冒充完整覆盖。",
+      "公共观赛与酒吧选项没有明确断言参与者都是陌生人；原BM65、BM66的括号推断不作为本文件的必要条件。",
+      "身体状态标签只作为09、11的原题背景保留，不把成本轻微、克服障碍或打破计划当作共同事实。"
+    ],
+    "type_review_boundaries": {
+      "BT13": "选择较少共同参与的形式，具体理由需分别核对"
+    },
+    "source_specific_formulations": {
+      "BT17": "选择与一名提供活动服务的人单独同行，而非加入群体；仍保留一对一接触"
+    },
+    "field_review_convention": {
+      "review_date": "2026-11-02",
+      "description": "去掉不决定行为差异的原题场景词，保留有证据的顺序、参与范围、注意状态、条件与明确感受；抽象化不是新增领域的实证支持。",
+      "psychological_function": "只陈述来源明确的意图或动作直接产生的互动作用，不补写成功结果及潜在动机；纯感受记录无明确行为功能时标未明示。",
+      "type_review_boundaries": "原字段中的审阅限制移到本项，仍须与类型及族边界一起阅读；不能因移出字段就视为问题已获计分核定。",
+      "source_specific_formulations": "保留本次抽象前的具体表述供来源对照；可用类型以behavior_types中的当前表述为准。",
+      "unchanged_references": "本次保留全部类型编号、族归属、方向及BM引用。待核行为未恢复为可用类型。"
+    }
+  }
+}

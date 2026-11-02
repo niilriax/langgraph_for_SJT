@@ -1,0 +1,195 @@
+{
+  "facet_id": "conscientiousness_self_discipline",
+  "neo_code": "C5",
+  "source": "stage4_cue_bank.json, cross-checked against Chinese source items and revised Stage 2/3b",
+  "trigger_types": [
+    {
+      "trigger_id": "TT01",
+      "name": "事务与其他活动并存",
+      "description": "原定事务与娱乐、赴约或其他当下安排同时出现，需要选择先后、协调或并行；不预设两者一定互斥，也不一概称为抵抗冲动。",
+      "origin": "source",
+      "linked_family_ids": [
+        "SEF01"
+      ],
+      "source_cue_ids": [
+        "C01",
+        "C04"
+      ]
+    },
+    {
+      "trigger_id": "TT02",
+      "name": "疲倦或舒适状态",
+      "description": "当前已疲倦、想休息或处于舒适状态，同时仍有事项需要考虑；只保留各来源明示的状态，不预设必然停止或放弃。",
+      "origin": "source",
+      "linked_family_ids": [
+        "SEF01",
+        "SEF02"
+      ],
+      "source_cue_ids": [
+        "C02"
+      ]
+    },
+    {
+      "trigger_id": "TT03",
+      "name": "时间可自主安排",
+      "description": "出现积压或刚想起的待办，或有时限但可自行分配时间的任务；部分来源未给期限，另一些明确有截止要求，不统一写成没有监督或后果。",
+      "origin": "source",
+      "linked_family_ids": [
+        "SEF02"
+      ],
+      "source_cue_ids": [
+        "C03"
+      ]
+    },
+    {
+      "trigger_id": "TT04",
+      "name": "自设限制遇即时吸引",
+      "description": "题干明确已有自设的限制目标，随后出现与之有关的即时吸引物；不预设具体应对、满足程度或内在冲动强度。",
+      "origin": "source",
+      "linked_family_ids": [
+        "SEF03"
+      ],
+      "source_cue_ids": [
+        "C05"
+      ]
+    },
+    {
+      "trigger_id": "TT05",
+      "name": "目标机会需要持续投入",
+      "description": "出现有价值的目标机会，但需要持续投入并占用原本可用于其他活动的时间；不预设回报时距、能否获得或机会是唯一可选路径。",
+      "origin": "source",
+      "linked_family_ids": [
+        "SEF04"
+      ],
+      "source_cue_ids": [
+        "C06"
+      ]
+    },
+    {
+      "trigger_id": "TT06",
+      "name": "任务不愉快或难读",
+      "description": "已安排一段时间处理不愉快事项，或在投入部分进度后发现内容无趣且困难；区分活动性质和已投入阶段，不统一写成对他人的承诺或必须继续。",
+      "origin": "source",
+      "linked_family_ids": [
+        "SEF02"
+      ],
+      "source_cue_ids": [
+        "C08",
+        "C09"
+      ]
+    },
+    {
+      "trigger_id": "TT08",
+      "name": "原定任务遇意外事件",
+      "description": "已有原定任务，突然出现另一件需要考虑处理的意外事件；任务有时限但尚非最后一刻，处理先后仍可选择，不预设意外无需处理或原任务完全不紧迫。",
+      "origin": "source",
+      "linked_family_ids": [
+        "SEF01"
+      ],
+      "source_cue_ids": [
+        "C07"
+      ]
+    }
+  ],
+  "review_notes": {
+    "review_basis": "原题为直接依据，C编号只追溯上游记录；不复制其无截止、遥远回报或虚构目标等错误概括。",
+    "source_traceability": {
+      "TT01": {
+        "source_item_ids": [
+          "self_discipline_01",
+          "self_discipline_02",
+          "self_discipline_04",
+          "self_discipline_06",
+          "self_discipline_08",
+          "self_discipline_13",
+          "self_discipline_15",
+          "self_discipline_18",
+          "self_discipline_19",
+          "self_discipline_20",
+          "self_discipline_21"
+        ]
+      },
+      "TT02": {
+        "source_item_ids": [
+          "self_discipline_01",
+          "self_discipline_07",
+          "self_discipline_17"
+        ]
+      },
+      "TT03": {
+        "source_item_ids": [
+          "self_discipline_03",
+          "self_discipline_14",
+          "self_discipline_17"
+        ]
+      },
+      "TT04": {
+        "source_item_ids": [
+          "self_discipline_09",
+          "self_discipline_12"
+        ]
+      },
+      "TT05": {
+        "source_item_ids": [
+          "self_discipline_10"
+        ]
+      },
+      "TT06": {
+        "source_item_ids": [
+          "self_discipline_05",
+          "self_discipline_16"
+        ]
+      },
+      "TT08": {
+        "source_item_ids": [
+          "self_discipline_11"
+        ]
+      }
+    },
+    "family_source_scope": {
+      "TT02": {
+        "SEF01": [
+          "self_discipline_01",
+          "self_discipline_07",
+          "self_discipline_17"
+        ],
+        "SEF02": [
+          "self_discipline_17"
+        ]
+      }
+    },
+    "source_scope_notes": {
+      "TT01": "15-B和21-B可并行；06有事先社交承诺；19原文仅朋友来接，不补写强烈娱乐诱惑；19-B语义待核不影响题干并存事实。",
+      "TT02": "C02中的03没有明示疲劳，本版排除；01疲倦、07饱食疲倦、17舒服躺床分别记录。",
+      "TT03": "不是无外部强制；14明确四周期限，17还可落在TT02舒适状态，两类不是独立支持。 触发类型抽象为可自主安排但可能有时限，14的具体四周要求保留在来源说明。",
+      "TT04": "仅09和12；22无明示限制目标，不沿用C05的过度归纳。12-B语义待核不影响明确目标与甜点共存的题干事实。 直接来源仍仅饮食限制09和12，抽象措辞不证明其他自设限制领域已有原题验证。",
+      "TT05": "10仍仅暂定SEF04，不通过关联stable族让其在默认模式进入。 具体来源为体育训练争取继续教育资助，抽象类型不证明其他目标领域已有实证支持。",
+      "TT06": "05是安排时间做家务；16已读四分之一且难读，二者阶段不同。",
+      "TT08": "原C07对无需立即处理的判断不充分，11的故障及学习安排单独保留，不把它归为SEF02无外部强制。 直接来源仅11：设备故障、三天后考试及已有基础；本层去除具体场景词，不将其泛化解释当作新增证据。"
+    },
+    "deferred_triggers": {
+      "TT07": {
+        "original_name": "中断后重新启动",
+        "origin": "definition",
+        "source_cue_ids": [],
+        "reason": "虽可作为定义推演的候选，但目前原22题没有明确的中断后实际恢复证据；缺乏具体支持时不放入当前可用触发类型。"
+      }
+    },
+    "deferred_source_items": {
+      "self_discipline_22": "已吃饱且免费赠送甜点，但没有明示限制目标；不伪装为SEF03的已有自我约束冲突。"
+    },
+    "upstream_cue_limits": [
+      "C01覆盖了全部22题但并非全有即时诱惑；仅按具体来源使用，不沿用其全覆盖。",
+      "C02错加03疲劳，已限缩。",
+      "C03将有期限的14等归为无强制，已纠正。",
+      "C04中的09放在TT04而非将食物接触统一视为时间竞争。",
+      "C05将22写作自设目标，已剔除。",
+      "C06不证明奖励遥远，C07不证明故障无需立即处理。",
+      "上游Stage 4原文件未改写。"
+    ],
+    "overlap_notes": [
+      "17同时可由想起待办和舒适状态组织，01同时有娱乐与疲劳；不因此重复计独立证据。"
+    ],
+    "runtime_scope": "默认不加载仅关联provisional SEF04的TT05；TT07候选不在trigger_types，22未进入触发来源。"
+  }
+}

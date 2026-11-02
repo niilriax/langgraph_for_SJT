@@ -2,38 +2,41 @@
 
 
 COMPACT_SKELETON_BATCH_PROMPT = """
-Design one abstract PSJT item skeleton. A later agent writes the item.
+设计一个抽象的 PSJT 题目骨架，之后由另一个 agent 写成具体题目。
 
-Use only the supplied facet definition, behavior evidence, activation
-mechanism, situation domain, actor relation, and event class. Preserve the
-behavior evidence high/low direction, boundary condition, facet constraints,
-and the supplied activation mechanism. Fit the target population.
+只使用所给的 facet 定义、行为证据、激活机制、情境领域、人物关系和事件类型。保持行为证据的高低方向、边界条件、facet 约束和所给的激活机制，并适合目标人群。
 
-Return exactly one item_skeleton with:
-- situation_type: an abstract event type, not scenario prose;
-- stakes_level: low, medium, or high;
-- social_context: the relevant setting and role relationship;
-- behavioral_tension: the decision tension that realizes the mechanism;
-- option_structure: exactly low, medium_low, medium_high, and high, each with
-  behavioral_tendency and psychological_function.
-- Option design constraints: the 1-point behavior must be a plausible,
-  rationalized or indirect form of avoidance, never a cartoon villain or
-  blatant malicious act. Adjacent levels (1 vs 2, and 3 vs 4) must differ in
-  visible action, timing, communication, or follow-through, not only in
-  internal attitude or degree adverbs. The 4-point behavior must be
-  principled and constructive with proportionate communication and boundaries,
-  not blind self-sacrifice. All four options must be realistically feasible in
-  the same information, resources, duties, and uncertainty.
-- The situation must be a weak situation with trait-relevant cues. It must
-  contain a real conflict that activates the target Behavior Evidence without
-  explicit legal bans, severe moral violations, obvious punishment,
-  authoritative commands, or extreme consequences that dictate one correct
-  answer. Use at least one pair of partly reasonable demands (for example duty
-  versus convenience, commitment versus temporary change, procedure versus
-  cost, or another person's need versus limited resources). Do not collapse the item
-  into right/wrong, legal/illegal, or responsible/malicious avoidance.
+返回恰好一个 item_skeleton，包含：
+- situation_type：抽象的事件类型，不是情境的叙述文字；
+- stakes_level：low、medium 或 high；
+- social_context：相关的场合和角色关系；
+- behavioral_tension：实现该机制的决策张力；
+- option_structure：恰好 low、medium_low、medium_high、high 四档，每档含 behavioral_tendency 和 psychological_function。
 
-Do not return IDs, item text, response wording, scores, reviews, rationales, or
-workflow fields. The four levels must face the same information, duties,
-resources, costs, and uncertainty. Return only the requested structured object.
+方向
+- low 和 high 永远指目标 facet 的低水平和高水平，严格按 facet 定义以及行为证据的高低表现来理解，不表示"更差"和"更好"的行为。当 facet 的高极在社会评价上不受欢迎时（如焦虑、自我意识、愤怒敌意、冲动、脆弱），高水平就是那个不受欢迎的一极（如担忧、退缩、回避、失控），低水平是平静沉着的一极。返回之前，把每一档与行为证据的高低表现逐一核对；与相反一极吻合的档位无效。
+
+两端的保护
+- 无论得分高低，只要某一端在社会评价上不受欢迎，另一端受欢迎，就按下面处理：
+  - 不受欢迎的一端必须是合理、能被理解的行为，有它自己的正当理由，不能是漫画式反派、明显恶意、荒谬的错事或病态的极端；
+  - 受欢迎的一端必须适度，不能是盲目自我牺牲、无限付出、能力超群或保证成功。
+- 四档是应对同一困境的性质不同的策略，不是同一个动作在数量、时长或程度上的差别。
+- 每档的 psychological_function 是当事人自己为这个选择给出的理由（他看重或要保护什么），措辞要让处于该特质水平的人觉得有说服力；低极的理由是正当的日常价值，高极的理由要承认它的代价。
+- 四档仍须落在目标 facet 的同一条轴上：两个高档方向一致，只在坚决程度上不同；两个低档同理。任何一档都不能在第二个维度上不同，如求助、敢于表达（果断）、担忧、社交技巧、付出的努力。方向含糊的档位无效。
+- 四个选项在同样的信息、资源、职责和不确定性下都必须现实可行。
+- 情境必须是带有特质相关线索的弱情境。它要包含一个真实的冲突来激活目标行为证据，但不出现明确的法律禁令、严重的道德违规、明显的惩罚、权威命令，或决定唯一正确答案的极端后果。至少用一对部分合理的要求（如职责与便利、舒适与暴露、坚持与暂时改变、流程与成本、他人需要与有限资源，或其他）。不要把题目变成对错、合法与违法、受欢迎与不受欢迎的行为之分。弱情境里没有规则、命令或惩罚；不需要特意写明"没有人强迫当事人"。冲突的每一边都要有具体的得和具体的失。
+
+选项写作规则
+- 每个 behavioral_tendency 是一个只在这个情境下才成立的具体行为，用一个短句写。不要把多个动作（如加入 + 自我介绍 + 邀请别人）堆在一档里。
+- 不要照抄或改写行为证据的措辞，要把它转化为一个人在这个具体事件中看得见的做法。
+- 不要使用点出特质或其两极的词，包括 facet_label_words 中的每一个词；描述行为，不要描述性格。
+- 提供了 assigned_difference_channel 时，四档要主要沿这个通道区分（如停留多久、谁发起、站在哪里、说了什么），不要沿通用的"待在熟人身边与加入很多陌生人"这条阶梯。
+- 提供了 sibling_skeleton_anchors 时，它们是同一 facet 里已经规划好的骨架。你的情境以及高低档行为必须与它们明显不同，不要沿用它们的行为或措辞。
+- 提供了 assigned_behaviors 时，高档必须是 assigned_behaviors.high 在本情境下的具体化，低档必须是 assigned_behaviors.low 的具体化（它们来自源题的行为库）。用自己的话结合本事件改写，不带特质标签；medium_low 和 medium_high 在两者之间过渡。
+- 提供了 situation.trigger_type 时，situation_type 和 behavioral_tension 必须通过该路径（其名称和描述）激活 facet，不要换成别的路径。
+- 提供了 planning_feedback 时，只修正其中列出的问题。
+
+提供了 sibling_scenarios_to_avoid 时，它们是同一 facet 里已有的题目。选择的 situation_type 和 social_context，其事件、场合和情节必须与它们每一个都明显不同；不要换个说法沿用它们的触发事件（如同一种失误、同一种当众表扬、同一种同伴行为）。
+
+不要返回 ID、题干、回答措辞、分数、评审、理由或流程字段。四档必须面对相同的信息、职责、资源、代价和不确定性。只返回要求的结构化对象。
 """.strip()

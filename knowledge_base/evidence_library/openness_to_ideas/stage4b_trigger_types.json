@@ -1,0 +1,240 @@
+{
+  "facet_id": "openness_ideas",
+  "neo_code": "O5",
+  "source": "stage4_cue_bank.json, cross-checked against docs/mussel_zh.json and revised Stage 2/3b",
+  "trigger_types": [
+    {
+      "trigger_id": "TT01",
+      "name": "可选择的认知内容或活动",
+      "description": "出现具有选择余地的认知内容或活动，可以尝试、继续关注或不参与；奖励、考核、时间及社交条件按具体来源分别记录，不统一断言无用途、无奖励或无社会压力。",
+      "origin": "source",
+      "linked_family_ids": [
+        "OEF01",
+        "OEF05"
+      ],
+      "source_cue_ids": [
+        "C01",
+        "C02"
+      ]
+    },
+    {
+      "trigger_id": "TT02",
+      "name": "出现尚未了解的信息",
+      "description": "遇到尚不了解的词汇、信息、功能或背景，可以进一步询问、查询、尝试或关注；不统一假定已有理解足够、信息没有实用价值或不存在时间要求。",
+      "origin": "source",
+      "linked_family_ids": [
+        "OEF02"
+      ],
+      "source_cue_ids": [
+        "C05",
+        "C07",
+        "C10",
+        "C11"
+      ]
+    },
+    {
+      "trigger_id": "TT03",
+      "name": "内容可进一步理解或解释",
+      "description": "接触的理论内容、新信息或现象存在可进一步了解的细节、成因或知识联系；不预设个体已经理解、当前理解足够或愿意深入，也不把所有来源都视为抽象理论。",
+      "origin": "source",
+      "linked_family_ids": [
+        "OEF01",
+        "OEF03"
+      ],
+      "source_cue_ids": [
+        "C04"
+      ]
+    },
+    {
+      "trigger_id": "TT04",
+      "name": "新论据或不同论据出现",
+      "description": "接触到新的、非传统或彼此不同的论据，可以继续了解或停止关注；不预设被试原有立场与之相反、不预设其愿意改变信念，也不认证论据质量。",
+      "origin": "source",
+      "linked_family_ids": [
+        "OEF04"
+      ],
+      "source_cue_ids": [
+        "C03"
+      ]
+    },
+    {
+      "trigger_id": "TT05",
+      "name": "认知内容与其他活动并存",
+      "description": "认知内容与放松或其他活动同时可选，需要安排当下接触什么；疲劳、原定计划等背景按具体题目保留，不统一假定选项同等价值、成本或只在认知难度上不同。",
+      "origin": "source",
+      "linked_family_ids": [
+        "OEF01"
+      ],
+      "source_cue_ids": [
+        "C06"
+      ]
+    },
+    {
+      "trigger_id": "TT06",
+      "name": "外部提供参与或内容机会",
+      "description": "他人或环境提供邀请、活动信息、参观券或内容选择机会，可以接受、进一步了解、限制参与或不参加；不要求主动创造机会，不统一保证没有社交代价，也不把所有文化活动或内容类别直接等同于O5。",
+      "origin": "source",
+      "linked_family_ids": [
+        "OEF06"
+      ],
+      "source_cue_ids": [
+        "C01",
+        "C02",
+        "C08"
+      ]
+    }
+  ],
+  "review_notes": {
+    "review_basis": "逐条核对上游线索、修订后的Stage 2/3b及项目中文原题；德文原文及作者正式评分键仍待核。03中文题干语境异常未自行修补。",
+    "trigger_convention": "六个类型描述提供特质表达机会的情境条件，不预先指定被试产生好奇、担忧、认知冲突或实际投入，不代表六种独立且已经验证的因果机制。",
+    "origin_convention": "source表示相应情境事实在以下限定题号中有中文原题依据，不表示完全接受上游C编号的全部措辞。宽泛C01、C02只用于索引机会或选择空间，其无奖励、无社会压力等概括不直接沿用。",
+    "source_traceability": {
+      "TT01": {
+        "source_item_ids": [
+          "openness_to_ideas_01",
+          "openness_to_ideas_02",
+          "openness_to_ideas_03",
+          "openness_to_ideas_04",
+          "openness_to_ideas_11",
+          "openness_to_ideas_12",
+          "openness_to_ideas_18",
+          "openness_to_ideas_20"
+        ],
+        "family_source_scope": {
+          "OEF01": [
+            "openness_to_ideas_01",
+            "openness_to_ideas_02",
+            "openness_to_ideas_03",
+            "openness_to_ideas_04",
+            "openness_to_ideas_11",
+            "openness_to_ideas_12",
+            "openness_to_ideas_20"
+          ],
+          "OEF05": [
+            "openness_to_ideas_02",
+            "openness_to_ideas_03",
+            "openness_to_ideas_18"
+          ]
+        },
+        "note": "01提供比赛邀请但未说明无奖；02明确不支付报酬；03出现可选谜题但题干译文待核；04理论与情节无关；11明确无时间压力；20明确无需考试。18仅使用游戏可选这一事实，不据此核定四组合方向。"
+      },
+      "TT02": {
+        "source_item_ids": [
+          "openness_to_ideas_05",
+          "openness_to_ideas_09",
+          "openness_to_ideas_14",
+          "openness_to_ideas_15"
+        ],
+        "note": "05明确大致理解句子；09为熟悉工具的新功能；14为未完全关注的新发现；15为可进一步了解的规定背景。仅05明确当前大致理解已够用，其他题不据此补写非必要性。"
+      },
+      "TT03": {
+        "source_item_ids": [
+          "openness_to_ideas_04",
+          "openness_to_ideas_08",
+          "openness_to_ideas_10",
+          "openness_to_ideas_11",
+          "openness_to_ideas_12"
+        ],
+        "family_source_scope": {
+          "OEF01": [
+            "openness_to_ideas_04",
+            "openness_to_ideas_11",
+            "openness_to_ideas_12"
+          ],
+          "OEF03": [
+            "openness_to_ideas_04",
+            "openness_to_ideas_08",
+            "openness_to_ideas_10"
+          ]
+        },
+        "note": "04为理论解释，08为精通领域的新发现，10为可了解成因的现象，11、12为哲学内容；不要求每题都有已有基础、复杂细节与知识整合。19和22不沿用C04的抽象性判断。"
+      },
+      "TT04": {
+        "source_item_ids": [
+          "openness_to_ideas_06"
+        ],
+        "note": "仅06明确提供新论据和不同意见；节目嘉宾之间意见不同不等于挑战被试自身信念。11、12、17不因哲学或辩论主题就纳入该条件。"
+      },
+      "TT05": {
+        "source_item_ids": [
+          "openness_to_ideas_07",
+          "openness_to_ideas_21"
+        ],
+        "note": "07为艰难一天后的教育节目与娱乐选择，21为已有阅读计划与新发现的其他活动；21没有明确疲劳。两题不构成只改变难度的等价选项比较。"
+      },
+      "TT06": {
+        "source_item_ids": [
+          "openness_to_ideas_13",
+          "openness_to_ideas_16",
+          "openness_to_ideas_17",
+          "openness_to_ideas_20",
+          "openness_to_ideas_22"
+        ],
+        "note": "13、17为邀请，16为参观券，20为得知讲座信息，22为订阅类别选择。仅13明确取消不会使熟人生气；16与22存在免费机会，不能一律解释为无外部诱因。22只保留内容选择事实，不确定类别高低方向。"
+      }
+    },
+    "deferred_triggers": {
+      "TT07": {
+        "previous_entry": {
+          "trigger_id": "TT07",
+          "name": "他人贬低智力活动",
+          "description": "社交情境中他人对智力活动表现出拒绝或负面态度，是否仍主动投入或寻求智力兴趣体现该特质。",
+          "origin": "source",
+          "linked_family_ids": [
+            "OEF01",
+            "OEF06"
+          ],
+          "source_cue_ids": [
+            "C09"
+          ]
+        },
+        "source_item_ids": [
+          "openness_to_ideas_19"
+        ],
+        "review_status": "deferred",
+        "reason": "19在Stage 2暂不归族，相关BM在3b待核；朋友拒绝游戏不必是贬低，原选项主要比较兴趣和人际反应。保留来源记录，不进入trigger_types。"
+      },
+      "TT08": {
+        "previous_entry": {
+          "trigger_id": "TT08",
+          "name": "自发好奇心驱动",
+          "description": "没有外部线索或要求时，内在兴趣或未解疑问自发浮现并推动主动寻找、扩展或深化智力探索；是否跟随这种冲动体现该特质。",
+          "origin": "definition",
+          "linked_family_ids": [
+            "OEF02",
+            "OEF03",
+            "OEF06"
+          ],
+          "source_cue_ids": []
+        },
+        "source_item_ids": [],
+        "review_status": "hypothesis_requires_source",
+        "reason": "无外部线索时自发产生好奇并推动探索是待验证设想，没有直接原题来源，还把高极心理反应写成前提。不作为真人原题提取结果，也不为补足八种类型而替换成另一推断。"
+      }
+    },
+    "upstream_cue_limits": [
+      "C01、C02覆盖全部22题，不能证明每题都无奖励、无考核、无压力或需要较高认知投入；本文件仅按列明题号与事实使用。",
+      "C03把哲学、讨论和信念受挑战混合；TT04只采用06的新论据与不同意见事实，不接纳必然挑战本人信念的前提。",
+      "C04列入19游戏与22杂志，不能据此认定抽象理论或深度要求；本版TT03排除这两项。",
+      "C05的当前理解足够只来自05，不推广到所有未知信息。05-D的加工方向仍待核，触发事实不等于评分方向。",
+      "C06把07与21都概括为疲劳或消耗；本版只将艰难一天用于07，不补写21疲劳。",
+      "C07把09新功能视为非必需，但原题没有明确说明全部新功能没有实际用途；本版只保留新功能可探索的事实。",
+      "C08将13的取消无社交代价推广至16、20；本版仅保留13的明确说明。",
+      "C09与19一起待核，不因存在上游编号而进入本版可用触发条件。",
+      "C11的15提供了解背景或关注讨论的机会，不直接证明复杂机制或深度理解，移至TT02。",
+      "上游stage4_cue_bank.json本次未改写；本文件通过限定来源与说明纠正其引用含义。"
+    ],
+    "pending_direction_limits": {
+      "openness_to_ideas_18": "四组合中复杂度与新颖性同时变化的事实可以保留，方向待核；相关BM不在3b活动类型中，不能凭本触发条件把其重新变成已核定的高低模板。",
+      "openness_to_ideas_22": "可选择杂志类别的事实可以保留，认知要求和正式类别得分待核；相关BM不在3b活动类型中。",
+      "openness_to_ideas_19": "当前不属于任何可用触发类型的直接来源，Stage 2未归族，Stage 3b相关BM继续待核。"
+    },
+    "family_alignment": "TT01按逐题范围关联OEF01/OEF05；TT02关联OEF02；TT03按逐题范围关联OEF01/OEF03；TT04关联暂定OEF04；TT05关联OEF01；TT06关联OEF06。族关联不表示每道来源题都支持全部关联族。",
+    "overlap_notes": [
+      "TT01是较宽的选择机会，TT03、TT05等可与之重叠，不按编号重复计作独立来源。",
+      "TT02的信息探索与TT03的进一步理解可能交叉，按原选项的知识对象和处理方式分别使用。",
+      "TT06的外部机会可与其他条件同时出现，不等于必须群体社交或主动创造新机会。"
+    ],
+    "runtime_scope": "仅trigger_types中的六条参与当前加载；review_notes中的旧TT07、TT08只保留审阅记录。默认stable族下不载入仅关联OEF04的TT04；这不是将该来源删去。"
+  }
+}

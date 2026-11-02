@@ -7,6 +7,8 @@ from typing import Any
 from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
+from httpx import Limits
+from openai import DefaultAsyncHttpxClient, DefaultHttpxClient
 from pydantic import TypeAdapter, ValidationError as PydanticValidationError
 from sjt_system.agent.json_parsing import parse_model_json_response
 from sjt_system.runtime.telemetry import HANDLER as TELEMETRY_HANDLER
@@ -72,6 +74,13 @@ def get_model(
         ),
         timeout=get_model_request_timeout_seconds(),
         max_retries=0,
+        # Bound idle keep-alive sockets, not active requests in a model batch.
+        http_client=DefaultHttpxClient(
+            limits=Limits(max_connections=None, max_keepalive_connections=20),
+        ),
+        http_async_client=DefaultAsyncHttpxClient(
+            limits=Limits(max_connections=None, max_keepalive_connections=20),
+        ),
         # Observation-only telemetry: token usage and latency per model call.
         callbacks=[TELEMETRY_HANDLER],
     )
@@ -83,7 +92,7 @@ SUPPORTED_STRUCTURED_OUTPUT_METHODS = {
     "json_schema",
     "plain_json",
 }
-DEFAULT_MODEL_REQUEST_TIMEOUT_SECONDS = 300.0
+DEFAULT_MODEL_REQUEST_TIMEOUT_SECONDS = 600.0
 DEFAULT_MODEL_REQUEST_MAX_ATTEMPTS = 2
 
 
@@ -323,10 +332,19 @@ def build_json_output_instruction(output_type: type) -> str:
 def with_compatible_structured_output(
     model: Any,
     output_type: type,
+    *,
+    method: str | None = None,
+    strict: bool | None = None,
 ) -> tuple[Any, str]:
-    """Wrap a model for structured output and return the selected method."""
+    """Wrap a model for structured output and return the selected method.
 
-    method = resolve_structured_output_method(model)
+    ``method`` overrides the global selection for one role; ``strict`` is
+    forwarded only to native ``json_schema`` output.
+    """
+
+    if method is not None and method not in SUPPORTED_STRUCTURED_OUTPUT_METHODS:
+        raise ValueError(f"unsupported structured output method: {method!r}")
+    method = method or resolve_structured_output_method(model)
     validate_local_output = _local_output_validator(output_type)
     if method == "plain_json":
         runnable = (
@@ -338,6 +356,7 @@ def with_compatible_structured_output(
     runnable = model.with_structured_output(
         output_type,
         method=method,
+        **({"strict": strict} if method == "json_schema" and strict is not None else {}),
     )
     # Native structured-output implementations vary in strictness across
     # OpenAI-compatible providers. Revalidate and normalize their returned

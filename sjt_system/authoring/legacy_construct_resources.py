@@ -23,8 +23,6 @@ Sources for construct boundaries and inappropriate contexts:
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-ROLE_STAGES = ["student", "early_career", "mid_career", "team_lead"]
-GENDERS = ["woman", "man", "nonbinary"]
 
 # =============================================================================
 # NEO-PI-R Facet Definitions
@@ -1395,51 +1393,9 @@ def _apply_neo_pi_r_chinese_overrides(facets: Dict[str, FacetDefinition]) -> Non
             setattr(facet, field_name, cleaned_values)
 
 
-def get_facet(domain: str, facet_name: str) -> FacetDefinition:
-    """Get a specific facet definition."""
-    facets = get_neo_pi_r_facets()
-    key = f"{domain}_{facet_name}"
-    if key not in facets:
-        raise ValueError(f"Unknown facet: {domain}.{facet_name}")
-    return facets[key]
-
-
-def get_facets_by_domain(domain: str) -> Dict[str, FacetDefinition]:
-    """Get all facets for a domain."""
-    all_facets = get_neo_pi_r_facets()
-    return {
-        k: v for k, v in all_facets.items()
-        if v.domain == domain
-    }
-
-
 # =============================================================================
 # Self-Report Items (for validation)
 # =============================================================================
-
-SELF_REPORT_ITEMS = {
-    "neuroticism": [
-        "I become tense quickly when several demands arrive at once.",
-        "Small setbacks stay on my mind longer than I would like.",
-    ],
-    "extraversion": [
-        "I usually bring energy into group situations.",
-        "I am comfortable starting conversations with unfamiliar people.",
-    ],
-    "openness": [
-        "I enjoy trying a new approach even when the old one still works.",
-        "Ideas that challenge my routines usually interest me.",
-    ],
-    "agreeableness": [
-        "I try to understand other people's reasons before I judge them.",
-        "I usually look for a cooperative solution during friction.",
-    ],
-    "conscientiousness": [
-        "I keep track of details before they create problems.",
-        "I follow through on plans even when the work becomes repetitive.",
-    ],
-}
-
 
 
 # =============================================================================

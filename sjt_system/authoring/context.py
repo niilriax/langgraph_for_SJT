@@ -230,51 +230,6 @@ def build_item_pattern_profile(
     }
 
 
-def build_deterministic_repair_tasks(
-    item: Mapping[str, Any],
-    item_specification: Mapping[str, Any] | None,
-    profiles: Mapping[str, Mapping[str, Any]],
-    blueprint_cell: Mapping[str, Any] | None = None,
-) -> list[dict[str, Any]]:
-    """Return deterministic answer-key-transparency checks."""
-
-    tasks: list[dict[str, Any]] = []
-    dimension_name = str((blueprint_cell or {}).get("facet_id") or "")
-    dimension_terms = {
-        term.strip()
-        for term in re.split(r"[、,/与和及]", dimension_name)
-        if len(term.strip()) >= 2
-    }
-    exposed_option_ids = sorted(
-        {
-            str(option.get("option_id"))
-            for option in item.get("response_options") or []
-            if isinstance(option, Mapping)
-            and option.get("option_id")
-            and any(
-                term in str(option.get("text") or "")
-                for term in dimension_terms
-            )
-        }
-    )
-    if exposed_option_ids:
-        tasks.append(
-            {
-                "task_id": "deterministic-answer-key-transparency",
-                "source": "deterministic",
-                "targets": [
-                    {
-                        "field": "response_options",
-                        "option_ids": exposed_option_ids,
-                    }
-                ],
-                "problem": "反应选项直接使用目标构念标签，暴露评分方向",
-                "instruction": "改用具体、可观察的行为描述",
-            }
-        )
-    return tasks
-
-
 def build_item_generation_context(state: Mapping[str, Any]) -> dict[str, Any]:
     item_specification = deepcopy(state.get("current_item_specification"))
     if isinstance(item_specification, dict):
@@ -287,12 +242,20 @@ def build_item_generation_context(state: Mapping[str, Any]) -> dict[str, Any]:
     blueprint_cell = deepcopy(state.get("current_blueprint_cell"))
     if isinstance(blueprint_cell, dict):
         blueprint_cell.pop("cell_id", None)
-    return {
+    from sjt_system.authoring.diversity import label_words_for
+
+    context = {
         "current_item_specification": item_specification,
         "current_blueprint_cell": blueprint_cell,
         "context_usage": state.get("context_usage") or {},
         "context_quotas": (state.get("blueprint") or {}).get("context_quotas", []),
     }
+    label_words = label_words_for((state.get("current_blueprint_cell") or {}).get("facet_id"))
+    if label_words:
+        context["facet_label_words"] = label_words
+    if state.get("option_diversity_context"):
+        context["option_diversity_context"] = deepcopy(state["option_diversity_context"])
+    return context
 
 
 def build_unified_review_context(state: Mapping[str, Any]) -> dict[str, Any]:

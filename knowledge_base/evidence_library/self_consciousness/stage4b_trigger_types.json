@@ -1,0 +1,196 @@
+{
+  "facet_id": "neuroticism_self_consciousness",
+  "neo_code": "N4",
+  "source": "stage4_cue_bank.json, cross-checked against Chinese source items and revised Stage 2/3b",
+  "trigger_types": [
+    {
+      "trigger_id": "TT01",
+      "name": "失误或敏感信息被看见",
+      "description": "发生失误、意外声响或可能被他人看见的敏感信息；后续应对尚未确定，不预设个体已尴尬、正在担心评价或必须退出。",
+      "origin": "source",
+      "linked_family_ids": [
+        "NEF01"
+      ],
+      "source_cue_ids": [
+        "C01",
+        "C06"
+      ]
+    },
+    {
+      "trigger_id": "TT02",
+      "name": "公开评论或笑声出现",
+      "description": "在场他人的评论、指控、模仿或笑声涉及自己；不同来源可能是批评、玩笑或被冒犯的理解，不统一预设恶意、明确负面评价或内在感受。",
+      "origin": "source",
+      "linked_family_ids": [
+        "NEF01",
+        "NEF03"
+      ],
+      "source_cue_ids": [
+        "C01",
+        "C04",
+        "C05",
+        "C08"
+      ]
+    },
+    {
+      "trigger_id": "TT03",
+      "name": "已经受到集中的注意",
+      "description": "外部事件使个体已经成为在场他人的注意中心，随后仍需决定如何回应或是否接受进一步关注；不把受到注意等同于受到负面评价。",
+      "origin": "source",
+      "linked_family_ids": [
+        "NEF03"
+      ],
+      "source_cue_ids": [
+        "C03"
+      ]
+    },
+    {
+      "trigger_id": "TT04",
+      "name": "公开表现或发言机会",
+      "description": "出现表演、演讲、提问或继续接受表演关注的机会；有的来源已经曝光，不统一描述成事件尚未开始，也不预设害怕或愿意参与。",
+      "origin": "source",
+      "linked_family_ids": [
+        "NEF02"
+      ],
+      "source_cue_ids": [
+        "C03"
+      ]
+    },
+    {
+      "trigger_id": "TT05",
+      "name": "失误后遇见相关人物",
+      "description": "先前发生过失误，之后偶然遇见相关人物，可以接触、解释或回避；不预设已经产生尴尬或形象担忧。",
+      "origin": "source",
+      "linked_family_ids": [
+        "NEF01"
+      ],
+      "source_cue_ids": [
+        "C07"
+      ]
+    },
+    {
+      "trigger_id": "TT06",
+      "name": "含义未明的同伴反应",
+      "description": "公开进行某项活动时，出现含义不明的他人反应，其原因及是否针对自己尚未明确；不预设个体会自我怀疑，也不强制要求先作负面解释。",
+      "origin": "source",
+      "linked_family_ids": [
+        "NEF04"
+      ],
+      "source_cue_ids": [
+        "C04"
+      ]
+    },
+    {
+      "trigger_id": "TT07",
+      "name": "同行者行为引起关注",
+      "description": "同行者的行为引起他人目光、反应或现场注意；不预设自己必被视为同类、必然尴尬，也不统一认证其为轻度失礼。",
+      "origin": "source",
+      "linked_family_ids": [
+        "NEF05"
+      ],
+      "source_cue_ids": [
+        "C02"
+      ]
+    }
+  ],
+  "review_notes": {
+    "review_basis": "核对中文原题及三层归属，德文原文和作者计分待核。条件不预先指定尴尬、恐惧、回避或无威胁感。",
+    "source_traceability": {
+      "TT01": {
+        "source_item_ids": [
+          "self_consciousness_01",
+          "self_consciousness_07",
+          "self_consciousness_09",
+          "self_consciousness_12",
+          "self_consciousness_14",
+          "self_consciousness_18",
+          "self_consciousness_19"
+        ]
+      },
+      "TT02": {
+        "source_item_ids": [
+          "self_consciousness_06",
+          "self_consciousness_16",
+          "self_consciousness_18",
+          "self_consciousness_19",
+          "self_consciousness_20",
+          "self_consciousness_21"
+        ]
+      },
+      "TT03": {
+        "source_item_ids": [
+          "self_consciousness_04",
+          "self_consciousness_10"
+        ]
+      },
+      "TT04": {
+        "source_item_ids": [
+          "self_consciousness_04",
+          "self_consciousness_08",
+          "self_consciousness_13",
+          "self_consciousness_22"
+        ]
+      },
+      "TT05": {
+        "source_item_ids": [
+          "self_consciousness_05"
+        ]
+      },
+      "TT06": {
+        "source_item_ids": [
+          "self_consciousness_03"
+        ]
+      },
+      "TT07": {
+        "source_item_ids": [
+          "self_consciousness_02",
+          "self_consciousness_11",
+          "self_consciousness_15"
+        ]
+      }
+    },
+    "family_source_scope": {
+      "TT02": {
+        "NEF01": [
+          "self_consciousness_16",
+          "self_consciousness_18",
+          "self_consciousness_19",
+          "self_consciousness_20",
+          "self_consciousness_21"
+        ],
+        "NEF03": [
+          "self_consciousness_06"
+        ]
+      }
+    },
+    "source_scope_notes": {
+      "TT02": "21的笑话未被理解，不能直接认证为恶意负评；16保留安全解释。",
+      "TT03": "来源为04、10的已有曝光，旧TT03所引C02主要指同行者，已改为C03并限定具体题号。",
+      "TT04": "04仅对应进一步表演的次要NEF02归属，08的触发事实可保留但四个行为方向在3b待核。",
+      "TT06": "仅用03的原因不明笑声；21已被叫到且涉及玩笑理解，转由TT02记录，不冒充与03相同的信号不确定性。",
+      "TT07": "02、11、15有直接原题依据，origin由definition改为source；C02中的17不沿用。"
+    },
+    "deferred_source_items": {
+      "self_consciousness_17": "Stage 2暂不归族，Stage 3b相关BM待核，本版不作为触发类型直接来源。"
+    },
+    "upstream_cue_limits": [
+      "C01把不同事件统一写成公开失误，实际09可含礼貌反应，须分别理解。",
+      "C03含04、10的已经曝光情境，不全是预期曝光。",
+      "C02包含17但未证明自己受到评价；本版排除17。",
+      "C04把03的不确定原因与21的笑话不理解混合，本版分别记录。",
+      "C06遇见上级不证明对方实际评价，也不证明永久放弃购买。",
+      "上游线索文件未改写，C编号仅按本文件范围引用。"
+    ],
+    "overlap_notes": [
+      "TT01、TT02可能同时出现在失误被公开评论的来源中，不按编号重复计独立证据。",
+      "TT03与TT04可在04同时成立，分别记录已有注意与后续参与选择。"
+    ],
+    "runtime_scope": "默认不加载仅关联provisional NEF04的TT06；TT07来源修订不等于对每个行为方向已核定。",
+    "source_specific_formulations": {
+      "TT03": "个体因庆祝安排或身份误认等外部事件已经受到集中注意，随后仍有如何应对或是否接受进一步关注的选择；不把注意等同于负面评价。",
+      "TT05": "先前发生信息误发等失误，之后偶然遇见相关人物，可以接触、解释或回避；不预设已经产生尴尬或形象担忧。",
+      "TT06": "进行演示时，同伴突然笑并低语，原因和是否针对自己尚未明确；不预设个体会自我怀疑，也不强制要求先作负面解释。"
+    },
+    "abstraction_review": "2026-11-02去除非必要场景词；直接来源题号与族关联不变，原先具体表述保留供对照；TT06的直接来源仍仅03，不代表任意模糊反应均已验证。"
+  }
+}

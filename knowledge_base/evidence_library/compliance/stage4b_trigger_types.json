@@ -1,0 +1,205 @@
+{
+  "facet_id": "agreeableness_compliance",
+  "neo_code": "A4",
+  "source": "stage4_cue_bank.json, cross-checked against docs/mussel_zh.json and revised Stage 2/3b",
+  "trigger_types": [
+    {
+      "trigger_id": "TT01",
+      "name": "他人活动干扰当前安排",
+      "description": "他人的活动干扰当前休息或活动安排，个体可以调整自身安排，也可以向对方或负责方提出要求；不统一假定干扰轻微、无法直接沟通或交涉必然尴尬。",
+      "origin": "source",
+      "linked_family_ids": [
+        "CEF01"
+      ],
+      "source_cue_ids": [
+        "C01",
+        "C02"
+      ]
+    },
+    {
+      "trigger_id": "TT02",
+      "name": "分歧或争执后的处理机会",
+      "description": "与他人存在意见分歧，或在争执后意识到自己的表达可能不合适，后续如何处理尚未确定；不把表达不当视为整个争执的已确定起因，也不预设必须让步或道歉。",
+      "origin": "source",
+      "linked_family_ids": [
+        "CEF02"
+      ],
+      "source_cue_ids": [
+        "C05",
+        "C06"
+      ]
+    },
+    {
+      "trigger_id": "TT03",
+      "name": "偏好或资源安排冲突",
+      "description": "自己与他人在活动安排、个人偏好或有限资源使用上存在不一致，当前尚未达成双方接受的安排；不要求对方是熟人或关系良好，也不统一假定已发生利益损失或不存在可求助的权威。",
+      "origin": "source",
+      "linked_family_ids": [
+        "CEF03"
+      ],
+      "source_cue_ids": [
+        "C03",
+        "C04"
+      ]
+    },
+    {
+      "trigger_id": "TT04",
+      "name": "争执存在进一步升级可能",
+      "description": "争执中对方提出被自己视为不公平、伤人的论点，并出现进一步升级的可能；不预设个体已经产生反击冲动，也不要求其选择缓和、退让或对抗。",
+      "origin": "source",
+      "linked_family_ids": [
+        "CEF02"
+      ],
+      "source_cue_ids": [
+        "C08"
+      ]
+    },
+    {
+      "trigger_id": "TT05",
+      "name": "服务交易中的条件争议",
+      "description": "服务或交易中的条件、处理结果或收到的款项与自己的需求、预期或理解存在差异，需要决定后续如何处理；不统一断言对方过错、条款违法、条件处于灰色地带或已付出高额成本。",
+      "origin": "source",
+      "linked_family_ids": [
+        "CEF05"
+      ],
+      "source_cue_ids": [
+        "C09",
+        "C10",
+        "C14"
+      ]
+    },
+    {
+      "trigger_id": "TT06",
+      "name": "不喜欢的对象提出邀约",
+      "description": "自己不喜欢的人提出私下见面的请求，可以接受、提出共同活动形式或拒绝；不预设拒绝必然伤害关系，也不规定必须部分迁就或保留某种边界。",
+      "origin": "source",
+      "linked_family_ids": [
+        "CEF04"
+      ],
+      "source_cue_ids": [
+        "C11"
+      ]
+    },
+    {
+      "trigger_id": "TT07",
+      "name": "察觉他人方案或行为有问题",
+      "description": "互动中认为他人的方案存在不足，或认为对方提出的问题源于其自身行为；是否指出、如何回应及是否继续接受或协助尚未确定，不预设必须纠错或维持表面和谐。",
+      "origin": "source",
+      "linked_family_ids": [
+        "CEF02",
+        "CEF05"
+      ],
+      "source_cue_ids": [
+        "C12",
+        "C13"
+      ]
+    },
+    {
+      "trigger_id": "TT08",
+      "name": "多数偏好与个人偏好不一致",
+      "description": "多数人支持某项共同活动，而自己明确不喜欢该活动，存在继续参与、表达异议、尝试改变安排或退出活动的可能；不预设多数意见具有强制力，也不规定个体必须让步。",
+      "origin": "source",
+      "linked_family_ids": [
+        "CEF03"
+      ],
+      "source_cue_ids": [
+        "C15"
+      ]
+    }
+  ],
+  "review_notes": {
+    "review_basis": "逐条核对上游线索、修订后的Stage 2/3b及项目保存的中文原题；尚未核对德文原文和作者正式评分键。",
+    "trigger_convention": "触发类型提供表现人格差异的情境条件，不将高极或低极反应、理想沟通方式或未经题干给出的心理动机写入前提。八个编号是组织类别，不是已验证且相互独立的因果机制。",
+    "origin_convention": "source表示本轮可在source_traceability所列中文原题中核对相应事实。上游C编号只是检索线索，引用不表示完全接受其措辞；具体范围以以下核对说明为准。",
+    "source_traceability": {
+      "TT01": {
+        "source_item_ids": [
+          "compliance_01",
+          "compliance_08"
+        ],
+        "note": "01为割草声影响宁静，08为邻居聚会影响疲倦后的睡眠。两题均未共同规定无法直接沟通、轻微程度或尴尬动机。"
+      },
+      "TT02": {
+        "source_item_ids": [
+          "compliance_03",
+          "compliance_16"
+        ],
+        "note": "03明确自己确信正确；16明确语调和措辞可能不当。仅关联CEF02，不将两者统一为轻度或由自己过错造成的冲突。"
+      },
+      "TT03": {
+        "source_item_ids": [
+          "compliance_02",
+          "compliance_04",
+          "compliance_06",
+          "compliance_09",
+          "compliance_18"
+        ],
+        "note": "含休假、互访、目的地、家庭安排和停车位冲突。18对象是陌生司机；02可以请求上级裁决。15追讨款项转由TT05记录。"
+      },
+      "TT04": {
+        "source_item_ids": [
+          "compliance_10"
+        ],
+        "note": "仅使用10的亲密关系争执升级背景，对应CEF02。05暂未归族，其道路催促背景不因上游C07同时列出而进入本类型。"
+      },
+      "TT05": {
+        "source_item_ids": [
+          "compliance_07",
+          "compliance_14",
+          "compliance_15",
+          "compliance_17",
+          "compliance_21",
+          "compliance_22"
+        ],
+        "note": "保留不同争议：07退换、14就诊时间、15收到款项不足、17账单、21报价不满意、22原先谈妥细节后报价改变。各题不能统一解释为已证实不公、对方失误或高等待成本。"
+      },
+      "TT06": {
+        "source_item_ids": [
+          "compliance_11"
+        ],
+        "note": "对方是尚未融入当地的新同事，自己不喜欢对方并收到私人邀约；关系受损、邀约频率与迁就动机未被确定。"
+      },
+      "TT07": {
+        "source_item_ids": [
+          "compliance_12",
+          "compliance_13"
+        ],
+        "family_source_scope": {
+          "CEF02": [
+            "compliance_12"
+          ],
+          "CEF05": [
+            "compliance_13"
+          ]
+        },
+        "note": "12为认为同事提议不周全，13为认为投诉来自客户自身错误。两类角色情境分别使用，不能要求每道题同时支持两个族。"
+      },
+      "TT08": {
+        "source_item_ids": [
+          "compliance_19"
+        ],
+        "note": "仅使用朋友共同看电视时多数偏好与个人不喜欢的节目不一致。20的上级追加要求继续待核，不合并为同一压力机制。"
+      }
+    },
+    "deferred_source_items": {
+      "compliance_05": "原题及道路催促线索保留待核，不作为本版任何触发类型的直接来源；Stage 2无族归属，Stage 3b相关BM也暂未纳入。",
+      "compliance_20": "原题及上级追加要求线索保留待核，不作为本版任何触发类型的直接来源；不把上级要求是否合理、员工权利等未经核对的判断当成附加事实。"
+    },
+    "upstream_cue_limits": [
+      "C01以对面房产为由写干扰者并非直接可沟通对象；01没有明确证明无法沟通，且包含公开喊话选项，本文件不采用这一必然限制。",
+      "C03概括为关系良好者却含18的陌生司机，且02允许请求上级裁决；本文件不采用统一关系良好或无权威可用的假定。",
+      "C06把自己言语不当写成冲突起因；16只表示自己的表达可能不妥，本文件不作确定因果归因。",
+      "C07同时列出05和10；本版TT04只引用C08与10，未将05纳入生成依据。",
+      "C10把14和22都写成高等待成本；只有14明确给出数周预约及现场等待，22仅明确已讨论合同细节。",
+      "C14把15概括为对方失误导致损失；原题只明确发现收到零钱不足，不能据此补写金额、已确定过错或争议必然发生。",
+      "C16把20写成上级要求不合理且员工有权拒绝；本轮仅保留原题的追加加班、私人约会及上级知情事实，规范判断待核。",
+      "上游stage4_cue_bank.json本次未改写，以上说明限定本文件如何引用这些线索。"
+    ],
+    "family_alignment": "TT01关联CEF01；TT02、TT04关联CEF02；TT03、TT08关联CEF03；TT06关联CEF04；TT05关联CEF05；TT07按12、13分别关联CEF02、CEF05。暂定族不会因关联触发而自动升级为stable。",
+    "overlap_notes": [
+      "TT02与TT04、TT07可在分歧处理层面重叠，不能仅凭编号计为完全独立证据。",
+      "TT03与TT08都涉及个人偏好不一致，TT08进一步限定为多数人的活动偏好。",
+      "TT05与TT07在服务争议中可能重叠，但本版直接来源分别列出；不把先前等待、发现问题或可能升级普遍化为所有题的共同条件。"
+    ]
+  }
+}

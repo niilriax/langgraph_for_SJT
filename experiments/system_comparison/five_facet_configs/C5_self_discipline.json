@@ -14,6 +14,6 @@
   "plateau_min_delta": 0.01,
   "stability_minimum": 0.8,
   "model_id": "deepseek-v4.1-flash",
-  "virtual_respondent_model_id": "glm-5.3-flash",
-  "evaluation_model_id": "glm-5.3-flash"
+  "virtual_respondent_model_id": "deepseek-v4.1-flash",
+  "evaluation_model_id": "deepseek-v4.1-flash"
 }

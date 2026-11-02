@@ -1,0 +1,707 @@
+{
+  "facet_id": "neuroticism_self_consciousness",
+  "neo_code": "N4",
+  "source": "stage3_behavior_bank.json",
+  "behavior_types": [
+    {
+      "type_id": "BT01",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "因不舒服或担心离开被看见而留在原处",
+      "psychological_function": "维持原处停留，避免实施令自己不舒服的离开动作",
+      "source_manifestation_ids": [
+        "BM01",
+        "BM02"
+      ]
+    },
+    {
+      "type_id": "BT02",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "转身或假装未看见相关人物，以避免被认出或接触",
+      "psychological_function": "减少与相关人物当下接触的机会",
+      "source_manifestation_ids": [
+        "BM19",
+        "BM20",
+        "BM45"
+      ]
+    },
+    {
+      "type_id": "BT03",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "离开当前场所，或寻找机会提前离开",
+      "psychological_function": "结束当前场所的停留",
+      "source_manifestation_ids": [
+        "BM25",
+        "BM53",
+        "BM54",
+        "BM69",
+        "BM73"
+      ]
+    },
+    {
+      "type_id": "BT04",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "换到其他位置，部分行为先向对方道歉",
+      "psychological_function": "改变与他人的空间共处安排",
+      "source_manifestation_ids": [
+        "BM62",
+        "BM70"
+      ]
+    },
+    {
+      "type_id": "BT05",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "继续留在场所，但换到希望未被他人看见先前事件的位置",
+      "psychological_function": "在继续停留的同时更换位置",
+      "source_manifestation_ids": [
+        "BM74"
+      ]
+    },
+    {
+      "type_id": "BT06",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "因明确尴尬而在之后一段时间避开相关人物",
+      "psychological_function": "减少之后与相关人物接触的机会",
+      "source_manifestation_ids": [
+        "BM26"
+      ]
+    },
+    {
+      "type_id": "BT07",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "因明确尴尬而尽快停止引起注意的声响",
+      "psychological_function": "停止当前引起注意的事件",
+      "source_manifestation_ids": [
+        "BM33"
+      ]
+    },
+    {
+      "type_id": "BT08",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "先放下可能被注意的物品，再问候相关人物",
+      "psychological_function": "先调整相关线索的呈现，再进行人际接触",
+      "source_manifestation_ids": [
+        "BM46"
+      ]
+    },
+    {
+      "type_id": "BT10",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "直接离开错误安排，转向原本要去的地方",
+      "psychological_function": "纠正当前安排并转向原定去向",
+      "source_manifestation_ids": [
+        "BM03"
+      ]
+    },
+    {
+      "type_id": "BT11",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "先观察当前活动的开头，再决定是否改变安排",
+      "psychological_function": "暂时继续当前活动并延后去留决定",
+      "source_manifestation_ids": [
+        "BM04"
+      ]
+    },
+    {
+      "type_id": "BT12",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "主动问候相关人物，并通过玩笑或直接说明解释先前情况",
+      "psychological_function": "主动接触并说明先前情况",
+      "source_manifestation_ids": [
+        "BM17",
+        "BM18"
+      ]
+    },
+    {
+      "type_id": "BT13",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "道歉后澄清、提出补偿式邀请、开玩笑或说明人人可能犯错",
+      "psychological_function": "通过道歉、说明或邀请等方式回应失误",
+      "source_manifestation_ids": [
+        "BM27",
+        "BM28",
+        "BM71",
+        "BM72"
+      ]
+    },
+    {
+      "type_id": "BT14",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "回应临时出现的沟通，并说明当前不便继续交谈",
+      "psychological_function": "回应沟通并限制当下交谈",
+      "source_manifestation_ids": [
+        "BM35"
+      ]
+    },
+    {
+      "type_id": "BT15",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "不再理会引起注意的声响，继续当前活动",
+      "psychological_function": "维持当前活动",
+      "source_manifestation_ids": [
+        "BM36"
+      ]
+    },
+    {
+      "type_id": "BT16",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "继续原活动，并明确不介意相关人物看见所持物品",
+      "psychological_function": "继续当前活动并接受相关人物看见",
+      "source_manifestation_ids": [
+        "BM47"
+      ]
+    },
+    {
+      "type_id": "BT17",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "问候相关人物，并将敏感物品明显展示出来",
+      "psychological_function": "主动接触并增加相关线索的可见性",
+      "source_manifestation_ids": [
+        "BM48"
+      ]
+    },
+    {
+      "type_id": "BT18",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "道歉后纠正操作并留在原处继续",
+      "psychological_function": "纠正操作并继续原安排",
+      "source_manifestation_ids": [
+        "BM55"
+      ]
+    },
+    {
+      "type_id": "BT19",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "不作回应或不说话，继续当前安排",
+      "psychological_function": "不作言语回应而继续当前安排",
+      "source_manifestation_ids": [
+        "BM56",
+        "BM63",
+        "BM76"
+      ]
+    },
+    {
+      "type_id": "BT20",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "对指控发笑并作尖锐回应，同时继续原活动",
+      "psychological_function": "以笑声和尖锐评论回应指控，同时继续活动",
+      "source_manifestation_ids": [
+        "BM64"
+      ]
+    },
+    {
+      "type_id": "BT22",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "自嘲后继续留在原场所",
+      "psychological_function": "以自嘲回应并继续停留",
+      "source_manifestation_ids": [
+        "BM75"
+      ]
+    },
+    {
+      "type_id": "BT23",
+      "family_id": "NEF02",
+      "direction": "high",
+      "description": "表达不愿公开发言，或将问题留待可能单独交谈时再问",
+      "psychological_function": "表达不愿公开发言，或保留单独提问的可能",
+      "source_manifestation_ids": [
+        "BM51",
+        "BM52",
+        "BM87",
+        "BM88"
+      ]
+    },
+    {
+      "type_id": "BT25",
+      "family_id": "NEF02",
+      "direction": "low",
+      "description": "在下一次机会热情地进行公开发言",
+      "psychological_function": "在后续机会公开发言",
+      "source_manifestation_ids": [
+        "BM50"
+      ]
+    },
+    {
+      "type_id": "BT26",
+      "family_id": "NEF02",
+      "direction": "low",
+      "description": "先确认对方意愿，或观察其他人的反应及互动停顿后再公开发言",
+      "psychological_function": "在确认或观察互动时机后公开发言",
+      "source_manifestation_ids": [
+        "BM49",
+        "BM85",
+        "BM86"
+      ]
+    },
+    {
+      "type_id": "BT29",
+      "family_id": "NEF03",
+      "direction": "high",
+      "description": "对引起他人笑声的公开关注明确感到震惊和受伤",
+      "psychological_function": "未明示",
+      "source_manifestation_ids": [
+        "BM21"
+      ]
+    },
+    {
+      "type_id": "BT30",
+      "family_id": "NEF03",
+      "direction": "high",
+      "description": "尽快离开注意中心，并退到较少受关注的位置",
+      "psychological_function": "减少自身在当前注意中心的停留",
+      "source_manifestation_ids": [
+        "BM37"
+      ]
+    },
+    {
+      "type_id": "BT31",
+      "family_id": "NEF03",
+      "direction": "low",
+      "description": "一起笑，或通过模仿对方将互动看作游戏",
+      "psychological_function": "参与笑声或以模仿回应对方",
+      "source_manifestation_ids": [
+        "BM23",
+        "BM24"
+      ]
+    },
+    {
+      "type_id": "BT32",
+      "family_id": "NEF03",
+      "direction": "low",
+      "description": "在受到意外关注时作简短发言",
+      "psychological_function": "以简短发言回应集中的注意",
+      "source_manifestation_ids": [
+        "BM39"
+      ]
+    },
+    {
+      "type_id": "BT33",
+      "family_id": "NEF04",
+      "direction": "high",
+      "description": "想到自己是否有引人发笑之处，并检查自身状况",
+      "psychological_function": "将注意转向自身并进行自我检查",
+      "source_manifestation_ids": [
+        "BM09"
+      ]
+    },
+    {
+      "type_id": "BT34",
+      "family_id": "NEF04",
+      "direction": "low",
+      "description": "在他人出现原因未明的反应时，继续当前公开任务",
+      "psychological_function": "维持公开任务的进行",
+      "source_manifestation_ids": [
+        "BM11"
+      ]
+    },
+    {
+      "type_id": "BT35",
+      "family_id": "NEF04",
+      "direction": "low",
+      "description": "暂停并询问他人是否有不清楚之处",
+      "psychological_function": "暂停任务并澄清他人的理解",
+      "source_manifestation_ids": [
+        "BM12"
+      ]
+    },
+    {
+      "type_id": "BT36",
+      "family_id": "NEF05",
+      "direction": "high",
+      "description": "明确羞愧或尴尬而移开视线，部分行为想离开但实际留下",
+      "psychological_function": "回避视线，但不一定离开",
+      "source_manifestation_ids": [
+        "BM05",
+        "BM42",
+        "BM57"
+      ]
+    },
+    {
+      "type_id": "BT37",
+      "family_id": "NEF05",
+      "direction": "high",
+      "description": "先尴尬地移开视线，之后向同行者表达不赞同",
+      "psychological_function": "先减少目光接触，再表达对同行者行为的异议",
+      "source_manifestation_ids": [
+        "BM06"
+      ]
+    },
+    {
+      "type_id": "BT38",
+      "family_id": "NEF05",
+      "direction": "high",
+      "description": "在同行者引起注意后快速告别离开",
+      "psychological_function": "结束与同行者当前的共同停留",
+      "source_manifestation_ids": [
+        "BM41"
+      ]
+    },
+    {
+      "type_id": "BT39",
+      "family_id": "NEF05",
+      "direction": "high",
+      "description": "因被注视明确感到不舒服，要求同行者安静",
+      "psychological_function": "要求同行者降低引起注意的行为",
+      "source_manifestation_ids": [
+        "BM58"
+      ]
+    },
+    {
+      "type_id": "BT40",
+      "family_id": "NEF05",
+      "direction": "low",
+      "description": "对同行者刚互动的对象作出赞美",
+      "psychological_function": "向对方表达赞美",
+      "source_manifestation_ids": [
+        "BM07"
+      ]
+    },
+    {
+      "type_id": "BT41",
+      "family_id": "NEF05",
+      "direction": "low",
+      "description": "像未发生相关事件一样继续交谈",
+      "psychological_function": "维持当前交谈",
+      "source_manifestation_ids": [
+        "BM43"
+      ]
+    },
+    {
+      "type_id": "BT42",
+      "family_id": "NEF04",
+      "direction": "high",
+      "description": "受他人反应干扰后，需要借助已有提示继续任务",
+      "psychological_function": "借助已有提示衔接当前任务",
+      "source_manifestation_ids": [
+        "BM10"
+      ]
+    },
+    {
+      "type_id": "BT43",
+      "family_id": "NEF03",
+      "direction": "high",
+      "description": "决定以后避开曾受到类似对待的聚会",
+      "psychological_function": "减少未来进入类似聚会的机会",
+      "source_manifestation_ids": [
+        "BM22"
+      ]
+    },
+    {
+      "type_id": "BT44",
+      "family_id": "NEF03",
+      "direction": "high",
+      "description": "简短澄清身份误认后离开注意中心",
+      "psychological_function": "澄清误认并退出注意中心",
+      "source_manifestation_ids": [
+        "BM38"
+      ]
+    },
+    {
+      "type_id": "BT45",
+      "family_id": "NEF03",
+      "direction": "low",
+      "description": "留在注意中心并明确享受关注",
+      "psychological_function": "保持在注意中心并体验其带来的愉快",
+      "source_manifestation_ids": [
+        "BM40"
+      ]
+    },
+    {
+      "type_id": "BT46",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "受到公开指控后离开当前共同场所",
+      "psychological_function": "结束当前共同场所的停留",
+      "source_manifestation_ids": [
+        "BM61"
+      ]
+    },
+    {
+      "type_id": "BT47",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "尝试不引人注意地处理声响，即使因此拖延停止",
+      "psychological_function": "尝试降低处理事件时自身的可见度",
+      "source_manifestation_ids": [
+        "BM34"
+      ]
+    },
+    {
+      "type_id": "BT48",
+      "family_id": "NEF03",
+      "direction": "high",
+      "description": "已经受到众人注意后，拒绝进一步表演或要求以后避免类似安排",
+      "psychological_function": "拒绝继续受到公开关注或要求避免再次出现类似安排",
+      "source_manifestation_ids": [
+        "BM13",
+        "BM14"
+      ]
+    },
+    {
+      "type_id": "BT49",
+      "family_id": "NEF03",
+      "direction": "low",
+      "description": "接受进一步公开关注并明确高兴，或要求继续",
+      "psychological_function": "接受或延长公开关注",
+      "source_manifestation_ids": [
+        "BM15",
+        "BM16"
+      ]
+    },
+    {
+      "type_id": "BT50",
+      "family_id": "NEF05",
+      "direction": "low",
+      "description": "笑并指向同行者",
+      "psychological_function": "以笑声和指向同行者的动作回应",
+      "source_manifestation_ids": [
+        "BM08"
+      ]
+    },
+    {
+      "type_id": "BT51",
+      "family_id": "NEF05",
+      "direction": "low",
+      "description": "用周围人能听见的玩笑话尝试缓解不愉快",
+      "psychological_function": "尝试通过公开的玩笑话缓解现场不愉快",
+      "source_manifestation_ids": [
+        "BM44"
+      ]
+    },
+    {
+      "type_id": "BT52",
+      "family_id": "NEF05",
+      "direction": "low",
+      "description": "一起笑，并认为同行者表达的内容有趣",
+      "psychological_function": "参与笑声并关注同行者表达的内容",
+      "source_manifestation_ids": [
+        "BM59"
+      ]
+    },
+    {
+      "type_id": "BT53",
+      "family_id": "NEF05",
+      "direction": "low",
+      "description": "明确不在意周围目光，继续关注同行者表达的内容",
+      "psychological_function": "继续关注同行者表达的内容",
+      "source_manifestation_ids": [
+        "BM60"
+      ]
+    },
+    {
+      "type_id": "BT54",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "对公开评论沉默，但明确感到烦恼",
+      "psychological_function": "不作言语回应",
+      "source_manifestation_ids": [
+        "BM77"
+      ]
+    },
+    {
+      "type_id": "BT55",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "向在场他人解释公开评论不是真的",
+      "psychological_function": "向在场他人澄清公开评论",
+      "source_manifestation_ids": [
+        "BM78"
+      ]
+    },
+    {
+      "type_id": "BT56",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "笑并向作评论的人作有趣回应",
+      "psychological_function": "以笑声和有趣评论回应对方",
+      "source_manifestation_ids": [
+        "BM79"
+      ]
+    },
+    {
+      "type_id": "BT57",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "把评论视为小玩笑并明确不在意",
+      "psychological_function": "将事件理解为小玩笑",
+      "source_manifestation_ids": [
+        "BM80"
+      ]
+    },
+    {
+      "type_id": "BT58",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "因未理解公开笑话而明确感到尴尬",
+      "psychological_function": "未明示",
+      "source_manifestation_ids": [
+        "BM81"
+      ]
+    },
+    {
+      "type_id": "BT59",
+      "family_id": "NEF01",
+      "direction": "high",
+      "description": "因对方在众人面前使自己尴尬而感到愤怒",
+      "psychological_function": "未明示",
+      "source_manifestation_ids": [
+        "BM82"
+      ]
+    },
+    {
+      "type_id": "BT60",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "因认为对方有幽默感而感到高兴",
+      "psychological_function": "未明示",
+      "source_manifestation_ids": [
+        "BM83"
+      ]
+    },
+    {
+      "type_id": "BT61",
+      "family_id": "NEF01",
+      "direction": "low",
+      "description": "将他人的玩笑归因于具体情境，而不太在意",
+      "psychological_function": "以具体情境解释他人的表达",
+      "source_manifestation_ids": [
+        "BM84"
+      ]
+    }
+  ],
+  "review_notes": {
+    "review_basis": "本轮核对Stage 3原记录、修订后的Stage 2及docs/mussel_zh.json中文选项；未核对德文与作者评分键。",
+    "direction_convention": "可用类型保留上游理论方向，不宣称是核定计分。感受、解释、实际动作分别记录；沉默、参与、离开、道歉或幽默不单独决定方向。",
+    "psychological_function_convention": "只描述动作与互动的直接关系，不把形象切割、自动无威胁感、成功化解或完全没有自我怀疑等推测当作事实。",
+    "source_corrections": {
+      "BM69/BM70": "18-A/B为尝试在最早机会离开或换座，不是上游所写立即离开或立即换位；类型删除立即断言。",
+      "BM35": "09-C为现在不能交谈，不补写之后一定主动回拨。",
+      "BM29-BM32": "08上游方向与原文体验存在冲突；通常喜欢、容易被说服的C和走向舞台的D被上游标high，宁愿旁观的A和克服自己为伴侣参与的B被标low。四条均待原始评分核对，不自行反转。"
+    },
+    "family_alignment": "04的BM13-BM16按主要归属转到NEF03；17的BM65-BM68按Stage 2保留待核，不进入类型。20、21原有八条记录补入NEF01，并保留原感受而非一律重写为回避。",
+    "deferred_manifestations": {
+      "BM29": "08的动作、体验与上游方向存在冲突，保留原事实待作者计分核对，不作为确定的高低类型。",
+      "BM30": "08的动作、体验与上游方向存在冲突，保留原事实待作者计分核对，不作为确定的高低类型。",
+      "BM31": "08的动作、体验与上游方向存在冲突，保留原事实待作者计分核对，不作为确定的高低类型。",
+      "BM32": "08的动作、体验与上游方向存在冲突，保留原事实待作者计分核对，不作为确定的高低类型。",
+      "BM65": "17暂未归族；情侣亲密行为引发的不适或愉快不直接证明对自身评价的敏感性。",
+      "BM66": "17暂未归族；情侣亲密行为引发的不适或愉快不直接证明对自身评价的敏感性。",
+      "BM67": "17暂未归族；情侣亲密行为引发的不适或愉快不直接证明对自身评价的敏感性。",
+      "BM68": "17暂未归族；情侣亲密行为引发的不适或愉快不直接证明对自身评价的敏感性。"
+    },
+    "retired_type_ids": {
+      "BT09": "来源已移入待核说明，不沿用其原类型方向。",
+      "BT21": "来源已移入待核说明，不沿用其原类型方向。",
+      "BT24": "来源已移入待核说明，不沿用其原类型方向。",
+      "BT27": "来源已移入待核说明，不沿用其原类型方向。",
+      "BT28": "来源已移入待核说明，不沿用其原类型方向。"
+    },
+    "source_usage_convention": "所有非待核BM均引用一次；上游原记录未改写，类型中的纠正依据中文原选项。",
+    "remaining_limits": [
+      "08方向冲突待核；17归属待核。",
+      "16的安全解释、20和21的愤怒及情境归因不能由方向标签消除。",
+      "03仅一题，分心看笔记不同于明确自我归因，继续或澄清不证明无担忧。",
+      "源方向与作者正式计分的一致性尚未验证。"
+    ],
+    "type_review_boundaries": {
+      "BT01": "保留留在原处与明确不适并存的反应",
+      "BT02": "避免当下相遇，不推定所有回避都源于同一种担忧",
+      "BT03": "减少当前停留；是否先道歉和何时离开按来源区分",
+      "BT04": "改变同处安排，不单凭换位确定评价恐惧",
+      "BT05": "保留留下与隐藏意愿同时存在的反应",
+      "BT06": "保留原选项明确的尴尬与回避",
+      "BT07": "处理声响并记录明确感受，不把处理动作本身定为高极",
+      "BT08": "改变物品呈现，不推定已永久放弃原活动",
+      "BT10": "纠正安排，离开不自动等于回避",
+      "BT11": "延后决定，不推定是在收集信息或毫无尴尬",
+      "BT12": "主动说明，不据此断言内在从未不自在",
+      "BT13": "记录不同应对，不预设已成功修复或没有尴尬",
+      "BT14": "处理当下互动，不推定之后一定主动回拨",
+      "BT15": "记录继续活动，不作为理想礼仪或内在感受的证明",
+      "BT16": "保留明确的不介意与继续活动",
+      "BT17": "记录公开展示，不推定目的是消解尴尬",
+      "BT18": "记录道歉、纠正和继续的过程",
+      "BT19": "记录沉默与继续，不推定没有不适或未放大外界反应",
+      "BT20": "记录反击式表达，不等同于单纯轻松或无威胁感",
+      "BT22": "记录自嘲与留下，不断言压力已降低",
+      "BT23": "记录拒绝或限制公开发言及其理由",
+      "BT25": "记录参与，不推定已证明享受所有公开注意",
+      "BT26": "区分不同参与条件，不把观察时机等同于无担忧",
+      "BT29": "记录明确感受，不预设已决定回避",
+      "BT30": "记录当下离开焦点，不补写唯一心理原因",
+      "BT31": "区分明确不在意与游戏式回应，不推定所有情绪相同",
+      "BT32": "记录公开回应，不推定明确享受关注",
+      "BT33": "记录自我指向思考，不统一断言已形成负面判断",
+      "BT34": "记录继续任务，不证明没有自我怀疑",
+      "BT35": "记录主动澄清，不证明内心完全没有担忧",
+      "BT36": "保留感受与行为不完全一致的情况",
+      "BT37": "保留先回避目光再表达的过程，不补写形象切割动机",
+      "BT38": "记录离开，不推定已明确担心被归为一类",
+      "BT39": "保留原选项明确的理由，不泛化所有制止行为",
+      "BT40": "记录赞美，不补写它必然化解气氛或表明无尴尬",
+      "BT41": "记录继续互动，不推定从未受到情绪影响",
+      "BT42": "记录分心与辅助，不补写已将反应归因于自己",
+      "BT43": "记录未来回避，与当前震惊受伤分开",
+      "BT44": "保留先解释再离开的过程",
+      "BT45": "保留明确享受，不推广到其他仅参与的选项",
+      "BT46": "记录退出，安全和冲突规避解释仍需考虑",
+      "BT47": "保留降低可见度与拖延声响停止的权衡",
+      "BT48": "保留已有曝光和后续拒绝，不写成首次曝光前的回避",
+      "BT49": "保留在已有关注后接受更多关注的不同表现",
+      "BT50": "记录动作，不推定已经完成形象切割或没有不适",
+      "BT51": "保留明确缓解意图，不把有意应对等同于无不适",
+      "BT52": "记录内容评价与笑声",
+      "BT53": "保留明确的不在意，不套用于其他沉默或玩笑反应",
+      "BT54": "保留沉默与烦恼，不改写成未明示的评价恐惧",
+      "BT55": "记录主动解释，不把所有主动应对归为低极",
+      "BT56": "记录玩笑回应，不证明完全无其他感受",
+      "BT57": "保留原选项的解释与感受",
+      "BT58": "记录尴尬，不补写回避行为",
+      "BT59": "保留愤怒与被冒犯解释，不删改为单纯形象顾虑",
+      "BT60": "记录对情境的正面理解，不把它当作技能证明",
+      "BT61": "保留具体归因，不推定所有来源具有相同解释"
+    },
+    "source_specific_formulations": {
+      "BT03": "在失误或受到嘲笑后离开当前场所，或寻找机会提前离开",
+      "BT14": "回应来电并小声说明现在不能交谈",
+      "BT23": "表达不愿公开演讲，或将问题留待可能单独交谈时再问",
+      "BT26": "确认主人意愿，或在他人想提问、演讲者停顿时发言",
+      "BT29": "对被模仿及他人的笑声明确感到震惊和受伤",
+      "BT33": "想到自己是否说了好笑的话，并检查自身外表",
+      "BT34": "在他人笑或低语时继续当前演示",
+      "BT42": "受他人反应干扰后需要看笔记",
+      "BT43": "决定以后避开曾被模仿的类似聚会",
+      "BT49": "接受进一步表演并明确高兴，或要求加演",
+      "BT52": "一起笑并认为同行者讲述的内容有趣",
+      "BT53": "明确不在意周围目光而继续听同行者讲述",
+      "BT61": "将玩笑归因于特定节日而不太在意"
+    },
+    "field_review_convention": {
+      "review_date": "2026-11-02",
+      "description": "去掉不决定行为差异的原题场景词，保留有证据的顺序、参与范围、注意状态、条件与明确感受；抽象化不是新增领域的实证支持。",
+      "psychological_function": "只陈述来源明确的意图或动作直接产生的互动作用，不补写成功结果及潜在动机；纯感受记录无明确行为功能时标未明示。",
+      "type_review_boundaries": "原字段中的审阅限制移到本项，仍须与类型及族边界一起阅读；不能因移出字段就视为问题已获计分核定。",
+      "source_specific_formulations": "保留本次抽象前的具体表述供来源对照；可用类型以behavior_types中的当前表述为准。",
+      "unchanged_references": "本次保留全部类型编号、族归属、方向及BM引用。待核行为未恢复为可用类型。"
+    }
+  }
+}

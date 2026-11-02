@@ -2,146 +2,178 @@
   "facet": "compliance",
   "facet_id": "agreeableness_compliance",
   "neo_code": "A4",
-  "definition": "面对人际冲突或不同意见时，倾向于让步、缓和或避免对抗。核心是 tendency to defer, accommodate, or inhibit aggressive responses in interpersonal conflict，不等同于利他性 (A3)、信任 (A1) 或谦逊 (A5)。",
-  "high_pole": "在冲突中倾向于让步、缓和矛盾并维持和谐，同时保留合理边界",
-  "low_pole": "更愿意坚持己见，不轻易在冲突中退让",
+  "definition": "面对人际分歧或冲突时，较倾向于退让、迁就、妥协、缓和关系或抑制对抗的倾向。核心是 characteristic responses to interpersonal conflict，包括 defer、accommodate、inhibit aggression 及修复关系等表现；区别于利他性 (A3)、信任 (A1)、谦逊 (A5) 和愤怒体验倾向 (N2)，但具体原题可能同时涉及这些因素。",
+  "high_pole": "在人际分歧或冲突中较倾向于退让、迁就、妥协、缓和或主动修复关系，也可表现为放下愤怒或不继续对抗；不预设每种表现都保留个人偏好，也不把高极等同于更优行为。",
+  "low_pole": "在人际分歧或冲突中较倾向于坚持立场、竞争、反对或继续对抗；部分原题还包含表达愤怒、反击或等待对方先修复。各表现需结合具体选项，不等于任何坚持权益都能直接判为低顺从。",
   "hard_constraints": [
-    "高顺从应通过体面让步、缓和冲突或建设性妥协表达，同时保留合理边界",
-    "高顺从不能等同于完全服从、直接放弃合理意见、偏好或正当边界",
-    "低顺从不能写成自大、贬低他人或明显攻击性"
+    "原题提取应保留选项实际呈现的让步、接受损失、坚持、表达不满和对抗，不以理想沟通方式或保留合理边界为条件删改原证据。",
+    "高低极仅描述目标特质的理论方向，不代表行为优劣；不能仅凭礼貌、正确性、合法性或合理性判断方向。",
+    "行为过程、表达方式与结果应分别保留；道歉不必等于承认观点错误，退出交易也不必等于没有对抗。",
+    "原题事实、整理者解释及未来新题设计要求应分别标注；没有明确来源的金额、频率、动机、关系质量和法律判断不得补写为事实。"
   ],
   "curation_notes": {
-    "curated_from": "LLM Stage 2 output (11 families)",
-    "curated_to": "5 families (3 stable + 2 provisional)",
-    "rejected_families": {
-      "EF04_挑衅性人际冲突缓和": "道路冲突和亲密关系冲突容易混入愤怒敌意 (N2) 和果断性 (E3)。非顺从核心。",
-      "EF07_团队讨论中避免反对": "容易测量能力判断或团队利益考量，不完全是顺从。",
-      "EF08_客户错误时避免直接指出": "容易混入坦率性 (A2)、责任边界和服务角色要求。",
-      "EF09_他人失误导致利益受损时让步": "容易变成利他 (A3)、公平感或自我牺牲，在低 stakes 情境（几毛钱零钱）下测量的是冲突回避而非特质。",
-      "EF10_群体压力下抑制个人偏好": "更像从众、社会自我意识 (N4) 或群体压力反应，不是纯粹的顺从。",
-      "EF11_上级不合理要求顺从": "直接违反系统硬约束——高顺从不能等同于完全服从。保留个人边界和取消私人约会之间的张力测量的是权力服从而非特质。",
-      "compliance_05_高速公路催促": "涉及驾驶安全，不属于普通人际冲突。"
-    }
+    "curated_from": "LLM Stage 2 output (11 families), revised against 22 Chinese source items in docs/mussel_zh.json",
+    "curated_to": "5 organizing families; 20 source items assigned, 2 retained provisionally without family assignment",
+    "review_basis": "逐题核对项目保存的中文题干与选项。尚未核对德文原文及作者原始评分键，尤其07的退换条款译文需复核；本文不对具体交易或驾驶行为作法律判断。",
+    "grouping_principle": "证据族用于组织原题中的行为差异，不表示五个相互独立、经过验证的心理机制。保留原题证据、是否有适当族归属、是否适合直接复用于新题是不同判断。",
+    "status_convention": "stable是当前保留的常规组织组，provisional表示组织方式或解释待核；构念纯度是待验证的内容风险判断，不是实证结论。题目core/provisional也不是作者原始评分或效度结论。",
+    "runtime_scope": "当前加载器按族status筛选，不按逐题status筛选。05、20不列入任何族的supporting_item_ids，仅保留待核；13、15等归入provisional的CEF05。原题保留不等于全部自动进入默认生成依据。",
+    "revised_rejection_decisions": [
+      "10的缓和冲突、转移话题与继续对抗保留，归入CEF02；N2等因素作为替代解释。",
+      "12的接受有缺点的提议、温和指出后接受、反提议和贬低提议保留，归入CEF02；保留任务质量权衡。",
+      "13的帮助、解释、指出客户行为和划清责任保留，暂归CEF05；服务规范与利他等解释仍待核。",
+      "15的询问、追讨、讨论后让步和升级追讨保留，暂归CEF05；删除原题没有提供的几毛钱金额。",
+      "19的迁就多数偏好、表达不满、劝说和退出保留，归入CEF03；从众和社交偏好是替代解释。",
+      "05与20的原题证据保留为provisional，暂不指定证据族，待核对原文、评分键及道路规则或权力压力等解释；不继续宣称不测顺从。"
+    ],
+    "direction_review_note": "上游stage1对03的high/low曾与行为含义相反；本文件把让步与提前同意作为理论高极、坚持争论作为理论低极，但作者正式评分仍待核对。",
+    "cross_file_review_status": "本轮Stage 3b、Stage 4b已按修订后的Stage 2逐项审查并同步；核对依据为项目中文原题，德文原文及作者评分键仍待核。上游Stage 3、Stage 4未改写，其局限记录于3b、4b的review_notes。05、20在三层中均保持待核。"
   },
   "evidence_library": [
     {
       "family_id": "CEF01",
-      "family_name": "日常干扰或轻度摩擦中的容忍与沟通",
-      "definition": "面对他人行为造成的非个人责任、轻度的人际干扰或摩擦时，倾向于容忍和私下适应，而非主动对抗或投诉。",
-      "high_trait_evidence": "容忍干扰、优先维持表面和谐，必要时通过间接沟通而非公开对抗来解决问题。",
-      "low_trait_evidence": "认为有权利制止干扰，倾向于直接投诉或公开表达不满。",
+      "family_name": "他人干扰下的容忍、自我调整与交涉",
+      "definition": "面对他人造成的干扰时，选择容忍、调整自身或等待，还是向对方或负责方提出要求、投诉或升级交涉。现有支持题具体涉及噪音，不把其他干扰情境当作已提取到的实例。",
+      "high_trait_evidence": "不向干扰方提出要求，而通过转移注意、改变自身位置或安排、等待等方式应对干扰。",
+      "low_trait_evidence": "直接向干扰方或负责方提出停止要求、投诉，部分选项包含公开喊话或进一步升级交涉。",
       "supporting_item_ids": [
         "compliance_01",
         "compliance_08"
       ],
       "support_count": 2,
       "status": "stable",
-      "construct_purity": "high",
-      "competing_facets": [],
-      "boundary_condition": "仅适用于轻度、非个人化的日常摩擦（噪音、插队等）。不适用于：人身安全威胁、持续恶意骚扰、涉及法律权利的严重侵害。低顺从选项不得表现为攻击性或羞辱对方。",
+      "construct_purity": "medium",
+      "competing_facets": [
+        "E3: 果断性",
+        "N2: 愤怒敌意"
+      ],
+      "boundary_condition": "需区分容忍、自我调整、直接交涉和升级表达；不能把礼貌沟通或合理诉求自动等同于某一特质方向。原题01-D包含公开喊话，08-C包含必要时报警，不因其不符合沟通理想而删除。噪音敏感、疲劳、情绪反应及现实处置要求可能影响选择。",
       "alternative_explanations": [
-        "对噪音的生理敏感度差异",
-        "疲劳程度"
+        "对噪音的敏感程度",
+        "疲劳和睡眠需要",
+        "表达诉求的果断性与情绪反应",
+        "对干扰严重性、求助方式和处置规范的判断"
       ],
       "typical_high_manifestations": [
-        "尽量不关注噪音来源，继续做手头的事",
-        "换到室内或更安静的地方",
-        "等待干扰自行消退"
+        "尽量不关注噪音，继续坐在阳台（01-A）",
+        "回房间并关门（01-B）",
+        "尝试睡觉，或等安静后再上床（08-A/B）"
       ],
       "typical_low_manifestations": [
-        "直接向管理方投诉",
-        "公开表达不满并要求停止"
+        "向前台投诉（01-C）",
+        "公开喊话要求停止（01-D）",
+        "向邻居要求安静，必要时进一步求助（08-C/D）；必要时报警不等于原题明确写出威胁"
       ],
       "common_trait_activating_cues": [
-        "他人行为引起的轻度持续干扰",
-        "干扰源非直接可沟通对象或沟通可能尴尬",
-        "存在回避/容忍的替代方案（如换位置）"
-      ]
+        "他人的活动产生噪音并影响当前休息安排（01、08）",
+        "可以调整自身活动，也可以提出要求或投诉；不同题目的沟通对象和渠道不同",
+        "01正在享受宁静，08明确疲倦并准备睡觉；不统一假定干扰轻微或无法直接沟通"
+      ],
+      "coverage_note": "支持清单按本版主要或次要题目归属列出；族内各表现并非每道题、每个选项都具备，须按括号题号回查原题。"
     },
     {
       "family_id": "CEF02",
-      "family_name": "非原则性分歧中的冲突缓和",
-      "definition": "面对涉及双方偏好或意见的非原则性分歧时，倾向于让步或提前同意以避免争论升级，而非坚持己见。",
-      "high_trait_evidence": "确信自己正确但分歧不影响核心利益时，主动让步以避免冲突。",
-      "low_trait_evidence": "坚持己见并愿意进行争论，不因关系和谐而放弃自己的立场。",
+      "family_name": "意见分歧与争执中的缓和和修复",
+      "definition": "在人际分歧或争执中，选择退让、接受对方提议、缓和或主动修复，还是坚持观点、反驳、表达愤怒或等待对方先修复。立场退让与关系修复是不同表现，不强行视为同一个动作。",
+      "high_trait_evidence": "可表现为不再坚持争论、提前同意、温和指出后接受，或通过道歉、转移话题、放下愤怒等方式缓和冲突。",
+      "low_trait_evidence": "可表现为坚持并说服对方、继续反驳、提出反方案、贬低提议、表达愤怒或等待对方先行动；需保留各选项差别。",
       "supporting_item_ids": [
         "compliance_03",
+        "compliance_10",
+        "compliance_12",
         "compliance_16"
       ],
-      "support_count": 2,
+      "support_count": 4,
       "status": "stable",
-      "construct_purity": "high",
+      "construct_purity": "medium",
       "competing_facets": [
-        "E3: 果断性"
+        "E3: 果断性",
+        "N2: 愤怒敌意",
+        "A3: 利他性"
       ],
-      "boundary_condition": "仅适用于非原则性、低 stakes 的意见分歧。不适用于：涉及道德原则、安全标准、重大财务或法律后果的分歧。高顺从不能写成'明明知道对方是错的但沉默'——必须是'接受分歧不值得破坏关系'。",
+      "boundary_condition": "03的确信自己正确不等于双方都有道理；16的道歉不等于放弃观点。10含冲突升级，12含方案质量权衡，不能将全部支持题限制为低利害且非原则性分歧，也不能以存在愤怒成分直接否定其冲突处理证据。高低方向仍需原始评分核对。",
       "alternative_explanations": [
-        "对争论本身的态度（有些人单纯厌恶争论）",
-        "对具体议题的关心程度"
+        "议题重要性、任务质量及能力自信",
+        "对关系的重视与对争论的态度",
+        "愤怒体验、表达和调节差异",
+        "责任归因：为不恰当表达道歉与承认观点错误不同"
       ],
       "typical_high_manifestations": [
-        "在争论升级前主动让步",
-        "提前同意对方的意见以避免分歧",
-        "主动道歉以缓和关系"
+        "确信自己正确但快速让步或提前同意（03-C/D）",
+        "为避免升级道歉并接近伴侣，或转换话题（10-A/B）",
+        "为维护气氛接受有缺点的提议，或温和指出缺点后仍接受（12-A/B）",
+        "主动交谈并道歉，或让事情过去、放下愤怒（16-A/B）"
       ],
       "typical_low_manifestations": [
-        "尝试说服对方",
-        "坚持己见并接受争论"
+        "试图说服对方，坚持意见并接受争论（03-A/B）",
+        "继续反驳，或以较强烈的离开表达愤怒（10-C/D）；离开不必等于缓和",
+        "提出有论据的反方案，或把他人的提议描述为无用（12-C/D）；两种表达不同",
+        "再次表达观点而不道歉，或等待对方先修复（16-C/D）"
       ],
       "common_trait_activating_cues": [
-        "非原则性的意见或偏好分歧",
-        "双方都有一定道理",
-        "坚持己见可能引发争论"
-      ]
+        "与他人的观点、提议或表达发生分歧",
+        "03明确确信自己正确；10明确对方言论伤人且冲突将升级",
+        "12明确注意到同事方案的缺点；16明确自己的语调和措辞可能不当"
+      ],
+      "coverage_note": "支持清单按本版主要或次要题目归属列出；族内各表现并非每道题、每个选项都具备，须按括号题号回查原题。"
     },
     {
       "family_id": "CEF03",
-      "family_name": "关系和谐与个人利益冲突中的适度让步",
-      "definition": "面对与关系良好者的直接利益冲突时，优先考虑关系和谐，做出适度让步或寻求折中方案，而非坚持个人利益最大化。",
-      "high_trait_evidence": "在利益冲突中主动让步或寻求妥协，将关系维护纳入决策权重。",
-      "low_trait_evidence": "坚持个人利益或偏好，即使可能损害关系。",
+      "family_name": "偏好与资源冲突中的让步和坚持",
+      "definition": "当个人偏好、便利或有限资源的使用与他人安排发生冲突时，选择让步、折中或退出争夺，还是继续争取、要求裁决或等待对方退出。对象可以是熟人或陌生人，不要求已有良好关系。",
+      "high_trait_evidence": "可表现为将机会让给对方、接受他人安排、提出折中、有条件让步，或在讨论后退出争夺。",
+      "low_trait_evidence": "可表现为坚持个人安排、表达不愿再让步、继续劝说、请求裁决或保持占据直到对方退出；不把这些行为统一解释为利益最大化。",
       "supporting_item_ids": [
         "compliance_02",
         "compliance_04",
         "compliance_06",
         "compliance_09",
-        "compliance_18"
+        "compliance_18",
+        "compliance_19"
       ],
-      "support_count": 5,
+      "support_count": 6,
       "status": "stable",
       "construct_purity": "medium",
       "competing_facets": [
         "A3: 利他性",
-        "A5: 谦逊"
+        "E3: 果断性",
+        "E2: 乐群"
       ],
-      "boundary_condition": "让步必须是适度的、有边界的。高顺从不能写成'每次都让步'或'完全放弃自己需要'。冲突对象必须是真实的人际关系（同事/伴侣/家人），不是一次性交易的陌生人。低顺从不能写成'完全不顾他人感受的自我中心'。",
+      "boundary_condition": "保留无条件让步、有条件让步、折中、退出及坚持等过程。18的陌生司机同样属于资源争夺，不能排除；02允许请求上级裁决，不能概括为没有权威可用。19退出看电视不一定是继续对抗；需考虑从众、活动兴趣、时间成本、公平感和社交偏好。",
       "alternative_explanations": [
-        "对具体活动的偏好强度（如果一方明显更在乎，让步不反映顺从而是合理权衡）",
-        "权力动态（如上级-下级关系不完全反映特质）",
-        "公平感（去年已让步，今年期望对方让步是公平而非低顺从）"
+        "对具体活动、日期或资源的偏好强度",
+        "公平与轮流安排：09明确去年已经迁就家人",
+        "时间压力、停车位稀缺与现实便利",
+        "19中的多数规范、节目兴趣与社交偏好",
+        "表达诉求的果断性；未假定所有原题均体现谦逊"
       ],
       "typical_high_manifestations": [
-        "主动让对方先选/先用",
-        "提议折中方案",
-        "为了维持和谐而接受非最优方案"
+        "让同事先休假，可能期待下次选择机会（02-A/B）",
+        "迁就拜访安排，或以下次轮流为条件让步（04-A/B）",
+        "寻求折中或接受伴侣建议（06-A/B）",
+        "把愿望放后或提出妥协（09-A/B）",
+        "离开寻找其他停车位，或简短讨论后让步（18-A/B）",
+        "按多数偏好继续看节目，可能同时表达不满（19-A/B）"
       ],
       "typical_low_manifestations": [
-        "争取自己的首选方案",
-        "要求上级或规则裁决",
-        "在合理范围内坚持自己的权利"
+        "争取首选安排，或无法达成一致时请求上级裁决（02-C/D）",
+        "继续说服、坚持安排或接受争论（04-C/D、06-C/D、09-C/D）",
+        "保持占据停车位，等待对方退出（18-C/D）",
+        "再次劝说朋友换节目，或退出观看（19-C/D）；劝说与退出分别保留"
       ],
       "common_trait_activating_cues": [
-        "与熟人/同事/家人的直接利益冲突",
-        "无外部权威强制裁决",
-        "双方利益都有合理性"
-      ]
+        "个人偏好、便利或资源使用与他人安排不一致",
+        "02、04、06、09包含同事、朋友或家人，18为陌生司机",
+        "19的多数偏好与个人不喜欢的节目冲突；不把所有题统一为资源零和争夺"
+      ],
+      "coverage_note": "支持清单按本版主要或次要题目归属列出；族内各表现并非每道题、每个选项都具备，须按括号题号回查原题。"
     },
     {
       "family_id": "CEF04",
-      "family_name": "不喜欢的社交请求中的关系维护",
-      "definition": "面对不喜欢的社交请求时，出于维护人际关系的考虑而部分迁就，同时保留合理的个人边界。",
-      "high_trait_evidence": "为了不伤害对方感受或维持工作关系，适度迁就不喜欢的社交请求。",
-      "low_trait_evidence": "以诚实或效率为由直接拒绝，不优先考虑对方感受。",
+      "family_name": "面对不喜欢对象邀约时的接受与拒绝",
+      "definition": "面对自己不喜欢的人提出的私下见面请求，选择接受见面、邀请共同活动，或借忙碌回避、直接表示不愿私下见面。",
+      "high_trait_evidence": "尽管不喜欢对方，仍接受私下见面或邀请其与自己的朋友一起活动；具体动机不由行为单独确定。",
+      "low_trait_evidence": "以忙碌为由回避见面，或直接表示没有私下见面的兴趣。",
       "supporting_item_ids": [
         "compliance_11"
       ],
@@ -150,70 +182,88 @@
       "construct_purity": "medium",
       "competing_facets": [
         "A3: 利他性",
+        "E1: 热情性",
+        "E2: 乐群",
         "A2: 坦率性"
       ],
-      "boundary_condition": "高顺从不能写成'委屈自己频繁应酬'或'无法拒绝不合理请求'。必须是偶尔的、有边界的迁就。低顺从不能写成'冷漠或伤害对方'。仅1题支持，需更多证据才能确认为稳定 evidence。",
+      "boundary_condition": "仅11题支持，暂定组织组。原题没有限定邀约频率、见面时长或偶尔有边界的迁就；接受请求不直接证明害怕伤害关系，邀请共同活动也未明确是折中。拒绝方式与拒绝本身需分开解释。",
       "alternative_explanations": [
-        "利他性（帮助新同事融入）",
-        "对独处/社交的偏好"
+        "帮助新同事融入的利他动机",
+        "对社交活动和建立关系的偏好",
+        "对同事私下表现的期待：11-A明确认为对方可能更放松",
+        "实际时间安排和直接或间接拒绝的沟通习惯"
       ],
       "typical_high_manifestations": [
-        "同意有限度的私下见面",
-        "邀请对方参加群体活动作为折中"
+        "同意私下见面，并考虑对方私下可能更放松（11-A）",
+        "邀请对方与自己的朋友见面（11-B）"
       ],
       "typical_low_manifestations": [
-        "以忙碌为由婉拒",
-        "礼貌但明确地拒绝"
+        "表示接下来几周忙碌而没有时间见面（11-C）；是否属借口是解释而非独立事实",
+        "直接表示没有私下见面的兴趣（11-D）"
       ],
       "common_trait_activating_cues": [
-        "不喜欢的社交对象发出请求",
-        "拒绝可能伤害关系或工作氛围",
-        "存在合理拒绝理由"
-      ]
+        "新同事提出私下见面请求",
+        "对方尚未融入公司和地区、几乎不认识人",
+        "自己不喜欢对方及其固执表现；接受或拒绝的具体动机仍需区分"
+      ],
+      "coverage_note": "支持清单按本版主要或次要题目归属列出；族内各表现并非每道题、每个选项都具备，须按括号题号回查原题。"
     },
     {
       "family_id": "CEF05",
-      "family_name": "服务或交易不利条件下的协商与适应",
-      "definition": "面对服务方或交易对手施加的不利条件时，倾向于协商或适应而非直接对抗或升级冲突，同时保留合理维权边界。",
-      "high_trait_evidence": "倾向于通过沟通、协商或接受部分不利条件来避免对抗，但保留正当不满和未来回避的权利。",
-      "low_trait_evidence": "倾向于坚持自身权益、直接要求补偿或升级投诉，不以维持表面和谐为首要目标。",
+      "family_name": "服务交易争议中的接受、协助与坚持",
+      "definition": "在服务或交易争议中，选择接受决定、适应安排、提供协助或寻求协商，还是坚持诉求、指明责任、投诉、升级或退出。此组保留不同关系和行动过程，不假定所有原题都是同一种利益受损机制。",
+      "high_trait_evidence": "可表现为接受决定或条件、调整自身安排、询问后接受、表达异议但仍接受、提供帮助或寻求双方可接受的方案；不能仅凭礼貌或助人就确定顺从程度。",
+      "low_trait_evidence": "可表现为坚持补偿或时间诉求、指出他人行为或责任边界、持续追讨、投诉升级、拒绝条件或退出；需保留行动过程与实际理由。",
       "supporting_item_ids": [
         "compliance_07",
+        "compliance_13",
         "compliance_14",
+        "compliance_15",
         "compliance_17",
         "compliance_21",
         "compliance_22"
       ],
-      "support_count": 5,
+      "support_count": 7,
       "status": "provisional",
       "construct_purity": "medium",
       "competing_facets": [
         "E3: 果断性",
         "A1: 信任",
+        "A3: 利他性",
         "C3: 尽责性"
       ],
-      "boundary_condition": "关键约束：高顺从不能写成'接受明显不公或违规对待'。必须在'协商'和'接受'之间存在真实的行为连续体。如果情境涉及欺诈、违约或安全风险，则不适用。此 family 仅适用于灰色地带（服务质量争议、价格争议、合同条款协商），不适用于明确违规行为。",
+      "boundary_condition": "暂定的服务交易情境组织组，不宣称内部机制完全一致。07中文退换条款需核对；不能断言属于灰色地带、明确违规或无权维权。13的协助含服务规范与利他解释。15金额未知。投诉后再接受与未投诉即接受不同，未来不再合作不能脱离前序行为独立定方向。",
       "alternative_explanations": [
-        "经济理性（法律行动的成本效益）",
-        "对服务质量的真实评价",
-        "对交易公平性的敏感度"
+        "成本效益、便利与追讨所需时间",
+        "服务规范、工作职责和帮助他人的动机，尤其13",
+        "对服务质量与公平性的实际判断",
+        "对服务方的既往信任，尤其21-A",
+        "对价格、退换条款和可用处理方式的理解"
       ],
       "typical_high_manifestations": [
-        "礼貌询问原因后接受",
-        "表达不满但不过度追究",
-        "接受当前条件但未来不再光顾",
-        "联系原始联系人寻求互惠方案"
+        "接受拒绝退换，可能今后不再光顾（07-A/B）",
+        "协助客户或礼貌解释解决问题的方法（13-A/B）；不额外断言未纠正客户错误",
+        "配合医生时间安排、尽快描述关切（14-A/B）",
+        "不进一步追讨，或礼貌询问后接受回答（15-A/B）",
+        "支付账单，或询问原因后支付（17-A/B）",
+        "接受银行报价，可能表达不满；21-A还明确提及既往信任（21-A/B）",
+        "接受较差报价，或联系原销售员寻求方案（22-A/B）"
       ],
       "typical_low_manifestations": [
-        "坚持要求合理补偿",
-        "要求与上级沟通",
-        "拒绝交易并表示不满"
+        "坚持补偿或采取法律行动（07-C/D）；只记录原选项，不评判法律依据",
+        "指出客户行为或责任边界（13-C/D）",
+        "要求足够就诊时间、道歉或坚持至满意（14-C/D）",
+        "讨论追讨后让步，或进一步向上级追讨（15-C/D）；两者程度不同，正式计分待核",
+        "投诉失败后付款并不再合作，或拒绝全额付款并可能采取法律行动（17-C/D）",
+        "升级投诉或拒绝报价并表示可能更换银行（21-C/D）",
+        "拒绝报价但保留条件改善后再谈的可能，或不再向经销商购买（22-C/D）"
       ],
       "common_trait_activating_cues": [
-        "服务方或交易对手施加的灰色地带不利条件",
-        "已付出一定成本（时间/金钱）",
-        "对抗存在人际成本但非零"
-      ]
+        "服务或交易双方对处理方式、条件、责任或权益存在差异",
+        "部分题目已有等待或费用投入，但并非全部都明确同类沉没成本",
+        "13涉及客户自身错误，15涉及发现找零不足，21涉及自己不满意的报价；不能统一推定对方过错或已证实经济损失"
+      ],
+      "coverage_note": "支持清单按本版主要或次要题目归属列出；族内各表现并非每道题、每个选项都具备，须按括号题号回查原题。"
     }
   ],
   "item_evidence_mapping": {
@@ -230,7 +280,8 @@
     "compliance_03": {
       "primary_family": "CEF02",
       "secondary_family": null,
-      "status": "core"
+      "status": "core",
+      "note": "让步或提前同意为理论高极，坚持争论为理论低极；上游方向冲突和作者评分键待核。"
     },
     "compliance_04": {
       "primary_family": "CEF03",
@@ -240,8 +291,8 @@
     "compliance_05": {
       "primary_family": null,
       "secondary_family": null,
-      "status": "rejected",
-      "reason": "涉及高速公路驾驶安全，不属于普通人际冲突，且低顺从选项（故意减速）涉及危险行为"
+      "status": "provisional",
+      "note": "原题保留待核。含道路挑衅、让行、故意激怒及继续原行为；交通规则、安全判断和原始评分待核，暂不指定证据族。"
     },
     "compliance_06": {
       "primary_family": "CEF03",
@@ -264,10 +315,10 @@
       "status": "core"
     },
     "compliance_10": {
-      "primary_family": null,
+      "primary_family": "CEF02",
       "secondary_family": null,
-      "status": "rejected",
-      "reason": "LLM EF04 — 亲密关系冲突升级场景，容易混入愤怒敌意 (N2) 和情绪调节能力"
+      "status": "core",
+      "note": "恢复保留原题证据；替代解释与族的局限见对应族，不以存在混淆直接断定其不测顺从。"
     },
     "compliance_11": {
       "primary_family": "CEF04",
@@ -275,16 +326,16 @@
       "status": "provisional"
     },
     "compliance_12": {
-      "primary_family": null,
+      "primary_family": "CEF02",
       "secondary_family": null,
-      "status": "rejected",
-      "reason": "LLM EF07 — 测量的是在团队中提出反对意见的意愿，混入能力自信和任务卷入度"
+      "status": "core",
+      "note": "恢复保留原题证据；替代解释与族的局限见对应族，不以存在混淆直接断定其不测顺从。"
     },
     "compliance_13": {
-      "primary_family": null,
+      "primary_family": "CEF05",
       "secondary_family": null,
-      "status": "rejected",
-      "reason": "LLM EF08 — 测量的是服务角色中的责任边界和坦率性 (A2)，非核心顺从"
+      "status": "provisional",
+      "note": "恢复保留原题证据；替代解释与族的局限见对应族，不以存在混淆直接断定其不测顺从。"
     },
     "compliance_14": {
       "primary_family": "CEF05",
@@ -292,15 +343,16 @@
       "status": "provisional"
     },
     "compliance_15": {
-      "primary_family": null,
+      "primary_family": "CEF05",
       "secondary_family": null,
-      "status": "rejected",
-      "reason": "LLM EF09 — 几毛钱零钱的低 stakes 场景，测量的是冲突回避而非特质，且容易混入公平感"
+      "status": "provisional",
+      "note": "恢复保留原题证据；替代解释与族的局限见对应族，不以存在混淆直接断定其不测顺从。"
     },
     "compliance_16": {
       "primary_family": "CEF02",
       "secondary_family": null,
-      "status": "core"
+      "status": "core",
+      "note": "道歉或放下愤怒不必等于改变观点或承认观点错误。"
     },
     "compliance_17": {
       "primary_family": "CEF05",
@@ -313,16 +365,16 @@
       "status": "core"
     },
     "compliance_19": {
-      "primary_family": null,
+      "primary_family": "CEF03",
       "secondary_family": null,
-      "status": "rejected",
-      "reason": "LLM EF10 — 测量的是群体从众 (conformity) 而非顺从 (compliance)，核心心理机制不同"
+      "status": "core",
+      "note": "恢复保留原题证据；替代解释与族的局限见对应族，不以存在混淆直接断定其不测顺从。"
     },
     "compliance_20": {
       "primary_family": null,
       "secondary_family": null,
-      "status": "rejected",
-      "reason": "LLM EF11 — 直接违反系统硬约束：高顺从不能等同于完全服从上级、放弃私人约会。测量的是权力服从"
+      "status": "provisional",
+      "note": "原题保留待核。含上级追加要求、私人约会、完全或部分接受及拒绝；权力压力、职责与计分待核，暂不指定证据族。"
     },
     "compliance_21": {
       "primary_family": "CEF05",
@@ -337,16 +389,33 @@
   },
   "coverage_summary": {
     "total_items": 22,
-    "core_items": 9,
-    "provisional_items": 6,
-    "rejected_items": 7,
+    "core_items": 12,
+    "provisional_items": 10,
+    "rejected_items": 0,
     "stable_families": 3,
     "provisional_families": 2,
-    "maximum_evidence_slots": "3 stable families × 3-4 behaviors each ≈ ~10-12 meaningfully distinct item blueprints before redundancy begins",
-    "items_with_dual_assignment": 0
+    "items_with_dual_assignment": 0,
+    "assigned_items": 20,
+    "unassigned_provisional_items": [
+      "compliance_05",
+      "compliance_20"
+    ],
+    "family_counts": {
+      "CEF01": 2,
+      "CEF02": 4,
+      "CEF03": 6,
+      "CEF04": 1,
+      "CEF05": 7
+    },
+    "evidence_retention": "全部22题保留来源索引与审阅状态。20题归入现有五族，05、20仅保留待核索引而暂不加入任何支持清单；不将不适合直接复用等同于没有构念证据。",
+    "capacity_note": "本次移除由族数乘以行为数推算最大蓝图数量的结论；本库尚无经验证的可生成题量上限。",
+    "pending_checks": [
+      "核对德文原题、中文译文与作者原始计分，尤其03、07及过程不同但动作相似的选项。",
+      "复核05、20的族归属与直接用于新题的条件。"
+    ]
   },
   "mapping_convention": {
-    "supporting_item_ids": "?? evidence family ???????????????????",
-    "item_evidence_mapping": "??????????????????????????????????"
+    "supporting_item_ids": "列出本版归入该族的全部主要或次要来源题号；不是逐选项评分键，也不表示每题支持族内全部表述。",
+    "item_evidence_mapping": "逐题记录归属和审阅状态。primary_family为null且status为provisional表示原题保留但归属待核，不表示拒绝或构念无效；core也不表示不存在替代解释或已核定正式评分。"
   }
 }

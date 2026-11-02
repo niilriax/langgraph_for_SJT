@@ -1,0 +1,578 @@
+{
+  "facet_id": "openness_ideas",
+  "neo_code": "O5",
+  "source": "stage3_behavior_bank.json",
+  "behavior_types": [
+    {
+      "type_id": "BT01",
+      "family_id": "OEF01",
+      "direction": "high",
+      "description": "对可选择的思考活动进行初步构思，并考虑是否参加",
+      "psychological_function": "进行初步思考",
+      "source_manifestation_ids": [
+        "BM01"
+      ]
+    },
+    {
+      "type_id": "BT02",
+      "family_id": "OEF01",
+      "direction": "high",
+      "description": "尝试了解抽象讨论的内容，并选择听取",
+      "psychological_function": "选择接触相关内容",
+      "source_manifestation_ids": [
+        "BM14"
+      ]
+    },
+    {
+      "type_id": "BT03",
+      "family_id": "OEF01",
+      "direction": "low",
+      "description": "对某类可选活动表示通常缺乏参与动力",
+      "psychological_function": "表达对该类活动较低的参与意愿",
+      "source_manifestation_ids": [
+        "BM05"
+      ]
+    },
+    {
+      "type_id": "BT04",
+      "family_id": "OEF01",
+      "direction": "low",
+      "description": "因觉得讨论过于抽象或理论化而不继续接触",
+      "psychological_function": "拒绝该类抽象内容",
+      "source_manifestation_ids": [
+        "BM18"
+      ]
+    },
+    {
+      "type_id": "BT05",
+      "family_id": "OEF01",
+      "direction": "low",
+      "description": "只有当下没有更好的事情可做时才考虑接触相关内容",
+      "psychological_function": "有条件地参与",
+      "source_manifestation_ids": [
+        "BM19"
+      ]
+    },
+    {
+      "type_id": "BT06",
+      "family_id": "OEF05",
+      "direction": "high",
+      "description": "接受并尝试解决智力挑战，或开始尝试看看能做到什么程度",
+      "psychological_function": "尝试参与挑战",
+      "source_manifestation_ids": [
+        "BM02",
+        "BM03"
+      ]
+    },
+    {
+      "type_id": "BT07",
+      "family_id": "OEF05",
+      "direction": "low",
+      "description": "因当前觉得任务太复杂而不继续尝试",
+      "psychological_function": "停止当前挑战，自觉能力困难不等于缺乏兴趣",
+      "source_manifestation_ids": [
+        "BM07"
+      ]
+    },
+    {
+      "type_id": "BT08",
+      "family_id": "OEF03",
+      "direction": "high",
+      "description": "详细了解新信息，并尝试理解其中的细节",
+      "psychological_function": "尝试加深理解",
+      "source_manifestation_ids": [
+        "BM22"
+      ]
+    },
+    {
+      "type_id": "BT09",
+      "family_id": "OEF03",
+      "direction": "low",
+      "description": "阅读解释性内容，但不尝试理解其中的理论",
+      "psychological_function": "接触内容而不进一步理解",
+      "source_manifestation_ids": [
+        "BM24"
+      ]
+    },
+    {
+      "type_id": "BT10",
+      "family_id": "OEF04",
+      "direction": "high",
+      "description": "权衡支持和反对某一观点的不同论据，再形成意见",
+      "psychological_function": "考虑不同论据",
+      "source_manifestation_ids": [
+        "BM13"
+      ]
+    },
+    {
+      "type_id": "BT11",
+      "family_id": "OEF04",
+      "direction": "low",
+      "description": "因自己已有明确意见而对相关讨论较少感兴趣",
+      "psychological_function": "表达继续关注的兴趣较低",
+      "source_manifestation_ids": [
+        "BM17"
+      ]
+    },
+    {
+      "type_id": "BT12",
+      "family_id": "OEF02",
+      "direction": "high",
+      "description": "主动查询不熟悉的信息或了解规定的背景",
+      "psychological_function": "获取相关信息",
+      "source_manifestation_ids": [
+        "BM09",
+        "BM53"
+      ]
+    },
+    {
+      "type_id": "BT13",
+      "family_id": "OEF02",
+      "direction": "high",
+      "description": "直接询问未知内容或请对方进一步解释",
+      "psychological_function": "借助询问接触更多信息",
+      "source_manifestation_ids": [
+        "BM10",
+        "BM50"
+      ]
+    },
+    {
+      "type_id": "BT14",
+      "family_id": "OEF02",
+      "direction": "high",
+      "description": "请求额外时间自行详细了解主题，以便之后讨论",
+      "psychological_function": "安排自行了解后再讨论的过程",
+      "source_manifestation_ids": [
+        "BM49"
+      ]
+    },
+    {
+      "type_id": "BT15",
+      "family_id": "OEF02",
+      "direction": "high",
+      "description": "饶有兴趣地关注某项安排的当前讨论",
+      "psychological_function": "关注当前讨论",
+      "source_manifestation_ids": [
+        "BM54"
+      ]
+    },
+    {
+      "type_id": "BT17",
+      "family_id": "OEF02",
+      "direction": "low",
+      "description": "不再为尚未了解的词义费心",
+      "psychological_function": "不继续关注该信息",
+      "source_manifestation_ids": [
+        "BM11"
+      ]
+    },
+    {
+      "type_id": "BT18",
+      "family_id": "OEF02",
+      "direction": "low",
+      "description": "表示自己对主题了解不多，因此不太感兴趣",
+      "psychological_function": "表达了解程度与兴趣",
+      "source_manifestation_ids": [
+        "BM51"
+      ]
+    },
+    {
+      "type_id": "BT19",
+      "family_id": "OEF02",
+      "direction": "low",
+      "description": "因某人总谈论智力性话题而感到烦恼",
+      "psychological_function": "表达对当前交流的负面感受",
+      "source_manifestation_ids": [
+        "BM52"
+      ]
+    },
+    {
+      "type_id": "BT20",
+      "family_id": "OEF02",
+      "direction": "low",
+      "description": "对某项安排表达厌烦，并希望取消该安排",
+      "psychological_function": "表达不满与改变意愿",
+      "source_manifestation_ids": [
+        "BM55"
+      ]
+    },
+    {
+      "type_id": "BT21",
+      "family_id": "OEF06",
+      "direction": "high",
+      "description": "接受邀请或利用已有机会参观、参与讨论或听取讲座",
+      "psychological_function": "利用现有机会",
+      "source_manifestation_ids": [
+        "BM16",
+        "BM35",
+        "BM36",
+        "BM37"
+      ]
+    },
+    {
+      "type_id": "BT22",
+      "family_id": "OEF06",
+      "direction": "low",
+      "description": "对某个活动中的讨论内容较少感兴趣",
+      "psychological_function": "表达内容兴趣较低",
+      "source_manifestation_ids": [
+        "BM20"
+      ]
+    },
+    {
+      "type_id": "BT23",
+      "family_id": "OEF06",
+      "direction": "low",
+      "description": "接受参观安排但不愿停留整天，并把接触范围限制在已有知识的主题",
+      "psychological_function": "限制停留与内容范围",
+      "source_manifestation_ids": [
+        "BM38"
+      ]
+    },
+    {
+      "type_id": "BT24",
+      "family_id": "OEF06",
+      "direction": "low",
+      "description": "因更偏好实际事务而不参加可选讲座",
+      "psychological_function": "表达活动偏好",
+      "source_manifestation_ids": [
+        "BM40"
+      ]
+    },
+    {
+      "type_id": "BT25",
+      "family_id": "OEF01",
+      "direction": "high",
+      "description": "因对某类主题感兴趣而选择接触相关内容",
+      "psychological_function": "兴趣与观看相伴",
+      "source_manifestation_ids": [
+        "BM15"
+      ]
+    },
+    {
+      "type_id": "BT26",
+      "family_id": "OEF05",
+      "direction": "low",
+      "description": "因有其他更重要的事情而不参加当前挑战",
+      "psychological_function": "表达优先事项",
+      "source_manifestation_ids": [
+        "BM06"
+      ]
+    },
+    {
+      "type_id": "BT27",
+      "family_id": "OEF01",
+      "direction": "high",
+      "description": "阅读复杂理论内容，并表达接受智力挑战的兴趣",
+      "psychological_function": "选择接触理论内容",
+      "source_manifestation_ids": [
+        "BM21"
+      ]
+    },
+    {
+      "type_id": "BT28",
+      "family_id": "OEF03",
+      "direction": "low",
+      "description": "因更关注实际事物而较少处理新的理论内容",
+      "psychological_function": "表达对当前内容的选择",
+      "source_manifestation_ids": [
+        "BM25"
+      ]
+    },
+    {
+      "type_id": "BT29",
+      "family_id": "OEF03",
+      "direction": "low",
+      "description": "观看现象，但没有进一步探究其成因的明确行为",
+      "psychological_function": "进行观察",
+      "source_manifestation_ids": [
+        "BM26"
+      ]
+    },
+    {
+      "type_id": "BT30",
+      "family_id": "OEF02",
+      "direction": "low",
+      "description": "只完成当前需要的操作，没有明确的进一步了解行为",
+      "psychological_function": "完成当前所需操作",
+      "source_manifestation_ids": [
+        "BM56"
+      ]
+    },
+    {
+      "type_id": "BT31",
+      "family_id": "OEF01",
+      "direction": "high",
+      "description": "选择具有知识内容的活动，并明确表达其值得接触",
+      "psychological_function": "选择相关内容",
+      "source_manifestation_ids": [
+        "BM27"
+      ]
+    },
+    {
+      "type_id": "BT32",
+      "family_id": "OEF01",
+      "direction": "high",
+      "description": "按原计划接触已准备的全部内容",
+      "psychological_function": "按既定安排接触内容",
+      "source_manifestation_ids": [
+        "BM28"
+      ]
+    },
+    {
+      "type_id": "BT33",
+      "family_id": "OEF01",
+      "direction": "low",
+      "description": "选择可供放松的娱乐内容，而非当前的知识性内容",
+      "psychological_function": "选择放松",
+      "source_manifestation_ids": [
+        "BM29"
+      ]
+    },
+    {
+      "type_id": "BT34",
+      "family_id": "OEF01",
+      "direction": "low",
+      "description": "转向其他可选活动，而不是继续原先的阅读或收听安排",
+      "psychological_function": "转换当前活动",
+      "source_manifestation_ids": [
+        "BM30"
+      ]
+    },
+    {
+      "type_id": "BT35",
+      "family_id": "OEF02",
+      "direction": "high",
+      "description": "查找不同资源来了解尚不熟悉的功能",
+      "psychological_function": "通过资料了解功能",
+      "source_manifestation_ids": [
+        "BM31"
+      ]
+    },
+    {
+      "type_id": "BT36",
+      "family_id": "OEF02",
+      "direction": "high",
+      "description": "通过实际尝试自行学习尚不熟悉的功能",
+      "psychological_function": "通过尝试探索功能",
+      "source_manifestation_ids": [
+        "BM32"
+      ]
+    },
+    {
+      "type_id": "BT37",
+      "family_id": "OEF02",
+      "direction": "low",
+      "description": "继续使用熟悉的方式，但很少使用新功能",
+      "psychological_function": "减少新功能接触",
+      "source_manifestation_ids": [
+        "BM33"
+      ]
+    },
+    {
+      "type_id": "BT38",
+      "family_id": "OEF02",
+      "direction": "low",
+      "description": "对新变化感到烦恼，并尝试继续使用原有形式",
+      "psychological_function": "表达对变化的反应",
+      "source_manifestation_ids": [
+        "BM34"
+      ]
+    },
+    {
+      "type_id": "BT39",
+      "family_id": "OEF03",
+      "direction": "high",
+      "description": "观看现象，并尝试了解其背后的成因或解释",
+      "psychological_function": "在观察之外尝试了解原因",
+      "source_manifestation_ids": [
+        "BM23"
+      ]
+    }
+  ],
+  "review_notes": {
+    "review_basis": "核对stage3_behavior_bank.json、修订后的Stage 2与docs/mussel_zh.json中文原题。未核对德文原文和作者原始评分键。",
+    "direction_convention": "活动列表中的high/low保留上游理论方向，不作为作者正式评分结论。不同拒绝理由不能统一解释为低兴趣，兴趣表达、实际参与和执行完成分别记录。明确列为待核的BM不进入behavior_types。",
+    "psychological_function_convention": "仅概括行为与内容接触、信息获取、选择或执行的直接关系。不将获得胜任感、消除不确定感、降低失败风险、维持认知一致性等未经原题明示的动机写成事实。",
+    "source_corrections": {
+      "BM03/BT06": "03-A只写开始尝试、看看做到什么程度；不沿用上游尽力完成的额外承诺。03中文情境语境异常仍按Stage 2保留待核标记。",
+      "BM14/BT02": "11-A没有要求听完整场，也未保证准确理解，删除上游听完整场的扩展。",
+      "BM15/BT25": "12-A只写因兴趣观看，没有说明观看整个节目。",
+      "BM18/BT04": "11-C的原因是抽象和理论化，不改写为无实用价值。",
+      "BM37/BT21": "20-A为参加讲座系列，没有明确承诺完成每一场；不沿用上游整个系列的强制完成含义。",
+      "BM55/BT20": "15-C表达对安排厌烦并希望废除，未明确从不探究其背景。",
+      "BM56/BT30": "15-D只明确调整时钟；没有进一步了解的明确行为，不等于已证明没有思考。"
+    },
+    "family_alignment": "BT27将04-A的理论挑战接触归入OEF01；BT08保留08-A的细节理解于OEF03。09的新功能探索归入OEF02，不重新引入已从Stage 2移除的OEF05关联。21的阅读执行归入OEF01，不视为OEF06的机会创造。",
+    "source_usage_convention": "每条纳入的BM仅引用一次。其具体行为按原选项纠正，但原上游文件本次未改写。不把同一题其他选项的内容冒充已由当前BM记录。",
+    "restored_manifestations": "补入07、09、21的BM27-BM34，共8条现有记录；不因此声称上游完整覆盖各题全部选项。",
+    "retired_type_ids": {
+      "BT16": "原引用BM12的方向待核，移至deferred_manifestations；不将用已有知识推测直接固化为低极模板。"
+    },
+    "deferred_manifestations": {
+      "BM04": "18-A新颖且复杂；保留事实但待原始计分核对，不以该选项自动定义高极类型。",
+      "BM08": "18-C熟悉且简单；与A之外的B、D一起保留双维度选择，具体方向待核。",
+      "BM12": "05-D用已有知识尝试理解，仍有主动加工；不能仅因不查询就判定低极。",
+      "BM39": "16-C因没有时间不使用参观券，兴趣方向未由该行为唯一确定，暂不作为明确低极模板。",
+      "BM41": "19-A劝说朋友喜欢游戏，兴趣与人际应对混合；Stage 2暂未归族。",
+      "BM42": "19-B难过但接受朋友决定，兴趣与人际应对混合；Stage 2暂未归族。",
+      "BM43": "19-C因朋友同样不喜欢而欣慰；Stage 2暂未归族。",
+      "BM44": "19-D共同评价游戏与选择其他活动；Stage 2暂未归族。",
+      "BM45": "22-A科学/文化类别，领域与正式方向待核，不能把类别名称直接当作高极。",
+      "BM46": "22-B新闻/商业类别，领域与正式方向待核。",
+      "BM47": "22-C时尚/娱乐类别，领域与正式方向待核。",
+      "BM48": "22-D体育/自然/计算机类别，主题异质，正式方向待核。"
+    },
+    "pending_option_dimensions": {
+      "openness_to_ideas_18": {
+        "A": "新颖且复杂",
+        "B": "新颖且简单",
+        "C": "熟悉且简单",
+        "D": "熟悉且复杂",
+        "note": "四组合仅为原选项事实，不擅自赋予高低；上游BM只单列A、C，不能冒充覆盖B、D。"
+      },
+      "openness_to_ideas_22": {
+        "A": "科学/文化",
+        "B": "新闻/商业",
+        "C": "时尚/娱乐",
+        "D": "体育/自然/计算机",
+        "note": "类别事实保留于待核说明，不作为本轮已核定方向的类型。"
+      }
+    },
+    "source_option_gaps": [
+      {
+        "source_item_id": "openness_to_ideas_01",
+        "option_id": "B",
+        "description": "喜欢思考新想法，但因其他优先事项不参加；兴趣与参与不同。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_03",
+        "option_id": "B",
+        "description": "开始尝试并希望还有更多谜题，不等同于承诺完成当前谜题。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_04",
+        "option_id": "B",
+        "description": "尝试详细理解理论；现有BM21来自A的接受挑战，不能代替B。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_06",
+        "option_id": "B",
+        "description": "对新论据保持开放心态，不等于已完成多方论据权衡。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_06",
+        "option_id": "D",
+        "description": "因对主题和节目缺乏兴趣而换台，不必是回避信念挑战。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_08",
+        "option_id": "B",
+        "description": "将新发现整合到已有知识，不能挂在只记录A细节理解的BM22之下。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_10",
+        "option_id": "B",
+        "description": "不观看但表达对成因的兴趣，未明确实际探究行为。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_11",
+        "option_id": "B",
+        "description": "先听几分钟再决定是否继续，不预设完整参与。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_12",
+        "option_id": "B",
+        "description": "先看开头，按主题和嘉宾决定是否继续。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_13",
+        "option_id": "B",
+        "description": "接受参观并提议带其他人共同讨论，社交与认知兴趣需区分。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_16",
+        "option_id": "B",
+        "description": "先了解展览再选择最感兴趣的参观，不等于仅被动接受券。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_17",
+        "option_id": "B",
+        "description": "喜欢与朋友讨论但不去俱乐部，拒绝形式不等于拒绝讨论。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_20",
+        "option_id": "B",
+        "description": "先听一次再决定是否继续，区别于已承诺完整参与。"
+      },
+      {
+        "source_item_id": "openness_to_ideas_21",
+        "option_id": "D",
+        "description": "有扩展知识意愿但无法执行，不能直接解释为无求知兴趣。"
+      }
+    ],
+    "gap_convention": "以上列出本轮特别关注的上游选项缺口，不声称是全部遗漏；仅作为直接原题追溯记录，不补造BM、不生成未经核定方向的活动类型。",
+    "remaining_limits": [
+      "03译文异常、全部正式评分以及待核来源仍需后续核对。",
+      "时间优先、能力困难、表达厌烦或执行计划等行为即使保留上游方向，也不能独立作为纯兴趣高低的判断规则。",
+      "19原题未归族；18和22保留于Stage 2来源，但其待核方向不进入本版运行时行为模板。",
+      "Stage 4b已完成本轮同步审查；18、22的情境事实可在4b记录，但不据此恢复本文件的待核方向模板。"
+    ],
+    "type_review_boundaries": {
+      "BT01": "进行初步思考，不预设已经承诺参加",
+      "BT02": "选择接触相关内容，不预设听完整场或已准确理解",
+      "BT03": "表达对该类活动较低的参与意愿，不泛化为不喜欢所有思考",
+      "BT04": "拒绝该类抽象内容，不推定其原因是没有实用价值",
+      "BT05": "有条件地参与，不推定一般性优先级或精力分配习惯",
+      "BT06": "尝试参与挑战，不预设比较过其他难度或承诺完成",
+      "BT08": "尝试加深理解，不预设已完成理解或知识整合",
+      "BT09": "接触内容而不进一步理解，不推定节省资源的动机",
+      "BT10": "考虑不同论据，不预设判断更优或原本已有立场",
+      "BT11": "表达继续关注的兴趣较低，不推定是在避免内心冲突",
+      "BT12": "获取相关信息，不推定必须消除不确定感",
+      "BT13": "借助询问接触更多信息，不预设知识不足引发不适",
+      "BT15": "关注当前讨论，不推定长期持续接触的习惯",
+      "BT17": "不继续关注该信息，不推定已有确定的认知经济策略",
+      "BT18": "表达了解程度与兴趣，不把该理由判定为回避策略",
+      "BT19": "表达对当前交流的负面感受，不推定已退出或回避一切思考",
+      "BT20": "表达不满与改变意愿，不推定从未探究背景",
+      "BT21": "利用现有机会，不要求主动创造机会或完成全部活动",
+      "BT22": "表达内容兴趣较低，不预设讨论主题不熟悉",
+      "BT23": "限制停留与内容范围，不把所有原因归为维持熟悉感",
+      "BT24": "表达活动偏好，不与实际没有时间混为一谈",
+      "BT25": "兴趣与观看相伴，不预设观看整期或准确理解",
+      "BT26": "表达优先事项，不单独证明缺乏挑战兴趣",
+      "BT27": "选择接触理论内容，不预设详细理解或已完成知识整合",
+      "BT28": "表达对当前内容的选择，不推定只掌握表面结论",
+      "BT29": "只记录观看，不推定能力或兴趣的全部状态",
+      "BT30": "记录操作范围，不推定有意避免思考",
+      "BT31": "选择相关内容，保留原选项给出的理由",
+      "BT32": "记录计划执行，需与求知兴趣和自律分别解释",
+      "BT33": "选择放松，不单独证明普遍缺乏智力兴趣",
+      "BT34": "记录活动转换，不预设认知能力或一般求知动机",
+      "BT35": "通过资料了解功能，不预设内容无实用价值或难度很高",
+      "BT36": "通过尝试探索功能，不直接等同于偏好最高难度",
+      "BT37": "减少新功能接触，实际用途与使用需要仍需考虑",
+      "BT38": "表达对变化的反应，不统一解释为回避认知挑战",
+      "BT39": "在观察之外尝试了解原因，不预设已经完成理解"
+    },
+    "source_specific_formulations": {
+      "BT25": "因对某类主题感兴趣而选择观看相关节目",
+      "BT31": "选择教育性节目，并明确表达教育内容值得接触",
+      "BT32": "按原计划阅读或收听已准备的全部内容",
+      "BT33": "选择娱乐内容以放松，而非当前的教育内容",
+      "BT35": "查找不同资源来了解新功能",
+      "BT36": "通过试用来自行学习新功能",
+      "BT37": "继续使用熟悉工具，但很少使用新功能",
+      "BT38": "对更新感到烦恼，并尝试继续使用旧版本"
+    },
+    "field_review_convention": {
+      "review_date": "2026-11-02",
+      "description": "去掉不决定行为差异的原题场景词，保留有证据的顺序、参与范围、注意状态、条件与明确感受；抽象化不是新增领域的实证支持。",
+      "psychological_function": "只陈述来源明确的意图或动作直接产生的互动作用，不补写成功结果及潜在动机；纯感受记录无明确行为功能时标未明示。",
+      "type_review_boundaries": "原字段中的审阅限制移到本项，仍须与类型及族边界一起阅读；不能因移出字段就视为问题已获计分核定。",
+      "source_specific_formulations": "保留本次抽象前的具体表述供来源对照；可用类型以behavior_types中的当前表述为准。",
+      "unchanged_references": "本次保留全部类型编号、族归属、方向及BM引用。待核行为未恢复为可用类型。"
+    }
+  }
+}

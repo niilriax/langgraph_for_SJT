@@ -1,0 +1,753 @@
+{
+  "facet_id": "agreeableness_compliance",
+  "neo_code": "A4",
+  "source": "stage3_behavior_bank.json",
+  "behavior_types": [
+    {
+      "type_id": "BT01",
+      "family_id": "CEF01",
+      "direction": "high",
+      "description": "尝试不将注意力集中于干扰，继续当前活动",
+      "psychological_function": "不直接交涉，尝试维持当前活动",
+      "source_manifestation_ids": [
+        "BM01"
+      ]
+    },
+    {
+      "type_id": "BT02",
+      "family_id": "CEF01",
+      "direction": "high",
+      "description": "通过改变自身位置或阻隔干扰来适应，而不向干扰方提出要求",
+      "psychological_function": "调整自身安排以应对干扰",
+      "source_manifestation_ids": [
+        "BM02"
+      ]
+    },
+    {
+      "type_id": "BT03",
+      "family_id": "CEF01",
+      "direction": "high",
+      "description": "在干扰仍存在时尝试继续原定的休息安排，不提出投诉",
+      "psychological_function": "保留原定安排而不主动交涉",
+      "source_manifestation_ids": [
+        "BM03"
+      ]
+    },
+    {
+      "type_id": "BT04",
+      "family_id": "CEF01",
+      "direction": "low",
+      "description": "向对方或负责方投诉干扰，或直接要求降低干扰",
+      "psychological_function": "直接提出对干扰的异议或停止要求",
+      "source_manifestation_ids": [
+        "BM05",
+        "BM08"
+      ]
+    },
+    {
+      "type_id": "BT05",
+      "family_id": "CEF01",
+      "direction": "low",
+      "description": "向对方投诉，并在必要时进一步向外部机构求助",
+      "psychological_function": "在直接交涉之外保留升级处置的可能",
+      "source_manifestation_ids": [
+        "BM07"
+      ]
+    },
+    {
+      "type_id": "BT06",
+      "family_id": "CEF02",
+      "direction": "high",
+      "description": "在争论前同意对方，或在讨论初期较快让步",
+      "psychological_function": "不继续坚持分歧或避免进入争论",
+      "source_manifestation_ids": [
+        "BM29",
+        "BM30"
+      ]
+    },
+    {
+      "type_id": "BT07",
+      "family_id": "CEF02",
+      "direction": "high",
+      "description": "在自己的表达可能不合适后，主动交谈并道歉",
+      "psychological_function": "主动发起互动修复",
+      "source_manifestation_ids": [
+        "BM31"
+      ]
+    },
+    {
+      "type_id": "BT08",
+      "family_id": "CEF02",
+      "direction": "high",
+      "description": "让争执过去，并放下对对方的愤怒",
+      "psychological_function": "不再维持自身的愤怒反应",
+      "source_manifestation_ids": [
+        "BM32"
+      ]
+    },
+    {
+      "type_id": "BT09",
+      "family_id": "CEF02",
+      "direction": "low",
+      "description": "尝试说服对方自己正确，或坚持观点并接受可能发生的争论",
+      "psychological_function": "继续维护原立场，而非提前同意或退让",
+      "source_manifestation_ids": [
+        "BM33",
+        "BM34"
+      ]
+    },
+    {
+      "type_id": "BT10",
+      "family_id": "CEF02",
+      "direction": "low",
+      "description": "等待对方先采取修复行动",
+      "psychological_function": "自己暂不主动发起修复",
+      "source_manifestation_ids": [
+        "BM36"
+      ]
+    },
+    {
+      "type_id": "BT11",
+      "family_id": "CEF03",
+      "direction": "high",
+      "description": "将当前优先机会或个人安排让给他人，部分行为包含对未来机会的期待",
+      "psychological_function": "让出当前机会或安排",
+      "source_manifestation_ids": [
+        "BM09",
+        "BM10",
+        "BM15"
+      ]
+    },
+    {
+      "type_id": "BT12",
+      "family_id": "CEF03",
+      "direction": "high",
+      "description": "为避免争论而同意并迁就对方的安排",
+      "psychological_function": "以接受对方安排避免当前争论",
+      "source_manifestation_ids": [
+        "BM11"
+      ]
+    },
+    {
+      "type_id": "BT13",
+      "family_id": "CEF03",
+      "direction": "high",
+      "description": "在当前让步的同时明确提出以后轮流的条件",
+      "psychological_function": "以明确的轮流条件接受当前安排",
+      "source_manifestation_ids": [
+        "BM12"
+      ]
+    },
+    {
+      "type_id": "BT14",
+      "family_id": "CEF03",
+      "direction": "high",
+      "description": "提出或寻找折中方案，部分行为先比较双方方案的优缺点",
+      "psychological_function": "尝试形成折中",
+      "source_manifestation_ids": [
+        "BM13",
+        "BM16"
+      ]
+    },
+    {
+      "type_id": "BT15",
+      "family_id": "CEF03",
+      "direction": "high",
+      "description": "直接退出资源争夺，转而寻找其他选择",
+      "psychological_function": "停止当前争夺并选择替代安排",
+      "source_manifestation_ids": [
+        "BM17"
+      ]
+    },
+    {
+      "type_id": "BT16",
+      "family_id": "CEF03",
+      "direction": "low",
+      "description": "坚持自己的偏好、尝试说服对方，或接受可能引发的争论",
+      "psychological_function": "继续争取个人安排",
+      "source_manifestation_ids": [
+        "BM20",
+        "BM21",
+        "BM22",
+        "BM23",
+        "BM24",
+        "BM26"
+      ]
+    },
+    {
+      "type_id": "BT17",
+      "family_id": "CEF03",
+      "direction": "low",
+      "description": "先争取自己的安排，无法达成一致时请求更高权威裁决",
+      "psychological_function": "在协商未果后转向外部裁决",
+      "source_manifestation_ids": [
+        "BM19"
+      ]
+    },
+    {
+      "type_id": "BT18",
+      "family_id": "CEF03",
+      "direction": "low",
+      "description": "明确表示不愿再做进一步让步",
+      "psychological_function": "表达停止继续迁就的立场",
+      "source_manifestation_ids": [
+        "BM25"
+      ]
+    },
+    {
+      "type_id": "BT19",
+      "family_id": "CEF03",
+      "direction": "low",
+      "description": "继续占据争夺的位置并坚持不让，部分行为等待对方先退出",
+      "psychological_function": "不主动让出争夺位置",
+      "source_manifestation_ids": [
+        "BM27",
+        "BM28"
+      ]
+    },
+    {
+      "type_id": "BT20",
+      "family_id": "CEF04",
+      "direction": "high",
+      "description": "尽管不喜欢对方，仍接受私下见面的请求",
+      "psychological_function": "接受与不喜欢对象的接触",
+      "source_manifestation_ids": [
+        "BM65"
+      ]
+    },
+    {
+      "type_id": "BT21",
+      "family_id": "CEF04",
+      "direction": "high",
+      "description": "邀请自己不喜欢的对象与自己的朋友共同活动",
+      "psychological_function": "提供共同活动的机会",
+      "source_manifestation_ids": [
+        "BM66"
+      ]
+    },
+    {
+      "type_id": "BT22",
+      "family_id": "CEF04",
+      "direction": "low",
+      "description": "以自己忙碌为由表示没有时间私下见面",
+      "psychological_function": "间接表达无法接受邀约",
+      "source_manifestation_ids": [
+        "BM67"
+      ]
+    },
+    {
+      "type_id": "BT23",
+      "family_id": "CEF04",
+      "direction": "low",
+      "description": "直接表示没有私下见面的兴趣",
+      "psychological_function": "明确表达不接受私人接触邀约",
+      "source_manifestation_ids": [
+        "BM68"
+      ]
+    },
+    {
+      "type_id": "BT24",
+      "family_id": "CEF05",
+      "direction": "high",
+      "description": "接受不利决定或条件，部分行为同时表达不情愿或认为条件过高",
+      "psychological_function": "接受当前结果",
+      "source_manifestation_ids": [
+        "BM45",
+        "BM49",
+        "BM53"
+      ]
+    },
+    {
+      "type_id": "BT25",
+      "family_id": "CEF05",
+      "direction": "high",
+      "description": "礼貌询问条件的理由，并仍予接受",
+      "psychological_function": "询问信息后接受条件",
+      "source_manifestation_ids": [
+        "BM50"
+      ]
+    },
+    {
+      "type_id": "BT26",
+      "family_id": "CEF05",
+      "direction": "high",
+      "description": "接受对方的时间安排，或相应加快描述自己的关切",
+      "psychological_function": "配合时间限制",
+      "source_manifestation_ids": [
+        "BM47",
+        "BM48"
+      ]
+    },
+    {
+      "type_id": "BT27",
+      "family_id": "CEF05",
+      "direction": "high",
+      "description": "联系原先的对接者，尝试寻找双方可接受的解决方案",
+      "psychological_function": "通过原对接者寻求方案",
+      "source_manifestation_ids": [
+        "BM54"
+      ]
+    },
+    {
+      "type_id": "BT28",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "坚持要求补偿，或说明情况并要求足够的服务时间",
+      "psychological_function": "提出并坚持具体诉求",
+      "source_manifestation_ids": [
+        "BM55",
+        "BM57"
+      ]
+    },
+    {
+      "type_id": "BT29",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "对交易对方采取法律行动",
+      "psychological_function": "采取进一步争议处理行动",
+      "source_manifestation_ids": [
+        "BM56"
+      ]
+    },
+    {
+      "type_id": "BT30",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "决定不再向该交易方购买",
+      "psychological_function": "退出当前交易选择",
+      "source_manifestation_ids": [
+        "BM64"
+      ]
+    },
+    {
+      "type_id": "BT31",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "拒绝当前条件，但保留条件明显改善后再谈的可能",
+      "psychological_function": "拒绝当前方案，同时保留有条件的后续协商",
+      "source_manifestation_ids": [
+        "BM63"
+      ]
+    },
+    {
+      "type_id": "BT32",
+      "family_id": "CEF01",
+      "direction": "high",
+      "description": "将原定休息延后，等待干扰结束再进行",
+      "psychological_function": "通过改变自身时间安排应对干扰",
+      "source_manifestation_ids": [
+        "BM04"
+      ]
+    },
+    {
+      "type_id": "BT33",
+      "family_id": "CEF01",
+      "direction": "low",
+      "description": "通过公开喊话要求干扰方停止",
+      "psychological_function": "公开提出停止要求",
+      "source_manifestation_ids": [
+        "BM06"
+      ]
+    },
+    {
+      "type_id": "BT34",
+      "family_id": "CEF02",
+      "direction": "high",
+      "description": "在争执将升级时主动道歉并接近对方",
+      "psychological_function": "以道歉和接近尝试缓和",
+      "source_manifestation_ids": [
+        "BM39"
+      ]
+    },
+    {
+      "type_id": "BT35",
+      "family_id": "CEF02",
+      "direction": "low",
+      "description": "在之后的交谈中再次表达原观点，而不道歉",
+      "psychological_function": "继续陈述立场且未采取道歉行为",
+      "source_manifestation_ids": [
+        "BM35"
+      ]
+    },
+    {
+      "type_id": "BT36",
+      "family_id": "CEF03",
+      "direction": "high",
+      "description": "接受对方当前安排，同时希望以后由自己选择",
+      "psychological_function": "让步并保留未来期待",
+      "source_manifestation_ids": [
+        "BM14"
+      ]
+    },
+    {
+      "type_id": "BT37",
+      "family_id": "CEF03",
+      "direction": "high",
+      "description": "先进行简短讨论，在对方坚持后退出争夺并寻找替代选择",
+      "psychological_function": "在初步交涉之后让步",
+      "source_manifestation_ids": [
+        "BM18"
+      ]
+    },
+    {
+      "type_id": "BT38",
+      "family_id": "CEF05",
+      "direction": "high",
+      "description": "接受当前决定，但决定今后不再光顾",
+      "psychological_function": "接受当前结果，同时减少未来交易",
+      "source_manifestation_ids": [
+        "BM46"
+      ]
+    },
+    {
+      "type_id": "BT39",
+      "family_id": "CEF05",
+      "direction": "high",
+      "description": "因对方以往提供过良好建议而接受当前不满意的条件",
+      "psychological_function": "接受当前方案",
+      "source_manifestation_ids": [
+        "BM51"
+      ]
+    },
+    {
+      "type_id": "BT40",
+      "family_id": "CEF05",
+      "direction": "high",
+      "description": "接受当前条件，同时表达不满",
+      "psychological_function": "接受结果但保留异议表达",
+      "source_manifestation_ids": [
+        "BM52"
+      ]
+    },
+    {
+      "type_id": "BT41",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "抱怨并要求道歉，持续留在服务情境直到完全满意",
+      "psychological_function": "持续坚持诉求",
+      "source_manifestation_ids": [
+        "BM58"
+      ]
+    },
+    {
+      "type_id": "BT42",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "拒绝支付全额，必要时可能采取法律行动",
+      "psychological_function": "拒绝当前付款条件并保留进一步行动的可能",
+      "source_manifestation_ids": [
+        "BM60"
+      ]
+    },
+    {
+      "type_id": "BT43",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "要求与对接者的上级交谈并提出投诉",
+      "psychological_function": "将诉求升级至更高层级处理",
+      "source_manifestation_ids": [
+        "BM61"
+      ]
+    },
+    {
+      "type_id": "BT44",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "拒绝当前报价，并以更换服务方作为明确的交涉表达",
+      "psychological_function": "拒绝报价并明确提出更换服务方的可能",
+      "source_manifestation_ids": [
+        "BM62"
+      ]
+    },
+    {
+      "type_id": "BT45",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "先投诉，投诉未果后接受付款，并决定未来不再合作",
+      "psychological_function": "保留先交涉、后接受、再退出未来合作的过程",
+      "source_manifestation_ids": [
+        "BM59"
+      ]
+    },
+    {
+      "type_id": "BT46",
+      "family_id": "CEF02",
+      "direction": "high",
+      "description": "在争执中转换话题以避免继续争论",
+      "psychological_function": "通过改变话题尝试缓和当前冲突",
+      "source_manifestation_ids": [
+        "BM40"
+      ]
+    },
+    {
+      "type_id": "BT47",
+      "family_id": "CEF02",
+      "direction": "low",
+      "description": "面对伤人的论点继续提出反论，不愿让争论就此结束",
+      "psychological_function": "继续当前争论，而非转移或缓和",
+      "source_manifestation_ids": [
+        "BM43"
+      ]
+    },
+    {
+      "type_id": "BT48",
+      "family_id": "CEF02",
+      "direction": "low",
+      "description": "以较强烈的离开行为表达愤怒",
+      "psychological_function": "通过离开表达愤怒，离开本身不等同于缓和或让步",
+      "source_manifestation_ids": [
+        "BM44"
+      ]
+    },
+    {
+      "type_id": "BT49",
+      "family_id": "CEF02",
+      "direction": "high",
+      "description": "明知提议存在缺点，仍为维护讨论气氛而接受",
+      "psychological_function": "接受提议并保留原选项明确的气氛维护理由",
+      "source_manifestation_ids": [
+        "BM69"
+      ]
+    },
+    {
+      "type_id": "BT50",
+      "family_id": "CEF02",
+      "direction": "high",
+      "description": "温和指出提议的缺点，但仍接受该提议",
+      "psychological_function": "表达缺点后接受方案",
+      "source_manifestation_ids": [
+        "BM70"
+      ]
+    },
+    {
+      "type_id": "BT51",
+      "family_id": "CEF02",
+      "direction": "low",
+      "description": "提出自己的替代方案，并论证其更合适",
+      "psychological_function": "通过反提议与论据继续争取不同方案",
+      "source_manifestation_ids": [
+        "BM71"
+      ]
+    },
+    {
+      "type_id": "BT52",
+      "family_id": "CEF02",
+      "direction": "low",
+      "description": "明确指出他人提议的缺点，并将其贬为无用",
+      "psychological_function": "以否定性的评价反对提议",
+      "source_manifestation_ids": [
+        "BM72"
+      ]
+    },
+    {
+      "type_id": "BT53",
+      "family_id": "CEF05",
+      "direction": "high",
+      "description": "对方因其自身错误来投诉时，仍提供帮助及进一步协助",
+      "psychological_function": "提供解决帮助及进一步协助",
+      "source_manifestation_ids": [
+        "BM73"
+      ]
+    },
+    {
+      "type_id": "BT54",
+      "family_id": "CEF05",
+      "direction": "high",
+      "description": "礼貌地向投诉对象解释解决问题的方法",
+      "psychological_function": "提供问题解决说明",
+      "source_manifestation_ids": [
+        "BM74"
+      ]
+    },
+    {
+      "type_id": "BT55",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "指出投诉对象自身行为不当",
+      "psychological_function": "明确指出对方行为问题",
+      "source_manifestation_ids": [
+        "BM75"
+      ]
+    },
+    {
+      "type_id": "BT56",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "告知对方相关问题不属于自己的责任范围",
+      "psychological_function": "明确说明责任范围",
+      "source_manifestation_ids": [
+        "BM76"
+      ]
+    },
+    {
+      "type_id": "BT57",
+      "family_id": "CEF05",
+      "direction": "high",
+      "description": "发现实际获得的数量不足后，不再要求补足",
+      "psychological_function": "不继续要求补足差额",
+      "source_manifestation_ids": [
+        "BM77"
+      ]
+    },
+    {
+      "type_id": "BT58",
+      "family_id": "CEF05",
+      "direction": "high",
+      "description": "礼貌询问对方是否注意到错误，并接受对方的回答",
+      "psychological_function": "询问后不继续坚持",
+      "source_manifestation_ids": [
+        "BM78"
+      ]
+    },
+    {
+      "type_id": "BT59",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "先要求补足差额并讨论，仍未补足时让步离开",
+      "psychological_function": "先争取补足差额，之后让步离开",
+      "source_manifestation_ids": [
+        "BM79"
+      ]
+    },
+    {
+      "type_id": "BT60",
+      "family_id": "CEF05",
+      "direction": "low",
+      "description": "先要求补足差额并讨论，未解决时继续向更高层级提出要求",
+      "psychological_function": "初步要求未果后向更高层级争取补足",
+      "source_manifestation_ids": [
+        "BM80"
+      ]
+    },
+    {
+      "type_id": "BT61",
+      "family_id": "CEF03",
+      "direction": "high",
+      "description": "接受多数人的活动偏好，继续参与自己不喜欢的活动而不抱怨",
+      "psychological_function": "接受多数安排",
+      "source_manifestation_ids": [
+        "BM81"
+      ]
+    },
+    {
+      "type_id": "BT62",
+      "family_id": "CEF03",
+      "direction": "high",
+      "description": "继续参与多数人选择的活动，同时表达不满",
+      "psychological_function": "接受共同安排但表达异议",
+      "source_manifestation_ids": [
+        "BM82"
+      ]
+    },
+    {
+      "type_id": "BT63",
+      "family_id": "CEF03",
+      "direction": "low",
+      "description": "暂时等待后再次尝试说服他人改变共同活动",
+      "psychological_function": "继续争取改变群体安排",
+      "source_manifestation_ids": [
+        "BM83"
+      ]
+    },
+    {
+      "type_id": "BT64",
+      "family_id": "CEF03",
+      "direction": "low",
+      "description": "退出自己不喜欢的共同活动，转而做其他事情",
+      "psychological_function": "改变自身参与安排",
+      "source_manifestation_ids": [
+        "BM84"
+      ]
+    }
+  ],
+  "review_notes": {
+    "review_basis": "本轮核对stage3_behavior_bank.json、修订后的Stage 2及docs/mussel_zh.json中的中文原题；未核对德文原题与作者原始评分键。",
+    "direction_convention": "高低标记保留上游构念方向，但不是作者正式评分的核定结果。不能仅凭礼貌、合理性、退出、协助或一次让步直接确定特质方向。",
+    "psychological_function_convention": "仅概括行为与交涉、让步、参与或修复的直接关系。未由原题明确提供的惩罚、压抑反感、自我牺牲、恢复公平感、降低敌意和阻止索取等动机不作为确定事实。",
+    "abstraction_convention": "去掉酒店、电影、银行等具体载体，保留角色关系、顺序、条件与不同表达方式。或、部分行为表示来源中的不同表现，不要求所有行为成分同时出现。",
+    "source_corrections": {
+      "BT01/BM01": "原题01-A为尽量不集中注意，而非证明已成功忽视。",
+      "BT05/BM07": "原题08-C写必要时报警，没有明确先向邻居威胁；类型依据原题纠正上游威胁表述，未改写原BM。",
+      "BT20/BM65": "11中不喜欢同事不等于明确不情愿见面；接受邀约的动机未被唯一确定。",
+      "BT22/BM67": "11-C仅表示忙碌，未证明理由虚假，不能确定为借口。",
+      "BT44/BM62": "21-D明确写威胁更换银行，可保留该交涉表达；不能据此把其他法律行动或投诉统一写成威胁。"
+    },
+    "process_splits": [
+      "BT03与BT32分别记录干扰中尝试休息、等待安静后再休息；BT04与BT33区分直接投诉和公开喊话。",
+      "BT09与BT35区分坚持争论与事后再表达且不道歉；BT07与BT34保留不同道歉背景。",
+      "BT13与BT36区分明确轮流条件与未来期待；BT15与BT37区分直接退出与交涉后退出。",
+      "BT24、BT38、BT39分别保留接受条件、接受后停止光顾、因既往信任而接受；BT25与BT40区分询问和表达不满。",
+      "BT28与BT41区分提出诉求和明确持续到满意；BT29、BT42、BT43、BT44区分法律行动、可能行动、上级投诉及明确威胁更换服务方。",
+      "BT30与BT45区分退出购买和先投诉、再付款、再停止未来合作。"
+    ],
+    "restored_sources": "补入10、12、13、15、19的20条BM，按Stage 2分别归入CEF02、CEF05或CEF03；不因原先被排除就丢失原题差异。",
+    "deferred_manifestations": {
+      "BM37": "05-A，原题保留；道路让行与顺从方向待核，Stage 2暂未归族。",
+      "BM38": "05-B，原题保留；让行时机及上游安全间隙表述待原文核对。",
+      "BM41": "05-C，原题保留；故意激怒与驾驶处置解释待核。",
+      "BM42": "05-D，原题保留；继续原行为不能自动解释为无视或对抗，待核。",
+      "BM85": "20-A，原题保留；权力压力、私人安排与构念解释待核。",
+      "BM86": "20-B，原题保留；部分接受与推迟私人安排的含义待核。",
+      "BM87": "20-C，原题保留；拒绝并提前离开表达异议的方向待核。",
+      "BM88": "20-D，原题保留；拒绝加班并赴约的构念方向待核。"
+    },
+    "remaining_limits": [
+      "03的Stage 1曾有方向冲突；本文件按Stage 3及本轮构念解释保留让步为理论高极，正式评分仍待核。",
+      "07退换条款译文未核定，不对补偿或法律行动的正当性作事实断言。",
+      "15-C既坚持又让步，BT59暂保留上游low标记，不能用最后离开这一个动作重新推断正式计分。",
+      "11-C可能反映真实忙碌，13的协助可能反映服务规范或利他，19的参与选择可能反映从众或社交偏好。",
+      "所有非待核BM均被引用一次，并不表示上游已经完整保留了原题每个选项的全部心理内容。"
+    ],
+    "type_review_boundaries": {
+      "BT07": "主动发起互动修复，不预设改变原观点",
+      "BT11": "让出当前机会或安排，不推定统一的牺牲动机",
+      "BT14": "尝试形成折中，不预设已获得双方同意",
+      "BT16": "继续争取个人安排，不推定没有恐惧或关系顾虑",
+      "BT19": "不主动让出争夺位置，不推定自己已有优势",
+      "BT20": "接受与不喜欢对象的接触，不预设不情愿或关系维护动机",
+      "BT21": "提供共同活动的机会，不预设长期纳入社交圈",
+      "BT22": "间接表达无法接受邀约，不判定理由是否虚假",
+      "BT24": "接受当前结果，未进一步坚持改变条件",
+      "BT25": "询问信息后接受条件，不等于表达不满",
+      "BT26": "配合时间限制，不统一推定是为了避免对抗",
+      "BT27": "通过原对接者寻求方案，不预设协商成功",
+      "BT28": "提出并坚持具体诉求，不预设持续到完全满意",
+      "BT29": "采取进一步争议处理行动，不等同于只作威胁",
+      "BT30": "退出当前交易选择，不额外推定惩罚动机",
+      "BT33": "公开提出停止要求，保留表达强度差异",
+      "BT34": "以道歉和接近尝试缓和，不预设认同对方观点",
+      "BT36": "让步并保留未来期待，不视为已提出或达成的条件",
+      "BT37": "在初步交涉之后让步，保留行动先后过程",
+      "BT38": "接受当前结果，同时减少未来交易，不省略先接受的过程",
+      "BT39": "接受当前方案，保留既往信任这一明确理由",
+      "BT41": "持续坚持诉求，保留原选项明确的满意终点",
+      "BT50": "表达缺点后接受方案，区别于完全不指出问题",
+      "BT52": "以否定性的评价反对提议，区别于仅作有论据的反提议",
+      "BT53": "提供解决帮助，利他或服务规范等解释仍需保留",
+      "BT54": "提供问题解决说明，不推定没有纠正错误",
+      "BT55": "明确指出对方行为问题，不统一解释为攻击或失礼",
+      "BT56": "明确说明责任范围，不推定属于推卸责任",
+      "BT57": "不进一步追讨，不预设金额大小或不存在不满",
+      "BT58": "询问后不继续坚持，区别于未询问即接受",
+      "BT59": "保留先追讨、后退让的过程；特质计分仍待核对",
+      "BT60": "在初步追讨未果后升级诉求",
+      "BT61": "接受多数安排，不直接等同于赞同活动内容",
+      "BT62": "接受共同安排但表达异议，保留两个行为成分",
+      "BT64": "改变自身参与安排，不预设升级争论或减少冲突的动机"
+    },
+    "source_specific_formulations": {
+      "BT53": "面对因自身错误来投诉的对象，仍提供帮助及进一步协助",
+      "BT57": "发现收到的款项不足后，不再采取追讨行动",
+      "BT59": "先要求补足款项并讨论，仍未得到补足时让步离开",
+      "BT60": "先要求补足款项并讨论，未解决时继续向上级提出要求"
+    },
+    "field_review_convention": {
+      "review_date": "2026-11-02",
+      "description": "去掉不决定行为差异的原题场景词，保留有证据的顺序、参与范围、注意状态、条件与明确感受；抽象化不是新增领域的实证支持。",
+      "psychological_function": "只陈述来源明确的意图或动作直接产生的互动作用，不补写成功结果及潜在动机；纯感受记录无明确行为功能时标未明示。",
+      "type_review_boundaries": "原字段中的审阅限制移到本项，仍须与类型及族边界一起阅读；不能因移出字段就视为问题已获计分核定。",
+      "source_specific_formulations": "保留本次抽象前的具体表述供来源对照；可用类型以behavior_types中的当前表述为准。",
+      "unchanged_references": "本次保留全部类型编号、族归属、方向及BM引用。待核行为未恢复为可用类型。"
+    }
+  }
+}

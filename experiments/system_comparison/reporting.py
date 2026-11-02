@@ -137,6 +137,9 @@ def _abc_item_summaries(rows, items_by_form, c_final):
                 "target_rho",
                 "same_domain_vts",
                 "cross_domain_vts",
+                "target_hedges_g",
+                "target_ipip_spearman_rho",
+                "discriminant_delta_min",
             ):
                 mean, middle = _finite_summary(item_rows, column)
                 summary[f"{column}_mean"] = mean
@@ -171,90 +174,6 @@ def _abc_form_summaries(rows, c_final):
             )
         summaries.append(summary)
     return summaries
-
-
-def _abc_q_bar_chart(rows):
-    valid_values = [
-        row.get("q")
-        for row in rows
-        if isinstance(row.get("q"), (int, float))
-        and not isinstance(row.get("q"), bool)
-        and math.isfinite(row["q"])
-    ]
-    if not valid_values:
-        return "<p>整卷总体质量Q：尚无可绘制数据。</p>"
-
-    span = max(valid_values) - min(valid_values)
-    padding = max(0.01, span * 0.25)
-    low = max(0.0, min(valid_values) - padding)
-    high = min(1.0, max(valid_values) + padding)
-    if high <= low:
-        low = max(0.0, min(valid_values) - 0.05)
-        high = min(1.0, max(valid_values) + 0.05)
-
-    x_positions = {"A": 160.0, "B": 385.0, "C": 610.0}
-    colors = {"A": "#8a9a91", "B": "#c7924b", "C": "#266451"}
-    chart_top, chart_bottom = 55.0, 225.0
-    baseline = next(
-        (
-            row.get("q")
-            for row in rows
-            if row.get("method") == "A"
-            and isinstance(row.get("q"), (int, float))
-            and not isinstance(row.get("q"), bool)
-            and math.isfinite(row["q"])
-        ),
-        None,
-    )
-    content = []
-    for row in rows:
-        method = row["method"]
-        x = x_positions[method]
-        value = row.get("q")
-        content.append(
-            f'<text x="{x:.1f}" y="252" text-anchor="middle" font-size="13">{method}</text>'
-        )
-        if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value):
-            content.append(
-                f'<text x="{x:.1f}" y="145" text-anchor="middle" font-size="12" fill="#777">待评估</text>'
-            )
-            continue
-        y = chart_bottom - (value - low) / (high - low) * (chart_bottom - chart_top)
-        height = chart_bottom - y
-        if method == "A":
-            accessible_label = f"A 基线: {value:.3f}"
-            delta_label = "基线"
-        elif baseline is None:
-            accessible_label = f"{method}: {value:.3f}"
-            delta_label = "缺少A基线"
-        else:
-            delta = value - baseline
-            accessible_label = f"{method}: {value:.3f}（较A {delta:+.3f}）"
-            delta_label = f"较A {delta:+.3f}"
-        content.append(
-            f'<rect x="{x - 50:.1f}" y="{y:.1f}" width="100" height="{height:.1f}" '
-            f'fill="{colors[method]}" opacity="0.9"><title>{accessible_label}</title></rect>'
-        )
-        content.append(
-            f'<text x="{x:.1f}" y="{max(chart_top - 5, y - 8):.1f}" text-anchor="middle" '
-            f'font-size="13" font-weight="bold">{value:.3f}</text>'
-        )
-        content.append(
-            f'<text x="{x:.1f}" y="273" text-anchor="middle" font-size="12" '
-            f'fill="#4f5e57">{delta_label}</text>'
-        )
-
-    warning = "纵轴截断：柱高从所示下限起算" if low > 0 else "纵轴从0开始"
-    return (
-        '<svg viewBox="0 0 770 300" role="img" aria-label="整卷总体质量Q放大柱状图">'
-        '<text x="20" y="24">整卷总体质量Q（放大尺度）</text>'
-        f'<text x="750" y="24" text-anchor="end" font-size="12" fill="#a24b32">{warning}</text>'
-        f'<path d="M65 {chart_top:.0f} V{chart_bottom:.0f} H720" fill="none" stroke="#aaa"/>'
-        f'<text x="8" y="{chart_top + 5:.0f}" font-size="11">{high:.3f}</text>'
-        f'<text x="8" y="{chart_bottom:.0f}" font-size="11">{low:.3f}</text>'
-        + "".join(content)
-        + "</svg>"
-    )
 
 
 def _abc_chart(rows, mean_column, label, median_column=None, bounded=False):
@@ -441,7 +360,7 @@ def write_report(store):
         ("target_rho_mean", "target_rho_median", "目标ρ", False),
         ("same_domain_vts_mean", "same_domain_vts_median", "同域VTS", False),
         ("cross_domain_vts_mean", "cross_domain_vts_median", "跨域VTS", False),
-        ("qualification_rate", None, "四门槛通过率", True),
+        ("qualification_rate", None, "七项门槛通过率", True),
     ):
         html.append(_abc_chart(abc_item_rows, mean_column, label, median_column, bounded))
     html += [
@@ -454,12 +373,14 @@ def write_report(store):
                                     ("cumulative_tokens", "C新增累计Token（不含共享开发与独立评估）", False),
                                     ("cumulative_wall_seconds", "C新增累计运行秒数（含人工等待）", False)):
         html.append(_chart(iteration_rows, column, label, bounded))
-    html += ['<h2>每道题的四项指标</h2>',
+    html += ['<h2>每道题的七项指标</h2>',
              _table(item_rows, [("method", "方法"), ("round", "轮次"), ("item_id", "题号"), ("item_version", "版本"),
                                 ("citc", "CITC"), ("target_rho", "目标ρ"), ("same_domain_vts", "同域VTS"),
-                                ("cross_domain_vts", "跨域VTS"), ("qualified", "四门槛通过"), ("failed_gates", "未通过门槛")]),
+                                ("cross_domain_vts", "跨域VTS"), ("target_hedges_g", "单题Hedges'g"),
+                                ("target_ipip_spearman_rho", "单题IPIP rho_s"), ("discriminant_delta_min", "单题Δmin"),
+                                ("qualified", "七项门槛通过"), ("failed_gates", "未通过门槛")]),
              '<p>各轮evaluation/item_metrics.csv包含阈值、可估计状态与非目标相关；option_statistics.csv记录选项人数及比例。</p>',
-             '<details><summary>指标口径与含义</summary><p>CITC：目标条件中单题分数与同facet其余题总分的Pearson相关；单题目标ρ和VTS仍按原单题规则计算。</p>',
+             '<details><summary>指标口径与含义</summary><p>CITC：目标条件中单题分数与同facet其余题总分的Pearson相关；单题目标ρ、VTS及新增的IPIP Hedges\' g、目标IPIP Spearman rho和Δmin共同构成七项单题门槛。</p>',
              '<p>整卷Cronbach α用于内部一致性门槛；ICC衡量同一虚拟人格重复施测时的整卷总分一致性。目标IPIP相关是聚合效度；Δmin=目标IPIP相关−四个非目标IPIP相关绝对值中的最大值，用于区分效度保护；目标Hedges’ g是IPIP目标facet高低组的已知组效度效应量。</p>',
              '<p>新流程要求α≥0.80、ICC≥0.80；组卷主要提高目标Hedges’ g，且目标IPIP相关最多下降0.02、Δmin不得下降。旧版虚拟综合指标仅保留在历史数据中，不参与新流程选卷。</p></details>',
              '<h2>方法端到端开发成本</h2><p>B/C分别计入共享题库及理论组卷成本；真实账单应求和下方阶段表，不能将B/C端到端费用相加。</p>',

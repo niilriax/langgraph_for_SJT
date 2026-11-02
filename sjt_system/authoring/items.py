@@ -14,6 +14,7 @@ from sjt_system.authoring.context import (
 )
 from sjt_system.runtime.trace import utc_timestamp
 from sjt_system.config import PSJT_OPTION_COUNT, PSJT_RESPONSE_INSTRUCTION
+from sjt_system.workflow.replacement_policy import replacement_quota_unlimited
 
 
 ITEM_AGENT_OUTPUT_FIELDS: dict[str, set[str]] = {
@@ -664,6 +665,17 @@ def validate_item_agent_update(
         dimension_id = item.get("target_dimension_id")
         if not isinstance(dimension_id, str) or not dimension_id.strip():
             raise ValueError(f"{action} 缺少有效 target_dimension_id")
+        from sjt_system.authoring.diversity import option_style_problems, scenario_style_problems
+        style_problems = scenario_style_problems(item.get("scenario"))
+        option_texts = [row.get("text") for row in item.get("response_options") or [] if isinstance(row, dict)]
+        if not (previous_item is not None and [row.get("text") for row in previous_item.get("response_options") or []
+                                                if isinstance(row, dict)] == option_texts):
+            style_problems += option_style_problems(option_texts)
+        if style_problems and not (
+            previous_item is not None
+            and str(previous_item.get("scenario") or "") == str(item.get("scenario") or "")
+        ):
+            raise ValueError(f"{action} 的情境写法不自然：" + "；".join(style_problems))
         expected_dimension_id = (
             blueprint_cell.get("facet_id")
             if blueprint_cell
@@ -997,9 +1009,9 @@ def next_step_after_review(state: PSJTState) -> str:
     if decision == "REJECT":
         if isinstance(state.get("active_psychometric_repair"), Mapping):
             return "abandon"
-        if int(state.get("current_item_replacement_count") or 0) < int(
-            state.get("max_item_replacement_attempts") or 2
-        ):
+        if replacement_quota_unlimited(state) or int(
+            state.get("current_item_replacement_count") or 0
+        ) < int(state.get("max_item_replacement_attempts") or 0):
             return "revise"
         return "abandon"
     return {
@@ -1088,8 +1100,18 @@ def build_review_transition_update(
 def build_accept_item_update(state: PSJTState) -> dict[str, Any]:
     """把通过审查的当前题目移入候选题库。"""
 
+    from sjt_system.evaluation.virtual_content_review import is_enabled, EVIDENCE_SCOPE
+    initial_admission = is_enabled(state) and state.get("initial_candidate_admission") is True
+    if initial_admission:
+        if int(state.get("psychometric_analysis_round") or 0) != 0 or state.get("active_psychometric_repair"):
+            raise ValueError("initial admission cannot bypass post-measurement content investigation")
+        validate_item_agent_update(
+            "generate_item", {"current_item": state.get("current_item")},
+            specification=state.get("test_specification"), blueprint_cell=state.get("current_blueprint_cell"),
+            item_specification=state.get("current_item_specification"),
+        )
     unified_review = state.get("current_item_review")
-    if not isinstance(unified_review, dict) or derive_item_review_decision(
+    if not initial_admission and (not isinstance(unified_review, dict) or derive_item_review_decision(
         unified_review,
         repair_attempted=bool(state.get("current_item_repair_attempted")),
         repair_attempt_count=int(
@@ -1100,7 +1122,7 @@ def build_accept_item_update(state: PSJTState) -> dict[str, Any]:
         ),
         rewrite_count=int(state.get("current_item_rewrite_count") or 0),
         max_rewrite_rounds=int(state.get("max_item_rewrite_rounds") or 3),
-    ) != "PASS":
+    ) != "PASS"):
         raise ValueError("只有 PASS 题目可以进入 item_pool")
 
     item_id, cell_id = get_current_item_identity(state)
@@ -1133,7 +1155,17 @@ def build_accept_item_update(state: PSJTState) -> dict[str, Any]:
         ),
         None,
     )
-    if existing_index is not None and not is_psychometric_repair:
+    lineage = state.get("item_lineage") or {}
+    item_lineage = lineage.get(item_id) if isinstance(lineage, Mapping) else None
+    is_replacement_commit = (
+        not is_psychometric_repair
+        and existing_index is not None
+        and isinstance(item_lineage, Mapping)
+        and int(item_lineage.get("replacement_number") or 0) > 0
+    )
+    if existing_index is not None and not (
+        is_psychometric_repair or is_replacement_commit
+    ):
         raise ValueError(f"item_pool 已存在题目 {item_id!r}")
 
     profile = build_item_pattern_profile(
@@ -1144,10 +1176,12 @@ def build_accept_item_update(state: PSJTState) -> dict[str, Any]:
     profiles[item_id] = profile
     context_usage = dict(state.get("context_usage", {}))
     category = profile["context_category"]
-    if not is_psychometric_repair:
+    if not is_psychometric_repair and not is_replacement_commit:
         context_usage[category] = context_usage.get(category, 0) + 1
     item_pool = [deepcopy(item) for item in state["item_pool"]]
-    if is_psychometric_repair and existing_index is not None:
+    if existing_index is not None and (
+        is_psychometric_repair or is_replacement_commit
+    ):
         item_pool[existing_index] = deepcopy(state["current_item"])
     else:
         item_pool.append(deepcopy(state["current_item"]))
@@ -1175,14 +1209,16 @@ def build_accept_item_update(state: PSJTState) -> dict[str, Any]:
         "item_history": _append_history(
             state,
             item_id,
-            _review_history(state),
+            ({"event": "initial_candidate_admitted", "item": deepcopy(state["current_item"]),
+              "content_status": "not_evaluated", "evidence_scope": EVIDENCE_SCOPE}
+             if initial_admission else _review_history(state)),
         ),
         "blueprint_progress": (
             {
                 key: dict(value)
                 for key, value in state["blueprint_progress"].items()
             }
-            if is_psychometric_repair
+            if is_psychometric_repair or is_replacement_commit
             else _increment_progress(
                 state,
                 cell_id,
@@ -1190,6 +1226,13 @@ def build_accept_item_update(state: PSJTState) -> dict[str, Any]:
             )
         ),
     }
+    if initial_admission:
+        update["initial_candidate_admission"] = False
+        update["item_content_evidence"] = {
+            **deepcopy(state.get("item_content_evidence") or {}),
+            item_id: {"status": "not_evaluated", "item_version": state["current_item"]["version"],
+                      "last_reviewed_version": None, "evidence_scope": EVIDENCE_SCOPE},
+        }
     if not is_psychometric_repair:
         return update
 
@@ -1286,139 +1329,3 @@ def build_accept_item_update(state: PSJTState) -> dict[str, Any]:
     return update
 
 
-def build_abandon_item_update(state: PSJTState) -> dict[str, Any]:
-    """达到重新生成上限后放弃当前题目。"""
-
-    item_id, cell_id = get_current_item_identity(state)
-    active_repair = state.get("active_psychometric_repair")
-    is_psychometric_repair = (
-        isinstance(active_repair, dict)
-        and active_repair.get("item_id") == item_id
-    )
-    if is_psychometric_repair:
-        remaining_revise = [
-            deepcopy(entry)
-            for entry in state.get("items_to_revise") or []
-            if isinstance(entry, dict) and entry.get("item_id") != item_id
-        ]
-        remaining_regenerate = [
-            deepcopy(entry)
-            for entry in state.get("items_to_regenerate") or []
-            if isinstance(entry, dict) and entry.get("item_id") != item_id
-        ]
-        rounds = dict(state.get("psychometric_repair_rounds") or {})
-        repair_history = deepcopy(
-            state.get("psychometric_repair_history") or []
-        )
-        repair_history.append(
-            {
-                "event": "psychometric_item_repair_candidate_rejected",
-                "recorded_at": utc_timestamp(),
-                "item_id": item_id,
-                "revision_round": int(active_repair.get("revision_round") or 1),
-                "action": active_repair.get("action"),
-                "baseline_metrics": deepcopy(
-                    active_repair.get("baseline_metrics") or {}
-                ),
-                "rejected_candidate": deepcopy(state.get("current_item")),
-                "reason": (
-                    state.get("current_item_repair_failure")
-                    or (state.get("current_item_review") or {}).get("summary")
-                    or "返修候选未通过内容审查"
-                ),
-            }
-        )
-        # A failed repair candidate was never committed to item_pool. Keep the
-        # last accepted version and its responses/statistics intact, then let
-        # selection decide whether another bounded repair round is warranted.
-        return {
-            "current_item": None,
-            "current_item_specification": None,
-            "current_blueprint_cell": None,
-            "current_item_review": None,
-            "review_process_status": "not_started",
-            "item_content_status": "not_evaluated",
-            "current_review_request_id": None,
-            "current_review_item_id": None,
-            "current_review_item_version": None,
-            "current_review_retry_count": 0,
-            "current_item_repair_attempted": False,
-            "current_item_repair_failure": None,
-            "current_item_revision_count": 0,
-            "current_item_rewrite_count": 0,
-            "current_item_replacement_count": 0,
-            "current_skeleton_repair_required": False,
-            "active_psychometric_repair": None,
-            "psychometric_repair_confirmation": None,
-            "items_to_revise": remaining_revise,
-            "items_to_regenerate": remaining_regenerate,
-            "items_deferred_for_revision": [],
-            "psychometric_repair_rounds": rounds,
-            "psychometric_repair_history": repair_history,
-            "item_history": _append_history(
-                state,
-                item_id,
-                _review_history(state),
-            ),
-            "selected_items": [],
-            "reserve_items": [],
-            "selection_reasons": {},
-            "selection_results": None,
-            "blueprint_coverage": None,
-            "assembled_test": None,
-            "test_review_result": None,
-            "final_test": None,
-            "item_database_ref": None,
-            "technical_report": None,
-            "virtual_respondent_report": None,
-        }
-    rejected_items = [
-        deepcopy(item) for item in state["rejected_items"]
-    ]
-    duplicate_index = next(
-        (
-            index
-            for index, item in enumerate(rejected_items)
-            if item.get("item_id") == item_id
-        ),
-        None,
-    )
-    if duplicate_index is None:
-        rejected_items.append(deepcopy(state["current_item"]))
-    else:
-        # Older checkpoints could contain a model-supplied duplicate item_id.
-        # Keep the latest rejected candidate under that identity; full version
-        # history remains available in item_history.
-        rejected_items[duplicate_index] = deepcopy(state["current_item"])
-
-    progress = _increment_progress(
-        state,
-        cell_id,
-        "rejected",
-    )
-    update = {
-        "current_item": None,
-        "current_item_specification": None,
-        "current_blueprint_cell": None,
-        "current_item_review": None,
-        "review_process_status": "not_started",
-        "item_content_status": "not_evaluated",
-        "current_review_request_id": None,
-        "current_review_item_id": None,
-        "current_review_item_version": None,
-        "current_review_retry_count": 0,
-        "current_item_repair_attempted": False,
-        "current_item_repair_failure": None,
-        "current_item_revision_count": 0,
-        "current_item_rewrite_count": 0,
-        "current_item_replacement_count": 0,
-        "current_skeleton_repair_required": False,
-        "rejected_items": rejected_items,
-        "item_history": _append_history(
-            state,
-            item_id,
-            _review_history(state),
-        ),
-        "blueprint_progress": progress,
-    }
-    return update

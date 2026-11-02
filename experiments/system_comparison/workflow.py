@@ -22,7 +22,7 @@ class ExperimentPaused(Exception):
 
 def initial_workflow_state(store):
     config = store.config
-    state = create_initial_state("独立A/B/C实验：开发共享候选题库", max_steps=10000)
+    state = create_initial_state("独立A/B/C实验：开发共享候选题库")
     profile = store.read("shared/construct_profile.json")
     specification = {"construct_selection": construct_selection_from_profile(profile),
                      "target_population": config.target_population,
@@ -117,7 +117,7 @@ async def drive_workflow(store, phase, state, *, decision_provider=None, graph_f
     checkpoint_key = "shared" if phase == "shared" else "C"
     with DiskSaver(store.path(f"{checkpoint_key}/graph.sqlite")) as saver:
         graph = (graph_factory or build_sjt_graph)(checkpointer=saver, interrupt_before=["execute"])
-        cfg = {"configurable": {"thread_id": state["run_id"]}, "recursion_limit": 10000}
+        cfg = {"configurable": {"thread_id": state["run_id"]}}
         snapshot = await graph.aget_state(cfg)
         if snapshot.values and snapshot.values.get("status") == "failed":
             # Only a NEW resume invocation retries. Never loop on a failure
@@ -220,8 +220,8 @@ async def drive_workflow(store, phase, state, *, decision_provider=None, graph_f
 def freeze_shared(store, state):
     state = deepcopy(state)
     state.update(build_item_bank_freeze_update(state))
-    if len(state["frozen_item_bank"]) != store.config.final_item_count * 2:
-        raise ValueError("共享候选题库不足2倍题量；保存断点后人工处理")
+    if len(state["frozen_item_bank"]) != store.config.final_item_count:
+        raise ValueError("共享候选题库题量与最终题量不一致；保存断点后人工处理")
     store.write("shared/blueprint.json", state["blueprint"])
     store.write("shared/initial_bank.json", state["frozen_item_bank"])
     store.write("shared/frozen_state.json", state)
